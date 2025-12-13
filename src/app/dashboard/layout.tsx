@@ -31,7 +31,7 @@ export default function DashboardLayout({
   };
 
   return (
-    <div className="bg-background min-h-screen pb-20 md:pb-0">
+    <div className="bg-background min-h-screen pb-24 md:pb-0">
       {/* Desktop Header */}
       <header className="bg-background/95 supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50 hidden border-b backdrop-blur md:block">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">

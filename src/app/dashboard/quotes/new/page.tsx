@@ -431,7 +431,7 @@ export default function NewQuotePage() {
               <Button
                 onClick={generateWithAI}
                 disabled={!aiDescription.trim() || isGeneratingAI}
-                className="w-full sm:w-auto"
+                className="w-full h-12 text-base"
               >
                 {isGeneratingAI ? (
                   <>
@@ -480,10 +480,10 @@ export default function NewQuotePage() {
 
         {/* Boutons d'action */}
         <div className="flex flex-col sm:flex-row gap-3 pb-24">
-          <Button variant="outline" className="flex-1" onClick={() => router.back()}>
+          <Button variant="outline" className="w-full sm:flex-1 h-12 text-base" onClick={() => router.back()}>
             Annuler
           </Button>
-          <Button className="flex-1" onClick={handleSubmit} disabled={isLoading}>
+          <Button className="w-full sm:flex-1 h-12 text-base" onClick={handleSubmit} disabled={isLoading}>
             {isLoading ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />

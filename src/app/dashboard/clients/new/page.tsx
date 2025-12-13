@@ -188,16 +188,16 @@ export default function NewClientPage() {
               />
             </div>
 
-            <div className="flex gap-4">
+            <div className="flex flex-col sm:flex-row gap-3 pt-4">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => router.back()}
-                className="flex-1"
+                className="w-full sm:flex-1 h-12 text-base"
               >
                 Annuler
               </Button>
-              <Button type="submit" disabled={isLoading} className="flex-1">
+              <Button type="submit" disabled={isLoading} className="w-full sm:flex-1 h-12 text-base">
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Créer le client
               </Button>
