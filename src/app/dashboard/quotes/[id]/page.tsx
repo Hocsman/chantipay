@@ -302,86 +302,118 @@ export default function QuoteDetailPage() {
         </Card>
 
         {/* Acompte */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <CreditCard className="h-5 w-5" />
-              Acompte
-            </CardTitle>
-            <CardDescription>
+        <Card className={`border-2 ${mockQuote.deposit_status === 'paid' ? 'border-green-500' : 'border-orange-300'}`}>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <CreditCard className="h-5 w-5" />
+                Acompte
+              </CardTitle>
               {mockQuote.deposit_status === 'paid' ? (
-                <span className="text-green-600 flex items-center gap-1">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-semibold bg-green-100 text-green-800">
                   <Check className="h-4 w-4" />
-                  Acompte reçu
+                  Payé
                 </span>
               ) : (
-                'En attente de paiement'
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-orange-100 text-orange-800">
+                  En attente
+                </span>
               )}
-            </CardDescription>
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-2xl font-bold text-primary">
-                  {formatCurrency(mockQuote.deposit_amount)}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  {Math.round((mockQuote.deposit_amount / totalTTC) * 100)}% du total
-                </p>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-3xl font-bold text-primary">
+                    {formatCurrency(mockQuote.deposit_amount)}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {Math.round((mockQuote.deposit_amount / totalTTC) * 100)}% du total TTC
+                  </p>
+                </div>
               </div>
-              {mockQuote.status === 'signed' && mockQuote.deposit_status === 'pending' && (
-                <Button onClick={handleCreatePaymentLink} disabled={isCreatingPaymentLink}>
+              
+              {/* Bouton créer le lien - visible seulement si signé et pas encore payé */}
+              {(mockQuote.status === 'signed' || isSigned) && mockQuote.deposit_status === 'pending' && (
+                <Button 
+                  className="w-full h-12 text-base font-semibold" 
+                  onClick={handleCreatePaymentLink} 
+                  disabled={isCreatingPaymentLink}
+                >
                   {isCreatingPaymentLink ? (
                     <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Création...
+                      <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                      Création du lien...
                     </>
                   ) : (
                     <>
-                      <CreditCard className="h-4 w-4 mr-2" />
-                      Créer le lien
+                      <CreditCard className="h-5 w-5 mr-2" />
+                      Créer le lien de paiement
                     </>
                   )}
                 </Button>
+              )}
+              
+              {/* Message si pas encore signé */}
+              {mockQuote.status !== 'signed' && !isSigned && mockQuote.deposit_status === 'pending' && (
+                <div className="bg-muted/50 rounded-lg p-3 text-sm text-muted-foreground text-center">
+                  ⬆️ Le devis doit être signé avant de créer le lien de paiement
+                </div>
               )}
             </div>
           </CardContent>
         </Card>
 
-        {/* Signature */}
-        {mockQuote.signed_at || isSigned ? (
-          <Card className="border-green-200 bg-green-50">
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3 text-green-700">
-                <Check className="h-6 w-6" />
+        {/* Section Signature du devis */}
+        <Card className={`border-2 ${mockQuote.signed_at || isSigned ? 'border-green-500 bg-green-50' : 'border-primary'}`}>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <PenTool className="h-5 w-5" />
+              Signature du devis
+            </CardTitle>
+            <CardDescription>
+              {mockQuote.signed_at || isSigned 
+                ? 'Le client a accepté et signé ce devis'
+                : 'Faites signer le client pour valider le devis'
+              }
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {mockQuote.signed_at || isSigned ? (
+              <div className="flex items-center gap-4 p-4 bg-green-100 rounded-lg">
+                <div className="h-12 w-12 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0">
+                  <Check className="h-6 w-6 text-white" />
+                </div>
                 <div>
-                  <p className="font-medium">Devis signé</p>
-                  <p className="text-sm">
+                  <p className="font-semibold text-green-800 text-lg">Devis signé ✓</p>
+                  <p className="text-sm text-green-700">
                     {mockQuote.signed_at 
-                      ? `Le ${formatDate(mockQuote.signed_at)}`
-                      : `Le ${formatDate(new Date().toISOString())}`
+                      ? `Signé le ${formatDate(mockQuote.signed_at)}`
+                      : `Signé le ${formatDate(new Date().toISOString())}`
                     }
                   </p>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        ) : (
-          (mockQuote.status === 'draft' || mockQuote.status === 'sent') ? (
-            <Card>
-              <CardContent className="pt-6">
+            ) : (mockQuote.status === 'draft' || mockQuote.status === 'sent') ? (
+              <div className="space-y-4">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <p className="text-sm text-blue-800">
+                    📱 Passez le téléphone à votre client pour qu'il signe directement sur l'écran
+                  </p>
+                </div>
                 <Button
-                  className="w-full"
+                  className="w-full h-14 text-lg font-semibold"
                   size="lg"
                   onClick={() => setIsSignatureDialogOpen(true)}
                 >
-                  <PenTool className="h-4 w-4 mr-2" />
-                  Signer le devis
+                  <PenTool className="h-5 w-5 mr-3" />
+                  Signer sur ce téléphone
                 </Button>
-              </CardContent>
-            </Card>
-          ) : null
-        )}
+              </div>
+            ) : null}
+          </CardContent>
+        </Card>
 
         {/* Actions */}
         <div className="flex flex-col sm:flex-row gap-3 pb-24">
@@ -406,13 +438,13 @@ export default function QuoteDetailPage() {
         </div>
       </div>
 
-      {/* Dialog de signature */}
+      {/* Dialog de signature - plein écran sur mobile */}
       <Dialog open={isSignatureDialogOpen} onOpenChange={setIsSignatureDialogOpen}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Signature du devis</DialogTitle>
-            <DialogDescription>
-              Demandez à votre client de signer ci-dessous
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-hidden">
+          <DialogHeader className="pb-2">
+            <DialogTitle className="text-xl">✍️ Signature du client</DialogTitle>
+            <DialogDescription className="text-base">
+              <strong>{mockQuote.client.name}</strong>, veuillez signer ci-dessous pour accepter le devis <strong>{mockQuote.quote_number}</strong> d'un montant de <strong>{formatCurrency(totalTTC)}</strong>
             </DialogDescription>
           </DialogHeader>
           <SignaturePad
