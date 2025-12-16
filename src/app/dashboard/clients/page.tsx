@@ -1,3 +1,6 @@
+'use client'
+
+import { useState, useEffect } from 'react'
 import Link from 'next/link';
 import { LayoutContainer } from '@/components/LayoutContainer';
 import { PageHeader } from '@/components/PageHeader';
@@ -13,53 +16,45 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Plus, Search, ChevronRight } from 'lucide-react';
+import { Plus, Search, ChevronRight, Loader2 } from 'lucide-react';
 
-// Mock data for clients
-const clients = [
-  {
-    id: '1',
-    name: 'M. Jean Martin',
-    city: 'Paris',
-    phone: '06 12 34 56 78',
-    email: 'jean.martin@email.com',
-    last_quote_date: '2024-12-10',
-  },
-  {
-    id: '2',
-    name: 'Mme Sophie Dubois',
-    city: 'Lyon',
-    phone: '06 98 76 54 32',
-    email: 'sophie.dubois@email.com',
-    last_quote_date: '2024-12-05',
-  },
-  {
-    id: '3',
-    name: 'M. Pierre Bernard',
-    city: 'Marseille',
-    phone: '06 11 22 33 44',
-    email: 'p.bernard@email.com',
-    last_quote_date: '2024-11-28',
-  },
-  {
-    id: '4',
-    name: 'Mme Marie Laurent',
-    city: 'Toulouse',
-    phone: '06 55 66 77 88',
-    email: 'marie.laurent@email.com',
-    last_quote_date: '2024-11-20',
-  },
-  {
-    id: '5',
-    name: 'M. Thomas Moreau',
-    city: 'Bordeaux',
-    phone: '06 99 88 77 66',
-    email: 'thomas.moreau@email.com',
-    last_quote_date: null,
-  },
-];
+interface Client {
+  id: string
+  name: string
+  city?: string | null
+  phone?: string | null
+  email?: string | null
+  created_at: string
+}
 
 export default function ClientsPage() {
+  const [clients, setClients] = useState<Client[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [searchQuery, setSearchQuery] = useState('')
+
+  useEffect(() => {
+    async function loadClients() {
+      try {
+        const response = await fetch('/api/clients')
+        if (response.ok) {
+          const data = await response.json()
+          setClients(data.clients || [])
+        }
+      } catch (error) {
+        console.error('Erreur chargement clients:', error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    loadClients()
+  }, [])
+
+  // Filtrer les clients par recherche
+  const filteredClients = clients.filter(client =>
+    client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    client.city?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    client.email?.toLowerCase().includes(searchQuery.toLowerCase())
+  )
   return (
     <LayoutContainer>
       <PageHeader
@@ -81,24 +76,31 @@ export default function ClientsPage() {
           <Input
             placeholder="Rechercher un client..."
             className="pl-10"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
       </div>
 
+      {/* Loading state */}
+      {isLoading && (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      )}
+
       {/* Mobile List */}
+      {!isLoading && filteredClients.length > 0 && (
       <div className="space-y-3 md:hidden">
-        {clients.map((client) => (
+        {filteredClients.map((client) => (
           <Link key={client.id} href={`/dashboard/clients/${client.id}`}>
             <Card className="hover:bg-muted/50 transition-colors">
               <CardContent className="flex items-center justify-between p-4">
                 <div>
                   <p className="font-medium">{client.name}</p>
-                  <p className="text-muted-foreground text-sm">{client.city}</p>
-                  {client.last_quote_date && (
-                    <p className="text-muted-foreground text-xs">
-                      Dernier devis:{' '}
-                      {new Date(client.last_quote_date).toLocaleDateString('fr-FR')}
-                    </p>
+                  <p className="text-muted-foreground text-sm">{client.city || 'Pas de ville'}</p>
+                  {client.phone && (
+                    <p className="text-muted-foreground text-xs">{client.phone}</p>
                   )}
                 </div>
                 <ChevronRight className="text-muted-foreground h-5 w-5" />
@@ -107,8 +109,10 @@ export default function ClientsPage() {
           </Link>
         ))}
       </div>
+      )}
 
       {/* Desktop Table */}
+      {!isLoading && filteredClients.length > 0 && (
       <Card className="hidden md:block">
         <CardContent className="p-0">
           <Table>
@@ -118,12 +122,11 @@ export default function ClientsPage() {
                 <TableHead>Ville</TableHead>
                 <TableHead>Téléphone</TableHead>
                 <TableHead>Email</TableHead>
-                <TableHead>Dernier devis</TableHead>
                 <TableHead></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {clients.map((client) => (
+              {filteredClients.map((client) => (
                 <TableRow key={client.id}>
                   <TableCell className="font-medium">
                     <Link
@@ -133,14 +136,9 @@ export default function ClientsPage() {
                       {client.name}
                     </Link>
                   </TableCell>
-                  <TableCell>{client.city}</TableCell>
-                  <TableCell>{client.phone}</TableCell>
-                  <TableCell>{client.email}</TableCell>
-                  <TableCell>
-                    {client.last_quote_date
-                      ? new Date(client.last_quote_date).toLocaleDateString('fr-FR')
-                      : '-'}
-                  </TableCell>
+                  <TableCell>{client.city || '-'}</TableCell>
+                  <TableCell>{client.phone || '-'}</TableCell>
+                  <TableCell>{client.email || '-'}</TableCell>
                   <TableCell>
                     <Link href={`/dashboard/clients/${client.id}`}>
                       <Button variant="ghost" size="sm">
@@ -154,20 +152,26 @@ export default function ClientsPage() {
           </Table>
         </CardContent>
       </Card>
+      )}
 
       {/* Empty State */}
-      {clients.length === 0 && (
+      {!isLoading && filteredClients.length === 0 && (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <p className="text-muted-foreground mb-4 text-center">
-              Vous n&apos;avez pas encore de clients.
+              {clients.length === 0 
+                ? "Vous n'avez pas encore de clients."
+                : "Aucun client ne correspond à votre recherche."
+              }
             </p>
-            <Link href="/dashboard/clients/new">
-              <Button>
-                <Plus className="mr-2 h-4 w-4" />
-                Ajouter un client
-              </Button>
-            </Link>
+            {clients.length === 0 && (
+              <Link href="/dashboard/clients/new">
+                <Button>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Ajouter un client
+                </Button>
+              </Link>
+            )}
           </CardContent>
         </Card>
       )}

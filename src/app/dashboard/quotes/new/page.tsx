@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { PageHeader } from '@/components/PageHeader'
 import { LayoutContainer } from '@/components/LayoutContainer'
@@ -34,17 +34,19 @@ interface QuoteItem {
   vat_rate: number
 }
 
-// Clients de démonstration
-const mockClients = [
-  { id: '1', name: 'Jean Dupont' },
-  { id: '2', name: 'Marie Martin' },
-  { id: '3', name: 'Pierre Bernard' },
-]
+interface Client {
+  id: string
+  name: string
+  email?: string
+  phone?: string
+}
 
 export default function NewQuotePage() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [isGeneratingAI, setIsGeneratingAI] = useState(false)
+  const [isLoadingClients, setIsLoadingClients] = useState(true)
+  const [clients, setClients] = useState<Client[]>([])
   
   // État du formulaire
   const [selectedClientId, setSelectedClientId] = useState('')
@@ -54,6 +56,24 @@ export default function NewQuotePage() {
   const [items, setItems] = useState<QuoteItem[]>([
     { id: '1', description: '', quantity: 1, unit_price_ht: 0, vat_rate: 20 },
   ])
+
+  // Charger les clients au montage
+  useEffect(() => {
+    async function loadClients() {
+      try {
+        const response = await fetch('/api/clients')
+        if (response.ok) {
+          const data = await response.json()
+          setClients(data.clients || [])
+        }
+      } catch (error) {
+        console.error('Erreur chargement clients:', error)
+      } finally {
+        setIsLoadingClients(false)
+      }
+    }
+    loadClients()
+  }, [])
 
   const addItem = () => {
     const newItem: QuoteItem = {
@@ -164,25 +184,28 @@ export default function NewQuotePage() {
 
     setIsLoading(true)
     try {
-      // TODO: Appeler l'API pour créer le devis
-      // const response = await fetch('/api/quotes', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({
-      //     client_id: selectedClientId,
-      //     vat_rate: parseFloat(vatRate),
-      //     deposit_percent: parseFloat(depositPercent),
-      //     items,
-      //   }),
-      // })
-      // const data = await response.json()
-      // router.push(`/dashboard/quotes/${data.id}`)
+      const response = await fetch('/api/quotes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          client_id: selectedClientId,
+          vat_rate: parseFloat(vatRate),
+          deposit_percent: parseFloat(depositPercent),
+          items,
+        }),
+      })
 
-      // Simulation
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-      router.push('/dashboard/quotes/1')
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Erreur lors de la création du devis')
+      }
+
+      // Rediriger vers le devis créé
+      router.push(`/dashboard/quotes/${data.quote.id}`)
     } catch (error) {
       console.error('Erreur création devis:', error)
+      alert(error instanceof Error ? error.message : 'Erreur lors de la création du devis')
     } finally {
       setIsLoading(false)
     }
@@ -204,12 +227,12 @@ export default function NewQuotePage() {
           </CardHeader>
           <CardContent>
             <div className="flex gap-3">
-              <Select value={selectedClientId} onValueChange={setSelectedClientId}>
+              <Select value={selectedClientId} onValueChange={setSelectedClientId} disabled={isLoadingClients}>
                 <SelectTrigger className="flex-1">
-                  <SelectValue placeholder="Sélectionner un client" />
+                  <SelectValue placeholder={isLoadingClients ? "Chargement..." : clients.length === 0 ? "Aucun client - créez-en un" : "Sélectionner un client"} />
                 </SelectTrigger>
                 <SelectContent>
-                  {mockClients.map((client) => (
+                  {clients.map((client) => (
                     <SelectItem key={client.id} value={client.id}>
                       {client.name}
                     </SelectItem>

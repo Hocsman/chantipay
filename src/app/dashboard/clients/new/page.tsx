@@ -11,7 +11,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
-import { createClient } from '@/lib/supabase/client';
 
 export default function NewClientPage() {
   const router = useRouter();
@@ -41,29 +40,16 @@ export default function NewClientPage() {
     setError(null);
 
     try {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        setError('Vous devez être connecté pour créer un client.');
-        return;
-      }
+      const response = await fetch('/api/clients', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
 
-      const { error: insertError } = await supabase
-        .from('clients')
-        .insert({
-          user_id: user.id,
-          name: formData.name,
-          email: formData.email || null,
-          phone: formData.phone || null,
-          address_line1: formData.address_line1 || null,
-          postal_code: formData.postal_code || null,
-          city: formData.city || null,
-          notes: formData.notes || null,
-        });
+      const data = await response.json();
 
-      if (insertError) {
-        setError(insertError.message);
+      if (!response.ok) {
+        setError(data.error || 'Erreur lors de la création du client');
         return;
       }
 
