@@ -28,6 +28,7 @@ export async function GET(
     }
 
     // Récupérer le devis avec les infos client
+    // Note: RLS policies filtrent déjà par user_id, pas besoin de double filtre
     const { data: quote, error: quoteError } = await supabase
       .from('quotes')
       .select(`
@@ -44,7 +45,6 @@ export async function GET(
         )
       `)
       .eq('id', id)
-      .eq('user_id', user.id)
       .single()
 
     console.log('Quote query result:', { 
@@ -55,23 +55,21 @@ export async function GET(
     })
 
     if (quoteError || !quote) {
-      // Debug: essayer de voir si le devis existe du tout
-      const { data: anyQuote, error: anyError } = await supabase
-        .from('quotes')
-        .select('id, user_id')
-        .eq('id', id)
-        .single()
+      console.error('Erreur récupération devis:', quoteError?.message, 'Code:', quoteError?.code)
       
-      console.log('Debug - Quote without user filter:', { 
-        found: !!anyQuote, 
-        quoteUserId: anyQuote?.user_id,
+      // Debug info plus détaillée
+      const debugInfo = {
+        requestedId: id,
         currentUserId: user.id,
-        error: anyError?.message
-      })
+        errorMessage: quoteError?.message,
+        errorCode: quoteError?.code,
+        hint: 'Le devis existe peut-être mais appartient à un autre utilisateur, ou les RLS policies bloquent'
+      }
       
-      console.error('Erreur récupération devis:', quoteError)
+      console.log('Debug info:', JSON.stringify(debugInfo))
+      
       return NextResponse.json(
-        { error: 'Devis non trouvé', debug: { quoteExists: !!anyQuote, quoteUserId: anyQuote?.user_id, currentUserId: user.id } },
+        { error: 'Devis non trouvé', debug: debugInfo },
         { status: 404 }
       )
     }
