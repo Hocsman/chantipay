@@ -13,9 +13,13 @@ export async function GET(
     const { id } = await params
     const supabase = await createClient()
 
+    console.log('API /api/quotes/[id] - Fetching quote ID:', id)
+
     // Vérifier l'authentification
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     
+    console.log('Auth result:', { userId: user?.id, authError: authError?.message })
+
     if (authError || !user) {
       return NextResponse.json(
         { error: 'Non authentifié' },
@@ -43,10 +47,31 @@ export async function GET(
       .eq('user_id', user.id)
       .single()
 
+    console.log('Quote query result:', { 
+      quoteId: quote?.id, 
+      quoteUserId: quote?.user_id,
+      currentUserId: user.id,
+      error: quoteError?.message 
+    })
+
     if (quoteError || !quote) {
+      // Debug: essayer de voir si le devis existe du tout
+      const { data: anyQuote, error: anyError } = await supabase
+        .from('quotes')
+        .select('id, user_id')
+        .eq('id', id)
+        .single()
+      
+      console.log('Debug - Quote without user filter:', { 
+        found: !!anyQuote, 
+        quoteUserId: anyQuote?.user_id,
+        currentUserId: user.id,
+        error: anyError?.message
+      })
+      
       console.error('Erreur récupération devis:', quoteError)
       return NextResponse.json(
-        { error: 'Devis non trouvé' },
+        { error: 'Devis non trouvé', debug: { quoteExists: !!anyQuote, quoteUserId: anyQuote?.user_id, currentUserId: user.id } },
         { status: 404 }
       )
     }
