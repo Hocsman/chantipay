@@ -133,6 +133,7 @@ CREATE TABLE public.quotes (
   total_ttc NUMERIC(12, 2) NOT NULL DEFAULT 0,
   vat_rate NUMERIC(5, 2) NOT NULL DEFAULT 20,
   currency TEXT NOT NULL DEFAULT 'EUR',
+  deposit_percent NUMERIC(5, 2) NOT NULL DEFAULT 30,
   deposit_amount NUMERIC(12, 2),
   deposit_status TEXT CHECK (deposit_status IN ('pending', 'paid')),
   signature_image_url TEXT,

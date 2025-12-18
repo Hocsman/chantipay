@@ -131,6 +131,7 @@ export async function POST(request: NextRequest) {
         total_ht: totalHT,
         total_ttc: totalTTC,
         vat_rate: vat_rate || 20,
+        deposit_percent: deposit_percent || 30,
         deposit_amount: depositAmount,
         deposit_status: 'pending',
         expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 jours

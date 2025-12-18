@@ -428,7 +428,7 @@ export default function QuoteDetailPage() {
                     {formatCurrency(quote.deposit_amount)}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    {quote.deposit_percent}% du total TTC
+                    {quote.deposit_percent || Math.round((quote.deposit_amount / totalTTC) * 100)}% du total TTC
                   </p>
                 </div>
               </div>
