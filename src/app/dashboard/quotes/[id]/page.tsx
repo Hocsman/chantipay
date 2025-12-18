@@ -99,8 +99,12 @@ export default function QuoteDetailPage() {
       setIsLoading(true)
       setError(null)
       
-      const response = await fetch(`/api/quotes/${quoteId}`)
+      const response = await fetch(`/api/quotes/${quoteId}`, {
+        credentials: 'include',
+      })
       const data = await response.json()
+      
+      console.log('API response status:', response.status, 'data:', data)
       
       if (!response.ok) {
         throw new Error(data.error || 'Erreur lors du chargement du devis')
