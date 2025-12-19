@@ -229,6 +229,16 @@ const styles = StyleSheet.create({
     color: '#059669',
     fontFamily: 'Helvetica-Bold',
   },
+  depositPaidInfo: {
+    fontSize: 8,
+    color: '#047857',
+    marginTop: 4,
+  },
+  depositPendingInfo: {
+    fontSize: 8,
+    color: '#D97706',
+    marginTop: 4,
+  },
 
   // Signature section
   signatureSection: {
@@ -333,6 +343,19 @@ function getStatusInfo(status: Quote['status']): { label: string; bgColor: strin
     canceled: { label: 'Annulé', bgColor: '#FEE2E2', textColor: '#DC2626' },
   }
   return statusMap[status] || statusMap.draft
+}
+
+/**
+ * Get deposit method label in French
+ */
+function getDepositMethodLabel(method: string | null): string {
+  const methodLabels: Record<string, string> = {
+    virement: 'virement bancaire',
+    cash: 'espèces',
+    cheque: 'chèque',
+    autre: 'autre',
+  }
+  return method ? methodLabels[method] || method : ''
 }
 
 // ============================================
@@ -514,11 +537,22 @@ export const QuotePdfDocument = ({
             {/* Deposit Info */}
             {quote.deposit_amount && quote.deposit_amount > 0 && (
               <View style={styles.depositRow}>
-                <Text style={styles.depositLabel}>
-                  {quote.deposit_status === 'paid'
-                    ? 'Acompte encaissé'
-                    : 'Acompte demandé'}
-                </Text>
+                <View>
+                  <Text style={styles.depositLabel}>
+                    {quote.deposit_status === 'paid'
+                      ? 'Acompte encaissé'
+                      : 'Acompte demandé'}
+                  </Text>
+                  {quote.deposit_status === 'paid' && quote.deposit_paid_at ? (
+                    <Text style={styles.depositPaidInfo}>
+                      Reçu par {getDepositMethodLabel(quote.deposit_method)} le {formatDate(quote.deposit_paid_at)}
+                    </Text>
+                  ) : (
+                    <Text style={styles.depositPendingInfo}>
+                      Non encaissé
+                    </Text>
+                  )}
+                </View>
                 <Text style={styles.depositValue}>
                   {formatCurrency(quote.deposit_amount)}
                 </Text>

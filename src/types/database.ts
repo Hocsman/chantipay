@@ -101,6 +101,8 @@ export type Database = {
           currency: string;
           deposit_amount: number | null;
           deposit_status: 'pending' | 'paid' | null;
+          deposit_paid_at: string | null;
+          deposit_method: 'virement' | 'cash' | 'cheque' | 'autre' | null;
           signature_image_url: string | null;
           signed_at: string | null;
           payment_link_url: string | null;
@@ -120,6 +122,8 @@ export type Database = {
           currency?: string;
           deposit_amount?: number | null;
           deposit_status?: 'pending' | 'paid' | null;
+          deposit_paid_at?: string | null;
+          deposit_method?: 'virement' | 'cash' | 'cheque' | 'autre' | null;
           signature_image_url?: string | null;
           signed_at?: string | null;
           payment_link_url?: string | null;
@@ -139,6 +143,8 @@ export type Database = {
           currency?: string;
           deposit_amount?: number | null;
           deposit_status?: 'pending' | 'paid' | null;
+          deposit_paid_at?: string | null;
+          deposit_method?: 'virement' | 'cash' | 'cheque' | 'autre' | null;
           signature_image_url?: string | null;
           signed_at?: string | null;
           payment_link_url?: string | null;

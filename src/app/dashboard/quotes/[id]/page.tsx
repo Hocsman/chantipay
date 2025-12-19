@@ -23,7 +23,16 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from '@/components/ui/dialog'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Label } from '@/components/ui/label'
 import {
   ArrowLeft,
   Download,
@@ -36,6 +45,8 @@ import {
   MapPin,
   Check,
   AlertCircle,
+  Wallet,
+  CalendarCheck,
 } from 'lucide-react'
 
 type QuoteStatus = 'draft' | 'sent' | 'signed' | 'deposit_paid' | 'completed' | 'canceled'
@@ -70,9 +81,19 @@ interface Quote {
   deposit_percent: number
   deposit_amount: number
   deposit_status: 'pending' | 'paid'
+  deposit_paid_at: string | null
+  deposit_method: 'virement' | 'cash' | 'cheque' | 'autre' | null
   payment_link_url: string | null
   items: QuoteItem[]
   clients: Client
+}
+
+// Deposit method labels
+const DEPOSIT_METHOD_LABELS: Record<string, string> = {
+  virement: 'Virement bancaire',
+  cash: 'Espèces',
+  cheque: 'Chèque',
+  autre: 'Autre',
 }
 
 export default function QuoteDetailPage() {
@@ -87,6 +108,9 @@ export default function QuoteDetailPage() {
 
   // États UI
   const [isSignatureDialogOpen, setIsSignatureDialogOpen] = useState(false)
+  const [isDepositDialogOpen, setIsDepositDialogOpen] = useState(false)
+  const [depositMethod, setDepositMethod] = useState<string>('')
+  const [isMarkingDeposit, setIsMarkingDeposit] = useState(false)
   const [isCreatingPaymentLink, setIsCreatingPaymentLink] = useState(false)
   const [isDownloadingPDF, setIsDownloadingPDF] = useState(false)
   const [isSavingSignature, setIsSavingSignature] = useState(false)
@@ -204,6 +228,39 @@ export default function QuoteDetailPage() {
       alert('❌ Erreur lors de la signature. Veuillez réessayer.')
     } finally {
       setIsSavingSignature(false)
+    }
+  }
+
+  // Marquer l'acompte comme payé
+  const handleMarkDepositPaid = async () => {
+    if (!quote || !depositMethod) return
+    
+    setIsMarkingDeposit(true)
+    try {
+      const response = await fetch(`/api/quotes/${quote.id}/deposit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ method: depositMethod }),
+      })
+
+      const data = await response.json()
+      
+      if (!response.ok) throw new Error(data.error || 'Erreur lors de la mise à jour')
+
+      // Fermer le dialog et recharger
+      setIsDepositDialogOpen(false)
+      setDepositMethod('')
+      
+      // Recharger le devis
+      await loadQuote()
+      
+      // Afficher une alerte de succès
+      alert('✅ Acompte marqué comme payé')
+    } catch (error) {
+      console.error('Erreur marquage acompte:', error)
+      alert('❌ Erreur lors du marquage de l\'acompte')
+    } finally {
+      setIsMarkingDeposit(false)
     }
   }
 
@@ -433,13 +490,13 @@ export default function QuoteDetailPage() {
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <CardTitle className="text-lg flex items-center gap-2">
-                <CreditCard className="h-5 w-5" />
+                <Wallet className="h-5 w-5" />
                 Acompte
               </CardTitle>
               {quote.deposit_status === 'paid' ? (
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-semibold bg-green-100 text-green-800">
                   <Check className="h-4 w-4" />
-                  Payé
+                  Encaissé
                 </span>
               ) : (
                 <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-orange-100 text-orange-800">
@@ -450,6 +507,7 @@ export default function QuoteDetailPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
+              {/* Montant de l'acompte */}
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-3xl font-bold text-primary">
@@ -461,32 +519,45 @@ export default function QuoteDetailPage() {
                 </div>
               </div>
               
-              {/* Bouton créer le lien - visible seulement si signé et pas encore payé */}
-              {isQuoteSigned && quote.deposit_status === 'pending' && (
-                <Button 
-                  className="w-full h-12 text-base font-semibold" 
-                  onClick={handleCreatePaymentLink} 
-                  disabled={isCreatingPaymentLink}
-                >
-                  {isCreatingPaymentLink ? (
-                    <>
-                      <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                      Création du lien...
-                    </>
-                  ) : (
-                    <>
-                      <CreditCard className="h-5 w-5 mr-2" />
-                      Créer le lien de paiement
-                    </>
-                  )}
-                </Button>
+              {/* Si acompte payé: afficher les détails */}
+              {quote.deposit_status === 'paid' && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0">
+                      <Check className="h-5 w-5 text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-semibold text-green-800">
+                        Acompte encaissé
+                      </p>
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 text-sm text-green-700">
+                        {quote.deposit_method && (
+                          <span className="flex items-center gap-1">
+                            <CreditCard className="h-3.5 w-3.5" />
+                            {DEPOSIT_METHOD_LABELS[quote.deposit_method] || quote.deposit_method}
+                          </span>
+                        )}
+                        {quote.deposit_paid_at && (
+                          <span className="flex items-center gap-1">
+                            <CalendarCheck className="h-3.5 w-3.5" />
+                            {formatDate(quote.deposit_paid_at)}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
               )}
               
-              {/* Message si pas encore signé */}
-              {!isQuoteSigned && quote.deposit_status === 'pending' && (
-                <div className="bg-muted/50 rounded-lg p-3 text-sm text-muted-foreground text-center">
-                  ⬆️ Le devis doit être signé avant de créer le lien de paiement
-                </div>
+              {/* Si acompte en attente: bouton pour marquer comme payé */}
+              {quote.deposit_status === 'pending' && (
+                <Button 
+                  className="w-full h-12 text-base font-semibold" 
+                  onClick={() => setIsDepositDialogOpen(true)}
+                >
+                  <Wallet className="h-5 w-5 mr-2" />
+                  Marquer l'acompte comme payé
+                </Button>
               )}
             </div>
           </CardContent>
@@ -579,6 +650,81 @@ export default function QuoteDetailPage() {
             onCancel={() => setIsSignatureDialogOpen(false)}
             isLoading={isSavingSignature}
           />
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog pour marquer l'acompte comme payé */}
+      <Dialog open={isDepositDialogOpen} onOpenChange={setIsDepositDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl">💰 Marquer l'acompte comme payé</DialogTitle>
+            <DialogDescription className="text-base">
+              Montant : <strong>{formatCurrency(quote.deposit_amount)}</strong>
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="deposit-method">Méthode de paiement</Label>
+              <Select value={depositMethod} onValueChange={setDepositMethod}>
+                <SelectTrigger id="deposit-method" className="w-full h-12">
+                  <SelectValue placeholder="Sélectionnez une méthode" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="virement">
+                    <span className="flex items-center gap-2">
+                      🏦 Virement bancaire
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="cash">
+                    <span className="flex items-center gap-2">
+                      💵 Espèces
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="cheque">
+                    <span className="flex items-center gap-2">
+                      📝 Chèque
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="autre">
+                    <span className="flex items-center gap-2">
+                      📋 Autre
+                    </span>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <DialogFooter className="flex flex-col sm:flex-row gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsDepositDialogOpen(false)
+                setDepositMethod('')
+              }}
+              className="w-full sm:w-auto"
+            >
+              Annuler
+            </Button>
+            <Button
+              onClick={handleMarkDepositPaid}
+              disabled={!depositMethod || isMarkingDeposit}
+              className="w-full sm:w-auto"
+            >
+              {isMarkingDeposit ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Enregistrement...
+                </>
+              ) : (
+                <>
+                  <Check className="h-4 w-4 mr-2" />
+                  Confirmer le paiement
+                </>
+              )}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </LayoutContainer>
