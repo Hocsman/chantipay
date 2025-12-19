@@ -259,15 +259,28 @@ export default function MarketingPage() {
       {/* Footer */}
       <footer className="border-t bg-slate-50 py-12">
         <div className="mx-auto max-w-7xl px-4">
-          <div className="flex flex-col items-center justify-between gap-4 md:flex-row">
+          <div className="flex flex-col items-center justify-between gap-6 md:flex-row">
             <div className="flex items-center gap-2">
               <div className="bg-primary flex h-8 w-8 items-center justify-center rounded-lg">
                 <FileText className="h-5 w-5 text-white" />
               </div>
               <span className="text-xl font-bold">ChantiPay</span>
             </div>
+            <nav className="flex flex-wrap items-center justify-center gap-4 text-sm">
+              <Link href="/mentions-legales" className="text-muted-foreground hover:text-foreground transition-colors">
+                Mentions légales
+              </Link>
+              <span className="text-muted-foreground">•</span>
+              <Link href="/cgu" className="text-muted-foreground hover:text-foreground transition-colors">
+                CGU
+              </Link>
+              <span className="text-muted-foreground">•</span>
+              <Link href="/politique-confidentialite" className="text-muted-foreground hover:text-foreground transition-colors">
+                Confidentialité
+              </Link>
+            </nav>
             <p className="text-muted-foreground text-sm">
-              © 2024 ChantiPay. Tous droits réservés.
+              © 2025 ChantiPay. Tous droits réservés.
             </p>
           </div>
         </div>
