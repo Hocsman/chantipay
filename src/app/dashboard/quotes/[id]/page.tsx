@@ -102,21 +102,12 @@ export default function QuoteDetailPage() {
       
       const supabase = createClient()
       
-      // Récupérer le devis avec les infos client
+      // Récupérer le devis avec les infos client (utiliser * pour éviter les erreurs de colonnes manquantes)
       const { data: quoteData, error: quoteError } = await supabase
         .from('quotes')
         .select(`
           *,
-          clients (
-            id,
-            name,
-            email,
-            phone,
-            address_line1,
-            address_line2,
-            postal_code,
-            city
-          )
+          clients (*)
         `)
         .eq('id', quoteId)
         .single()
