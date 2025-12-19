@@ -20,7 +20,10 @@ export type Database = {
           siret: string | null;
           role: string;
           subscription_status: string;
+          subscription_plan: 'solo' | 'team' | null;
           stripe_customer_id: string | null;
+          stripe_subscription_id: string | null;
+          current_period_end: string | null;
           created_at: string;
         };
         Insert: {
@@ -33,7 +36,10 @@ export type Database = {
           siret?: string | null;
           role?: string;
           subscription_status?: string;
+          subscription_plan?: 'solo' | 'team' | null;
           stripe_customer_id?: string | null;
+          stripe_subscription_id?: string | null;
+          current_period_end?: string | null;
           created_at?: string;
         };
         Update: {
@@ -46,7 +52,10 @@ export type Database = {
           siret?: string | null;
           role?: string;
           subscription_status?: string;
+          subscription_plan?: 'solo' | 'team' | null;
           stripe_customer_id?: string | null;
+          stripe_subscription_id?: string | null;
+          current_period_end?: string | null;
           created_at?: string;
         };
       };

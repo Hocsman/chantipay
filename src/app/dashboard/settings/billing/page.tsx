@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, useCallback, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
 import { PageHeader } from '@/components/PageHeader'
 import { LayoutContainer } from '@/components/LayoutContainer'
 import { Button } from '@/components/ui/button'
@@ -16,10 +17,15 @@ import {
   AlertCircle,
   Mail,
   Sparkles,
+  Loader2,
+  Settings,
+  CheckCircle,
+  XCircle,
 } from 'lucide-react'
 
 // Plan types for better type safety
 type PlanBadge = 'disponible' | 'beta' | 'sur-devis'
+type SubscriptionPlan = 'solo' | 'team' | null
 
 interface Plan {
   id: string
@@ -30,6 +36,14 @@ interface Plan {
   features: string[]
   recommended: boolean
   badge: PlanBadge
+}
+
+interface UserSubscription {
+  subscription_status: string
+  subscription_plan: SubscriptionPlan
+  stripe_customer_id: string | null
+  stripe_subscription_id: string | null
+  current_period_end: string | null
 }
 
 const plans: Plan[] = [
@@ -61,7 +75,7 @@ const plans: Plan[] = [
       'Support prioritaire',
     ],
     recommended: true,
-    badge: 'beta',
+    badge: 'disponible', // Now available for purchase
   },
   {
     id: 'enterprise',
@@ -82,7 +96,7 @@ const plans: Plan[] = [
 ]
 
 // Badge component for plan availability
-function PlanBadge({ type }: { type: PlanBadge }) {
+function PlanBadgeComponent({ type }: { type: PlanBadge }) {
   switch (type) {
     case 'disponible':
       return (
@@ -108,42 +122,192 @@ function PlanBadge({ type }: { type: PlanBadge }) {
   }
 }
 
-const invoices = [
-  { id: '1', date: '01/12/2024', amount: 19, status: 'paid' },
-  { id: '2', date: '01/11/2024', amount: 19, status: 'paid' },
-  { id: '3', date: '01/10/2024', amount: 19, status: 'paid' },
-]
+// Status badge component
+function StatusBadge({ status }: { status: string }) {
+  switch (status) {
+    case 'active':
+      return (
+        <Badge variant="secondary" className="bg-green-100 text-green-800">
+          <CheckCircle className="h-3 w-3 mr-1" />
+          Actif
+        </Badge>
+      )
+    case 'trial':
+      return (
+        <Badge variant="secondary" className="bg-amber-100 text-amber-800">
+          <Sparkles className="h-3 w-3 mr-1" />
+          Essai
+        </Badge>
+      )
+    case 'past_due':
+      return (
+        <Badge variant="secondary" className="bg-red-100 text-red-800">
+          <AlertCircle className="h-3 w-3 mr-1" />
+          Paiement en retard
+        </Badge>
+      )
+    case 'canceled':
+      return (
+        <Badge variant="secondary" className="bg-gray-100 text-gray-800">
+          <XCircle className="h-3 w-3 mr-1" />
+          Annulé
+        </Badge>
+      )
+    default:
+      return (
+        <Badge variant="secondary">
+          {status}
+        </Badge>
+      )
+  }
+}
 
-export default function BillingPage() {
+// Main billing content component
+function BillingContent() {
   const router = useRouter()
-  const [currentPlan] = useState('solo')
-  const [isLoading, setIsLoading] = useState(false)
+  const searchParams = useSearchParams()
+  
+  const [subscription, setSubscription] = useState<UserSubscription | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null)
+  const [portalLoading, setPortalLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
-  const handleChangePlan = async (planId: string) => {
-    if (planId === currentPlan) return
-    
-    setIsLoading(true)
+  // Check for success/canceled query params
+  useEffect(() => {
+    if (searchParams.get('success') === '1') {
+      setSuccessMessage('🎉 Abonnement activé avec succès !')
+      // Clear the query params
+      router.replace('/dashboard/settings/billing')
+    }
+    if (searchParams.get('canceled') === '1') {
+      setError('Paiement annulé. Vous pouvez réessayer quand vous voulez.')
+      router.replace('/dashboard/settings/billing')
+    }
+  }, [searchParams, router])
+
+  // Fetch user subscription data
+  const loadSubscription = useCallback(async () => {
     try {
-      // TODO: Appeler l'API Stripe pour changer de plan
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-      // Rediriger vers Stripe Checkout ou afficher une confirmation
-    } catch (error) {
-      console.error('Erreur:', error)
+      setIsLoading(true)
+      const supabase = createClient()
+      
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        router.push('/login')
+        return
+      }
+
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('subscription_status, subscription_plan, stripe_customer_id, stripe_subscription_id, current_period_end')
+        .eq('id', user.id)
+        .single()
+
+      if (profileError) throw profileError
+
+      setSubscription(profile)
+    } catch (err) {
+      console.error('Error loading subscription:', err)
+      setError('Erreur lors du chargement de l\'abonnement')
     } finally {
       setIsLoading(false)
+    }
+  }, [router])
+
+  useEffect(() => {
+    loadSubscription()
+  }, [loadSubscription])
+
+  // Handle checkout for a plan
+  const handleCheckout = async (planId: string) => {
+    if (planId === 'enterprise') return
+    
+    setCheckoutLoading(planId)
+    setError(null)
+    
+    try {
+      const response = await fetch('/api/stripe/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan: planId }),
+      })
+
+      const data = await response.json()
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Erreur lors de la création du paiement')
+      }
+
+      // Redirect to Stripe Checkout
+      if (data.url) {
+        window.location.href = data.url
+      }
+    } catch (err) {
+      console.error('Checkout error:', err)
+      setError(err instanceof Error ? err.message : 'Erreur lors du paiement')
+    } finally {
+      setCheckoutLoading(null)
     }
   }
 
-  const handleManagePaymentMethod = async () => {
-    setIsLoading(true)
+  // Handle billing portal redirect
+  const handleManageSubscription = async () => {
+    setPortalLoading(true)
+    setError(null)
+    
     try {
-      // TODO: Rediriger vers le portail client Stripe
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-    } catch (error) {
-      console.error('Erreur:', error)
+      const response = await fetch('/api/stripe/portal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      })
+
+      const data = await response.json()
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Erreur lors de l\'accès au portail')
+      }
+
+      // Redirect to Stripe Billing Portal
+      if (data.url) {
+        window.location.href = data.url
+      }
+    } catch (err) {
+      console.error('Portal error:', err)
+      setError(err instanceof Error ? err.message : 'Erreur d\'accès au portail')
     } finally {
-      setIsLoading(false)
+      setPortalLoading(false)
     }
+  }
+
+  // Format date
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return ''
+    return new Date(dateString).toLocaleDateString('fr-FR', {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric',
+    })
+  }
+
+  // Get current plan details
+  const currentPlan = subscription?.subscription_plan
+  const currentPlanDetails = plans.find(p => p.id === currentPlan)
+  const hasActiveSubscription = subscription?.subscription_status === 'active'
+  const isInTrial = subscription?.subscription_status === 'trial'
+
+  if (isLoading) {
+    return (
+      <LayoutContainer>
+        <div className="flex items-center justify-center min-h-[50vh]">
+          <div className="flex flex-col items-center gap-4">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-muted-foreground">Chargement...</p>
+          </div>
+        </div>
+      </LayoutContainer>
+    )
   }
 
   return (
@@ -160,219 +324,313 @@ export default function BillingPage() {
       </div>
 
       <div className="space-y-6">
+        {/* Success/Error messages */}
+        {successMessage && (
+          <div className="p-4 bg-green-50 border border-green-200 rounded-lg flex items-center gap-3">
+            <CheckCircle className="h-5 w-5 text-green-600" />
+            <p className="text-green-800 font-medium">{successMessage}</p>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="ml-auto"
+              onClick={() => setSuccessMessage(null)}
+            >
+              ✕
+            </Button>
+          </div>
+        )}
+        
+        {error && (
+          <div className="p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3">
+            <AlertCircle className="h-5 w-5 text-red-600" />
+            <p className="text-red-800">{error}</p>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="ml-auto"
+              onClick={() => setError(null)}
+            >
+              ✕
+            </Button>
+          </div>
+        )}
+
         {/* Statut actuel */}
         <Card className="border-primary">
           <CardHeader>
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between flex-wrap gap-2">
               <div>
                 <CardTitle>Votre abonnement</CardTitle>
-                <CardDescription>Plan Artisan Solo • 19€/mois</CardDescription>
+                <CardDescription>
+                  {currentPlanDetails 
+                    ? `Plan ${currentPlanDetails.name} • ${currentPlanDetails.price}€/mois`
+                    : 'Aucun plan actif'
+                  }
+                </CardDescription>
               </div>
-              <Badge variant="secondary" className="bg-green-100 text-green-800">
-                Actif
-              </Badge>
+              <StatusBadge status={subscription?.subscription_status || 'trial'} />
             </div>
           </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-4 p-4 bg-amber-50 rounded-lg border border-amber-200">
-              <AlertCircle className="h-5 w-5 text-amber-600" />
-              <div className="flex-1">
-                <p className="text-sm font-medium text-amber-800">
-                  Période d&apos;essai
-                </p>
-                <p className="text-sm text-amber-700">
-                  Votre essai gratuit se termine dans 14 jours
-                </p>
+          <CardContent className="space-y-4">
+            {/* Trial warning */}
+            {isInTrial && (
+              <div className="flex items-center gap-4 p-4 bg-amber-50 rounded-lg border border-amber-200">
+                <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-amber-800">
+                    Période d&apos;essai
+                  </p>
+                  <p className="text-sm text-amber-700">
+                    Votre essai gratuit est actif. Choisissez un plan pour continuer à utiliser ChantiPay.
+                  </p>
+                </div>
               </div>
-            </div>
+            )}
+
+            {/* Past due warning */}
+            {subscription?.subscription_status === 'past_due' && (
+              <div className="flex items-center gap-4 p-4 bg-red-50 rounded-lg border border-red-200">
+                <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-red-800">
+                    Paiement en retard
+                  </p>
+                  <p className="text-sm text-red-700">
+                    Veuillez mettre à jour votre moyen de paiement pour éviter une interruption de service.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Current period end */}
+            {subscription?.current_period_end && hasActiveSubscription && (
+              <div className="flex items-center gap-4 p-4 bg-muted/50 rounded-lg">
+                <Receipt className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                <div>
+                  <p className="text-sm text-muted-foreground">
+                    Prochain renouvellement le {formatDate(subscription.current_period_end)}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Manage subscription button */}
+            {subscription?.stripe_customer_id && (
+              <Button 
+                className="w-full sm:w-auto" 
+                variant="outline"
+                onClick={handleManageSubscription}
+                disabled={portalLoading}
+              >
+                {portalLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Chargement...
+                  </>
+                ) : (
+                  <>
+                    <Settings className="h-4 w-4 mr-2" />
+                    Gérer mon abonnement
+                  </>
+                )}
+              </Button>
+            )}
           </CardContent>
         </Card>
 
         {/* Plans disponibles */}
         <Card>
           <CardHeader>
-            <CardTitle>Changer de plan</CardTitle>
+            <CardTitle>
+              {hasActiveSubscription ? 'Changer de plan' : 'Choisir un plan'}
+            </CardTitle>
             <CardDescription>
               Choisissez le plan qui correspond à vos besoins
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid gap-4 md:grid-cols-3">
-              {plans.map((plan) => (
-                <Card
-                  key={plan.id}
-                  className={`relative ${
-                    plan.recommended
-                      ? 'border-primary shadow-md'
-                      : currentPlan === plan.id
-                      ? 'border-primary/50 bg-primary/5'
-                      : ''
-                  }`}
-                >
-                  {plan.recommended && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                      <Badge className="bg-primary">Recommandé</Badge>
-                    </div>
-                  )}
-                  <CardHeader className="pb-2">
-                    <div className="flex items-center justify-between gap-2 flex-wrap">
-                      <CardTitle className="text-lg">{plan.name}</CardTitle>
-                      <PlanBadge type={plan.badge} />
-                    </div>
-                    <CardDescription>{plan.description}</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div>
-                      {plan.price !== null ? (
-                        <>
-                          <span className="text-3xl font-bold">{plan.price}€</span>
-                          <span className="text-muted-foreground">/mois</span>
-                        </>
-                      ) : (
-                        <span className="text-2xl font-bold text-primary">
-                          {plan.priceLabel}
-                        </span>
-                      )}
-                    </div>
-                    <ul className="space-y-2">
-                      {plan.features.map((feature, index) => (
-                        <li key={index} className="flex items-center gap-2 text-sm">
-                          <Check className="h-4 w-4 text-primary flex-shrink-0" />
-                          {feature}
-                        </li>
-                      ))}
-                    </ul>
-                    
-                    {/* CTA buttons based on plan type */}
-                    {plan.badge === 'disponible' && (
-                      <Button
-                        className="w-full"
-                        variant={currentPlan === plan.id ? 'outline' : 'default'}
-                        disabled={currentPlan === plan.id || isLoading}
-                        onClick={() => handleChangePlan(plan.id)}
-                      >
-                        {currentPlan === plan.id ? 'Plan actuel' : 'Choisir ce plan'}
-                      </Button>
-                    )}
-                    
-                    {plan.badge === 'beta' && (
-                      <div className="space-y-2">
-                        <Button
-                          className="w-full"
-                          variant="outline"
-                          disabled
-                        >
-                          Bientôt disponible
-                        </Button>
-                        <p className="text-xs text-center text-muted-foreground">
-                          Bêta prévue début 2025
-                        </p>
+              {plans.map((plan) => {
+                const isCurrentPlan = currentPlan === plan.id && hasActiveSubscription
+                const canPurchase = plan.badge === 'disponible' && !isCurrentPlan
+                
+                return (
+                  <Card
+                    key={plan.id}
+                    className={`relative ${
+                      plan.recommended
+                        ? 'border-primary shadow-md'
+                        : isCurrentPlan
+                        ? 'border-primary/50 bg-primary/5'
+                        : ''
+                    }`}
+                  >
+                    {plan.recommended && (
+                      <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                        <Badge className="bg-primary">Recommandé</Badge>
                       </div>
                     )}
-                    
-                    {plan.badge === 'sur-devis' && (
-                      <Button
-                        className="w-full"
-                        variant="outline"
-                        asChild
-                      >
-                        <a href="mailto:contact@chantipay.com?subject=Offre%20Entreprise%20ChantiPay">
-                          <Mail className="h-4 w-4 mr-2" />
-                          Contactez-nous
-                        </a>
-                      </Button>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
+                    <CardHeader className="pb-2">
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <CardTitle className="text-lg">{plan.name}</CardTitle>
+                        <PlanBadgeComponent type={plan.badge} />
+                      </div>
+                      <CardDescription>{plan.description}</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div>
+                        {plan.price !== null ? (
+                          <>
+                            <span className="text-3xl font-bold">{plan.price}€</span>
+                            <span className="text-muted-foreground">/mois</span>
+                          </>
+                        ) : (
+                          <span className="text-2xl font-bold text-primary">
+                            {plan.priceLabel}
+                          </span>
+                        )}
+                      </div>
+                      <ul className="space-y-2">
+                        {plan.features.map((feature, index) => (
+                          <li key={index} className="flex items-center gap-2 text-sm">
+                            <Check className="h-4 w-4 text-primary flex-shrink-0" />
+                            {feature}
+                          </li>
+                        ))}
+                      </ul>
+                      
+                      {/* CTA buttons */}
+                      {isCurrentPlan && (
+                        <Button className="w-full" variant="outline" disabled>
+                          <Check className="h-4 w-4 mr-2" />
+                          Plan actuel
+                        </Button>
+                      )}
+                      
+                      {canPurchase && (
+                        <Button
+                          className="w-full"
+                          onClick={() => handleCheckout(plan.id)}
+                          disabled={checkoutLoading !== null}
+                        >
+                          {checkoutLoading === plan.id ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              Redirection...
+                            </>
+                          ) : (
+                            'Choisir ce plan'
+                          )}
+                        </Button>
+                      )}
+                      
+                      {plan.badge === 'sur-devis' && (
+                        <Button className="w-full" variant="outline" asChild>
+                          <a href="mailto:contact@chantipay.com?subject=Offre%20Entreprise%20ChantiPay">
+                            <Mail className="h-4 w-4 mr-2" />
+                            Contactez-nous
+                          </a>
+                        </Button>
+                      )}
+                    </CardContent>
+                  </Card>
+                )
+              })}
             </div>
           </CardContent>
         </Card>
 
-        {/* Moyen de paiement */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CreditCard className="h-5 w-5" />
-              Moyen de paiement
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-14 bg-gradient-to-r from-blue-600 to-blue-800 rounded flex items-center justify-center text-white text-xs font-bold">
-                  VISA
-                </div>
-                <div>
-                  <p className="font-medium">•••• •••• •••• 4242</p>
-                  <p className="text-sm text-muted-foreground">Expire 12/25</p>
-                </div>
-              </div>
-              <Button variant="outline" onClick={handleManagePaymentMethod}>
-                Modifier
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Historique des factures */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Receipt className="h-5 w-5" />
-              Historique des factures
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {invoices.map((invoice) => (
-                <div
-                  key={invoice.id}
-                  className="flex items-center justify-between py-3 border-b last:border-0"
-                >
-                  <div>
-                    <p className="font-medium">Facture #{invoice.id}</p>
-                    <p className="text-sm text-muted-foreground">{invoice.date}</p>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <span className="font-medium">{invoice.amount}€</span>
-                    <Badge variant="secondary" className="bg-green-100 text-green-800">
-                      Payée
-                    </Badge>
-                    <Button variant="ghost" size="sm">
-                      Télécharger
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Annuler l'abonnement */}
-        <Card className="border-destructive/30">
-          <CardHeader>
-            <CardTitle className="text-destructive">Zone de danger</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium">Annuler l&apos;abonnement</p>
-                <p className="text-sm text-muted-foreground">
-                  Votre accès sera maintenu jusqu&apos;à la fin de la période
+        {/* Moyen de paiement - only show if has Stripe customer */}
+        {subscription?.stripe_customer_id && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CreditCard className="h-5 w-5" />
+                Moyen de paiement
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <p className="text-muted-foreground">
+                  Gérez vos moyens de paiement via le portail Stripe
                 </p>
+                <Button 
+                  variant="outline" 
+                  onClick={handleManageSubscription}
+                  disabled={portalLoading}
+                  className="w-full sm:w-auto"
+                >
+                  {portalLoading ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <CreditCard className="h-4 w-4 mr-2" />
+                  )}
+                  Modifier
+                </Button>
               </div>
-              <Button variant="destructive" disabled>
-                Annuler
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Historique des factures - via portal */}
+        {subscription?.stripe_customer_id && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Receipt className="h-5 w-5" />
+                Historique des factures
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <p className="text-muted-foreground">
+                  Consultez et téléchargez vos factures via le portail Stripe
+                </p>
+                <Button 
+                  variant="outline" 
+                  onClick={handleManageSubscription}
+                  disabled={portalLoading}
+                  className="w-full sm:w-auto"
+                >
+                  {portalLoading ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Receipt className="h-4 w-4 mr-2" />
+                  )}
+                  Voir les factures
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <Separator className="my-8" />
         
         <div className="pb-24" />
       </div>
     </LayoutContainer>
+  )
+}
+
+// Loading fallback for Suspense
+function BillingLoading() {
+  return (
+    <LayoutContainer>
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-muted-foreground">Chargement...</p>
+        </div>
+      </div>
+    </LayoutContainer>
+  )
+}
+
+// Export default with Suspense wrapper
+export default function BillingPage() {
+  return (
+    <Suspense fallback={<BillingLoading />}>
+      <BillingContent />
+    </Suspense>
   )
 }
