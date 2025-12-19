@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
 import { PageHeader } from '@/components/PageHeader'
 import { LayoutContainer } from '@/components/LayoutContainer'
 import { QuoteStatusBadge } from '@/components/QuoteStatusBadge'
@@ -91,7 +92,7 @@ export default function QuoteDetailPage() {
   const [isSavingSignature, setIsSavingSignature] = useState(false)
   const [isSigned, setIsSigned] = useState(false)
 
-  // Charger le devis depuis l'API
+  // Charger le devis directement depuis Supabase (côté client)
   const loadQuote = useCallback(async () => {
     if (!quoteId) return
     
@@ -99,18 +100,50 @@ export default function QuoteDetailPage() {
       setIsLoading(true)
       setError(null)
       
-      const response = await fetch(`/api/quotes/${quoteId}`, {
-        credentials: 'include',
-      })
-      const data = await response.json()
+      const supabase = createClient()
       
-      console.log('API response status:', response.status, 'data:', data)
+      // Récupérer le devis avec les infos client
+      const { data: quoteData, error: quoteError } = await supabase
+        .from('quotes')
+        .select(`
+          *,
+          clients (
+            id,
+            name,
+            email,
+            phone,
+            address_line1,
+            address_line2,
+            postal_code,
+            city
+          )
+        `)
+        .eq('id', quoteId)
+        .single()
       
-      if (!response.ok) {
-        throw new Error(data.error || 'Erreur lors du chargement du devis')
+      if (quoteError) {
+        console.error('Erreur Supabase:', quoteError)
+        throw new Error(quoteError.message || 'Devis non trouvé')
       }
       
-      setQuote(data.quote)
+      // Récupérer les lignes du devis
+      const { data: items, error: itemsError } = await supabase
+        .from('quote_items')
+        .select('*')
+        .eq('quote_id', quoteId)
+        .order('created_at', { ascending: true })
+      
+      if (itemsError) {
+        console.error('Erreur items:', itemsError)
+      }
+      
+      const fullQuote = {
+        ...quoteData,
+        items: items || []
+      }
+      
+      console.log('Quote loaded:', fullQuote)
+      setQuote(fullQuote)
     } catch (err) {
       console.error('Erreur chargement devis:', err)
       setError(err instanceof Error ? err.message : 'Erreur inconnue')
