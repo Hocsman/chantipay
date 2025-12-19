@@ -387,6 +387,12 @@ export const QuotePdfDocument = ({
             {profile?.address && (
               <Text style={styles.companyInfo}>{profile.address}</Text>
             )}
+            {/* SIRET number */}
+            {(profile as Profile & { siret?: string | null })?.siret && (
+              <Text style={styles.companyInfo}>
+                SIRET : {(profile as Profile & { siret?: string | null }).siret}
+              </Text>
+            )}
           </View>
 
           <View style={styles.headerRight}>

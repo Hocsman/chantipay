@@ -8,13 +8,19 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { FileText, Loader2 } from 'lucide-react';
+import { FileText, Loader2, Building2, User, Phone, MapPin, Hash } from 'lucide-react';
 
 export default function RegisterPage() {
+  // Form state
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [companyName, setCompanyName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [address, setAddress] = useState('');
+  const [siret, setSiret] = useState('');
+  
+  // UI state
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
@@ -26,7 +32,9 @@ export default function RegisterPage() {
 
     try {
       const supabase = createClient();
-      const { error } = await supabase.auth.signUp({
+      
+      // 1. Create the auth user
+      const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -37,12 +45,35 @@ export default function RegisterPage() {
         },
       });
 
-      if (error) {
-        setError(error.message);
+      if (authError) {
+        setError(authError.message);
         return;
       }
 
-      // Redirect to dashboard after successful registration
+      // 2. Create/update the profile with company info
+      if (authData.user) {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .upsert({
+            id: authData.user.id,
+            email: email,
+            full_name: fullName || null,
+            company_name: companyName || null,
+            phone: phone || null,
+            address: address || null,
+            siret: siret || null,
+          }, {
+            onConflict: 'id'
+          });
+
+        if (profileError) {
+          console.error('Profile creation error:', profileError);
+          // Don't block registration if profile creation fails
+          // The user can complete their profile later
+        }
+      }
+
+      // 3. Redirect to dashboard after successful registration
       router.push('/dashboard');
       router.refresh();
     } catch {
@@ -74,8 +105,13 @@ export default function RegisterPage() {
                 {error}
               </div>
             )}
+            
+            {/* Personal Info */}
             <div className="space-y-2">
-              <Label htmlFor="fullName">Nom complet</Label>
+              <Label htmlFor="fullName" className="flex items-center gap-2">
+                <User className="h-4 w-4 text-muted-foreground" />
+                Nom complet *
+              </Label>
               <Input
                 id="fullName"
                 type="text"
@@ -86,19 +122,88 @@ export default function RegisterPage() {
                 autoComplete="name"
               />
             </div>
+            
+            {/* Company Info */}
             <div className="space-y-2">
-              <Label htmlFor="companyName">Nom de l&apos;entreprise</Label>
+              <Label htmlFor="companyName" className="flex items-center gap-2">
+                <Building2 className="h-4 w-4 text-muted-foreground" />
+                Nom de l&apos;entreprise *
+              </Label>
               <Input
                 id="companyName"
                 type="text"
                 placeholder="Plomberie Dupont"
                 value={companyName}
                 onChange={(e) => setCompanyName(e.target.value)}
+                required
                 autoComplete="organization"
               />
             </div>
+            
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="phone" className="flex items-center gap-2">
+                <Phone className="h-4 w-4 text-muted-foreground" />
+                Téléphone *
+              </Label>
+              <Input
+                id="phone"
+                type="tel"
+                placeholder="06 12 34 56 78"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                required
+                autoComplete="tel"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="address" className="flex items-center gap-2">
+                <MapPin className="h-4 w-4 text-muted-foreground" />
+                Adresse <span className="text-muted-foreground text-xs">(optionnel)</span>
+              </Label>
+              <Input
+                id="address"
+                type="text"
+                placeholder="123 rue de la Paix, 75001 Paris"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                autoComplete="street-address"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="siret" className="flex items-center gap-2">
+                <Hash className="h-4 w-4 text-muted-foreground" />
+                SIRET <span className="text-muted-foreground text-xs">(optionnel)</span>
+              </Label>
+              <Input
+                id="siret"
+                type="text"
+                placeholder="123 456 789 00012"
+                value={siret}
+                onChange={(e) => setSiret(e.target.value)}
+                maxLength={17}
+              />
+              <p className="text-muted-foreground text-xs">
+                14 chiffres - affiché sur vos devis
+              </p>
+            </div>
+
+            {/* Separator */}
+            <div className="relative py-2">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-white px-2 text-muted-foreground">
+                  Identifiants
+                </span>
+              </div>
+            </div>
+            
+            {/* Auth Info */}
+            <div className="space-y-2">
+              <Label htmlFor="email">Email *</Label>
               <Input
                 id="email"
                 type="email"
@@ -109,8 +214,9 @@ export default function RegisterPage() {
                 autoComplete="email"
               />
             </div>
+            
             <div className="space-y-2">
-              <Label htmlFor="password">Mot de passe</Label>
+              <Label htmlFor="password">Mot de passe *</Label>
               <Input
                 id="password"
                 type="password"
@@ -125,6 +231,7 @@ export default function RegisterPage() {
                 Minimum 8 caractères
               </p>
             </div>
+            
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Créer mon compte
