@@ -14,9 +14,25 @@ import {
   CreditCard,
   Receipt,
   AlertCircle,
+  Mail,
+  Sparkles,
 } from 'lucide-react'
 
-const plans = [
+// Plan types for better type safety
+type PlanBadge = 'disponible' | 'beta' | 'sur-devis'
+
+interface Plan {
+  id: string
+  name: string
+  price: number | null
+  priceLabel?: string
+  description: string
+  features: string[]
+  recommended: boolean
+  badge: PlanBadge
+}
+
+const plans: Plan[] = [
   {
     id: 'solo',
     name: 'Artisan Solo',
@@ -26,10 +42,11 @@ const plans = [
       'Devis illimités',
       'Signature électronique',
       'Paiement par acompte',
-      'Export PDF',
-      'Assistant IA',
+      'Export PDF professionnel',
+      'Assistant IA intégré',
     ],
     recommended: false,
+    badge: 'disponible',
   },
   {
     id: 'team',
@@ -37,29 +54,59 @@ const plans = [
     price: 39,
     description: 'Pour les équipes jusqu\'à 5 personnes',
     features: [
-      'Tout du plan Solo',
-      'Jusqu\'à 5 utilisateurs',
-      'Gestion des équipes',
-      'Rapports avancés',
+      'Accès multi-utilisateurs (jusqu\'à 5)',
+      'Partage clients & devis',
+      'Rôles & permissions',
+      'Historique des actions',
       'Support prioritaire',
     ],
     recommended: true,
+    badge: 'beta',
   },
   {
     id: 'enterprise',
     name: 'Entreprise',
-    price: 79,
+    price: null,
+    priceLabel: 'Sur devis',
     description: 'Pour les grandes structures',
     features: [
-      'Tout du plan Équipe',
       'Utilisateurs illimités',
-      'API personnalisée',
-      'Intégration comptable',
+      'Export CSV compta',
+      'Rôles & permissions avancés',
+      'Accès multi-entreprises',
       'Account manager dédié',
     ],
     recommended: false,
+    badge: 'sur-devis',
   },
 ]
+
+// Badge component for plan availability
+function PlanBadge({ type }: { type: PlanBadge }) {
+  switch (type) {
+    case 'disponible':
+      return (
+        <Badge variant="secondary" className="bg-green-100 text-green-800">
+          <Check className="h-3 w-3 mr-1" />
+          Disponible
+        </Badge>
+      )
+    case 'beta':
+      return (
+        <Badge variant="secondary" className="bg-purple-100 text-purple-800">
+          <Sparkles className="h-3 w-3 mr-1" />
+          Bêta
+        </Badge>
+      )
+    case 'sur-devis':
+      return (
+        <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+          <Mail className="h-3 w-3 mr-1" />
+          Sur devis
+        </Badge>
+      )
+  }
+}
 
 const invoices = [
   { id: '1', date: '01/12/2024', amount: 19, status: 'paid' },
@@ -168,30 +215,73 @@ export default function BillingPage() {
                     </div>
                   )}
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-lg">{plan.name}</CardTitle>
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <CardTitle className="text-lg">{plan.name}</CardTitle>
+                      <PlanBadge type={plan.badge} />
+                    </div>
                     <CardDescription>{plan.description}</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div>
-                      <span className="text-3xl font-bold">{plan.price}€</span>
-                      <span className="text-muted-foreground">/mois</span>
+                      {plan.price !== null ? (
+                        <>
+                          <span className="text-3xl font-bold">{plan.price}€</span>
+                          <span className="text-muted-foreground">/mois</span>
+                        </>
+                      ) : (
+                        <span className="text-2xl font-bold text-primary">
+                          {plan.priceLabel}
+                        </span>
+                      )}
                     </div>
                     <ul className="space-y-2">
                       {plan.features.map((feature, index) => (
                         <li key={index} className="flex items-center gap-2 text-sm">
-                          <Check className="h-4 w-4 text-primary" />
+                          <Check className="h-4 w-4 text-primary flex-shrink-0" />
                           {feature}
                         </li>
                       ))}
                     </ul>
-                    <Button
-                      className="w-full"
-                      variant={currentPlan === plan.id ? 'outline' : 'default'}
-                      disabled={currentPlan === plan.id || isLoading}
-                      onClick={() => handleChangePlan(plan.id)}
-                    >
-                      {currentPlan === plan.id ? 'Plan actuel' : 'Choisir ce plan'}
-                    </Button>
+                    
+                    {/* CTA buttons based on plan type */}
+                    {plan.badge === 'disponible' && (
+                      <Button
+                        className="w-full"
+                        variant={currentPlan === plan.id ? 'outline' : 'default'}
+                        disabled={currentPlan === plan.id || isLoading}
+                        onClick={() => handleChangePlan(plan.id)}
+                      >
+                        {currentPlan === plan.id ? 'Plan actuel' : 'Choisir ce plan'}
+                      </Button>
+                    )}
+                    
+                    {plan.badge === 'beta' && (
+                      <div className="space-y-2">
+                        <Button
+                          className="w-full"
+                          variant="outline"
+                          disabled
+                        >
+                          Bientôt disponible
+                        </Button>
+                        <p className="text-xs text-center text-muted-foreground">
+                          Bêta prévue début 2025
+                        </p>
+                      </div>
+                    )}
+                    
+                    {plan.badge === 'sur-devis' && (
+                      <Button
+                        className="w-full"
+                        variant="outline"
+                        asChild
+                      >
+                        <a href="mailto:contact@chantipay.com?subject=Offre%20Entreprise%20ChantiPay">
+                          <Mail className="h-4 w-4 mr-2" />
+                          Contactez-nous
+                        </a>
+                      </Button>
+                    )}
                   </CardContent>
                 </Card>
               ))}
