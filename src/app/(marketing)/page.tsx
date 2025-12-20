@@ -1,7 +1,8 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { FileText, Pen, CreditCard, Smartphone, Zap, Shield } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { FileText, Pen, CreditCard, Smartphone, Zap, Shield, Sparkles } from 'lucide-react';
 
 export default function MarketingPage() {
   return (
@@ -201,9 +202,12 @@ export default function MarketingPage() {
                 </Link>
               </CardContent>
             </Card>
-            <Card className="border-primary relative">
-              <div className="bg-primary absolute -top-3 left-1/2 -translate-x-1/2 rounded-full px-3 py-1 text-xs font-medium text-white">
-                Populaire
+            <Card className="border-purple-300 relative">
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                <Badge className="bg-purple-600 hover:bg-purple-600">
+                  <Sparkles className="h-3 w-3 mr-1" />
+                  Bêta
+                </Badge>
               </div>
               <CardHeader>
                 <CardTitle>Petite équipe</CardTitle>
@@ -230,10 +234,15 @@ export default function MarketingPage() {
                   <li className="flex items-center gap-2">
                     <span className="text-primary">✓</span> Support prioritaire
                   </li>
+                  <li className="flex items-center gap-2 text-muted-foreground text-xs">
+                    <span>⚠️</span> Fonctionnalités en cours de déploiement
+                  </li>
                 </ul>
-                <Link href="/register">
-                  <Button className="mt-6 w-full">Commencer l&apos;essai gratuit</Button>
-                </Link>
+                <Button className="mt-6 w-full" variant="secondary" asChild>
+                  <a href="mailto:contact@chantipay.com?subject=Accès%20bêta%20Petite%20équipe">
+                    Rejoindre la bêta
+                  </a>
+                </Button>
               </CardContent>
             </Card>
           </div>
