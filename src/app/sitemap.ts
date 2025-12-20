@@ -20,11 +20,67 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.9,
     },
     {
+      url: `${BASE_URL}/tarifs`,
+      lastModified: now,
+      changeFrequency: 'monthly' as const,
+      priority: 0.9,
+    },
+    {
       url: `${BASE_URL}/contact`,
       lastModified: now,
       changeFrequency: 'monthly' as const,
       priority: 0.8,
     },
+  ]
+
+  // SEO landing pages
+  const seoLandingPages = [
+    {
+      url: `${BASE_URL}/logiciel-devis-artisan`,
+      lastModified: now,
+      changeFrequency: 'monthly' as const,
+      priority: 0.9,
+    },
+    {
+      url: `${BASE_URL}/devis-sur-mobile`,
+      lastModified: now,
+      changeFrequency: 'monthly' as const,
+      priority: 0.8,
+    },
+    {
+      url: `${BASE_URL}/signature-devis-electronique`,
+      lastModified: now,
+      changeFrequency: 'monthly' as const,
+      priority: 0.8,
+    },
+    {
+      url: `${BASE_URL}/acompte-chantier`,
+      lastModified: now,
+      changeFrequency: 'monthly' as const,
+      priority: 0.8,
+    },
+    {
+      url: `${BASE_URL}/modele-devis-artisan`,
+      lastModified: now,
+      changeFrequency: 'monthly' as const,
+      priority: 0.8,
+    },
+    {
+      url: `${BASE_URL}/devis-plombier`,
+      lastModified: now,
+      changeFrequency: 'monthly' as const,
+      priority: 0.7,
+    },
+    {
+      url: `${BASE_URL}/devis-electricien`,
+      lastModified: now,
+      changeFrequency: 'monthly' as const,
+      priority: 0.7,
+    },
+  ]
+
+  // Legal pages
+  const legalPages = [
     {
       url: `${BASE_URL}/mentions-legales`,
       lastModified: now,
@@ -45,12 +101,5 @@ export default function sitemap(): MetadataRoute.Sitemap {
     },
   ]
 
-  // SEO landing pages (to be added later)
-  // const seoLandingPages = [
-  //   { url: `${BASE_URL}/devis-plombier`, ... },
-  //   { url: `${BASE_URL}/devis-electricien`, ... },
-  //   { url: `${BASE_URL}/application-devis-artisan`, ... },
-  // ]
-
-  return publicRoutes
+  return [...publicRoutes, ...seoLandingPages, ...legalPages]
 }
