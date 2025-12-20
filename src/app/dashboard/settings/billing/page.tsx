@@ -10,6 +10,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import {
   ArrowLeft,
   Check,
   CreditCard,
@@ -21,6 +29,7 @@ import {
   Settings,
   CheckCircle,
   XCircle,
+  Users,
 } from 'lucide-react'
 
 // Plan types for better type safety
@@ -73,9 +82,10 @@ const plans: Plan[] = [
       'Rôles & permissions',
       'Historique des actions',
       'Support prioritaire',
+      '⚠️ Certaines fonctionnalités sont en cours de déploiement (bêta)',
     ],
     recommended: true,
-    badge: 'disponible', // Now available for purchase
+    badge: 'beta', // Beta - not yet purchasable via Stripe
   },
   {
     id: 'enterprise',
@@ -173,6 +183,7 @@ function BillingContent() {
   const [portalLoading, setPortalLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
+  const [betaDialogOpen, setBetaDialogOpen] = useState(false)
 
   // Check for success/canceled query params
   useEffect(() => {
@@ -501,15 +512,16 @@ function BillingContent() {
                       
                       {/* CTA buttons */}
                       {isCurrentPlan && (
-                        <Button className="w-full" variant="outline" disabled>
+                        <Button className="w-full md:w-auto" variant="outline" disabled>
                           <Check className="h-4 w-4 mr-2" />
                           Plan actuel
                         </Button>
                       )}
                       
-                      {canPurchase && (
+                      {/* Solo plan - direct checkout */}
+                      {plan.id === 'solo' && !isCurrentPlan && (
                         <Button
-                          className="w-full"
+                          className="w-full md:w-auto"
                           onClick={() => handleCheckout(plan.id)}
                           disabled={checkoutLoading !== null}
                         >
@@ -524,8 +536,20 @@ function BillingContent() {
                         </Button>
                       )}
                       
+                      {/* Team plan - beta dialog */}
+                      {plan.badge === 'beta' && !isCurrentPlan && (
+                        <Button
+                          className="w-full md:w-auto"
+                          variant="secondary"
+                          onClick={() => setBetaDialogOpen(true)}
+                        >
+                          <Users className="h-4 w-4 mr-2" />
+                          Rejoindre la bêta
+                        </Button>
+                      )}
+                      
                       {plan.badge === 'sur-devis' && (
-                        <Button className="w-full" variant="outline" asChild>
+                        <Button className="w-full md:w-auto" variant="outline" asChild>
                           <a href="mailto:contact@chantipay.com?subject=Offre%20Entreprise%20ChantiPay">
                             <Mail className="h-4 w-4 mr-2" />
                             Contactez-nous
@@ -608,6 +632,45 @@ function BillingContent() {
         
         <div className="pb-24" />
       </div>
+
+      {/* Beta Dialog for Petite Équipe */}
+      <Dialog open={betaDialogOpen} onOpenChange={setBetaDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-purple-600" />
+              Formule Petite Équipe en Bêta
+            </DialogTitle>
+            <DialogDescription className="text-left space-y-3 pt-2">
+              <p>
+                La formule <strong>Petite Équipe</strong> est actuellement en bêta.
+              </p>
+              <p>
+                Les fonctionnalités multi-utilisateurs (partage clients & devis, rôles & permissions) 
+                sont en cours de déploiement.
+              </p>
+              <p>
+                Contactez-nous pour rejoindre le programme bêta et bénéficier d&apos;un accès anticipé.
+              </p>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={() => setBetaDialogOpen(false)}
+              className="w-full sm:w-auto"
+            >
+              Fermer
+            </Button>
+            <Button asChild className="w-full sm:w-auto">
+              <a href="mailto:contact@chantipay.com?subject=Accès%20bêta%20Petite%20équipe">
+                <Mail className="h-4 w-4 mr-2" />
+                Contacter l&apos;équipe
+              </a>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </LayoutContainer>
   )
 }
