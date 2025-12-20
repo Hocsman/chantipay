@@ -289,6 +289,10 @@ export default function MarketingPage() {
               <Link href="/politique-confidentialite" className="text-muted-foreground hover:text-foreground transition-colors">
                 Confidentialité
               </Link>
+              <span className="text-muted-foreground">•</span>
+              <Link href="/contact" className="text-muted-foreground hover:text-foreground transition-colors">
+                Contact
+              </Link>
             </nav>
             <p className="text-muted-foreground text-sm">
               © 2025 ChantiPay. Tous droits réservés.
