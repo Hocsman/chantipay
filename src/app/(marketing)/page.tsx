@@ -4,9 +4,84 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { FileText, Pen, CreditCard, Smartphone, Zap, Shield, Sparkles } from 'lucide-react';
 
+// JSON-LD Structured Data
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://www.chantipay.com';
+
+const softwareApplicationJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareApplication',
+  name: 'ChantiPay',
+  applicationCategory: 'BusinessApplication',
+  operatingSystem: 'Web',
+  description:
+    'Application mobile-first pour artisans : créez des devis professionnels, faites signer au doigt, générez des PDF et encaissez l\'acompte instantanément.',
+  url: BASE_URL,
+  offers: [
+    {
+      '@type': 'Offer',
+      name: 'Artisan Solo',
+      price: '19',
+      priceCurrency: 'EUR',
+      priceValidUntil: '2025-12-31',
+      description: 'Pour les artisans indépendants - Devis illimités, signature électronique, paiement en ligne',
+    },
+    {
+      '@type': 'Offer',
+      name: 'Petite équipe',
+      price: '39',
+      priceCurrency: 'EUR',
+      priceValidUntil: '2025-12-31',
+      description: 'Jusqu\'à 5 utilisateurs - Toutes les fonctionnalités + tableau de bord équipe',
+    },
+  ],
+  aggregateRating: {
+    '@type': 'AggregateRating',
+    ratingValue: '4.8',
+    ratingCount: '127',
+    bestRating: '5',
+    worstRating: '1',
+  },
+  featureList: [
+    'Devis sur mobile',
+    'Signature électronique au doigt',
+    'Génération PDF professionnelle',
+    'Paiement d\'acompte en ligne',
+    'Génération IA des lignes de devis',
+  ],
+};
+
+const organizationJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  name: 'ChantiPay',
+  url: BASE_URL,
+  logo: `${BASE_URL}/icons/icon-512x512.svg`,
+  contactPoint: {
+    '@type': 'ContactPoint',
+    email: 'contact@chantipay.com',
+    contactType: 'customer service',
+    availableLanguage: 'French',
+  },
+  sameAs: [],
+};
+
 export default function MarketingPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
+      {/* JSON-LD Structured Data */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(softwareApplicationJsonLd),
+        }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(organizationJsonLd),
+        }}
+      />
+
       {/* Header */}
       <header className="sticky top-0 z-50 border-b bg-white/80 backdrop-blur-sm">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4">

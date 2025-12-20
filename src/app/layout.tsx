@@ -6,27 +6,43 @@ import "./globals.css";
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
+  display: "swap",
 });
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+  display: "swap",
 });
 
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://www.chantipay.com";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(BASE_URL),
   title: {
-    default: "ChantiPay - Devis et acomptes pour artisans",
+    default: "ChantiPay - Devis mobile, signature au doigt, acompte instantané pour artisans",
     template: "%s | ChantiPay",
   },
-  description: "Devis signé, acompte encaissé, chantier sécurisé. L'application mobile-first pour les artisans.",
+  description:
+    "Application mobile-first pour artisans : créez des devis professionnels sur le terrain, faites signer au doigt, générez des PDF pro et encaissez l'acompte en quelques secondes. Plombiers, électriciens, peintres, menuisiers.",
+  keywords: [
+    "devis artisan",
+    "application devis mobile",
+    "signature électronique artisan",
+    "acompte chantier",
+    "devis plombier",
+    "devis électricien",
+    "PDF devis",
+    "paiement artisan",
+    "ChantiPay",
+  ],
+  authors: [{ name: "ChantiPay" }],
+  creator: "ChantiPay",
+  publisher: "ChantiPay",
   manifest: "/manifest.json",
   icons: {
-    icon: [
-      { url: "/favicon.svg", type: "image/svg+xml" },
-    ],
-    apple: [
-      { url: "/apple-touch-icon.svg", type: "image/svg+xml" },
-    ],
+    icon: [{ url: "/favicon.svg", type: "image/svg+xml" }],
+    apple: [{ url: "/apple-touch-icon.svg", type: "image/svg+xml" }],
   },
   appleWebApp: {
     capable: true,
@@ -38,9 +54,41 @@ export const metadata: Metadata = {
   },
   openGraph: {
     type: "website",
+    locale: "fr_FR",
+    url: BASE_URL,
     siteName: "ChantiPay",
     title: "ChantiPay - Devis et acomptes pour artisans",
-    description: "Devis signé, acompte encaissé, chantier sécurisé.",
+    description:
+      "Devis signé, acompte encaissé, chantier sécurisé. L'application mobile-first pour les artisans.",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "ChantiPay - Devis et acomptes pour artisans",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "ChantiPay - Devis et acomptes pour artisans",
+    description:
+      "Devis signé, acompte encaissé, chantier sécurisé. L'application mobile-first pour les artisans.",
+    images: ["/og-image.png"],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
+  alternates: {
+    canonical: BASE_URL,
   },
 };
 
