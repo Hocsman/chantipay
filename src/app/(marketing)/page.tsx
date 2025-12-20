@@ -39,14 +39,16 @@ export default function MarketingPage() {
           professionnels, les faire signer sur place et encaisser l&apos;acompte en quelques secondes.
         </p>
         <div className="flex flex-col justify-center gap-4 sm:flex-row">
-          <Link href="/dashboard">
+          <Link href="/register">
             <Button size="lg" className="w-full px-8 sm:w-auto">
               Essayer gratuitement
             </Button>
           </Link>
-          <Button size="lg" variant="outline" className="w-full px-8 sm:w-auto">
-            Voir la démo
-          </Button>
+          <Link href="/demo">
+            <Button size="lg" variant="outline" className="w-full px-8 sm:w-auto">
+              Voir la démo
+            </Button>
+          </Link>
         </div>
         <p className="text-muted-foreground mt-4 text-sm">
           14 jours d&apos;essai gratuit • Sans carte bancaire
