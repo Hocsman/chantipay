@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { PageHeader } from '@/components/PageHeader'
 import { LayoutContainer } from '@/components/LayoutContainer'
@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 import {
   Select,
   SelectContent,
@@ -24,8 +25,12 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Plus, Trash2, Sparkles, Loader2 } from 'lucide-react'
+import { Plus, Trash2, Sparkles, Loader2, Check, Replace, PlusCircle, Car, Package, Clock, AlertTriangle, Construction, Zap, Droplets } from 'lucide-react'
+import { toast } from 'sonner'
 
+// ===========================================
+// Types
+// ===========================================
 interface QuoteItem {
   id: string
   description: string
@@ -41,6 +46,81 @@ interface Client {
   phone?: string
 }
 
+// ===========================================
+// Helper Chips Configuration
+// ===========================================
+interface HelperChip {
+  id: string
+  label: string
+  icon: React.ReactNode
+  appendText: string
+}
+
+const helperChips: HelperChip[] = [
+  {
+    id: 'deplacement',
+    label: 'Déplacement',
+    icon: <Car className="h-3 w-3" />,
+    appendText: 'Inclure les frais de déplacement.',
+  },
+  {
+    id: 'fourniture',
+    label: 'Fourniture',
+    icon: <Package className="h-3 w-3" />,
+    appendText: 'Inclure la fourniture du matériel et consommables.',
+  },
+  {
+    id: 'main-oeuvre',
+    label: 'Main d\'œuvre',
+    icon: <Clock className="h-3 w-3" />,
+    appendText: 'Détailler la main d\'œuvre (temps estimé).',
+  },
+  {
+    id: 'urgence',
+    label: 'Urgence',
+    icon: <AlertTriangle className="h-3 w-3" />,
+    appendText: 'Intervention urgente, prévoir majoration si nécessaire.',
+  },
+  {
+    id: 'acces-difficile',
+    label: 'Accès difficile',
+    icon: <Construction className="h-3 w-3" />,
+    appendText: 'Accès difficile / contraintes sur place (à préciser).',
+  },
+]
+
+// ===========================================
+// Quick Examples
+// ===========================================
+const exampleDescriptions = {
+  plomberie: `Remplacement d'un chauffe-eau électrique de 200L dans une salle de bain.
+- Dépose de l'ancien ballon et évacuation
+- Fourniture et pose du nouveau chauffe-eau
+- Raccordements eau froide, eau chaude et électrique
+- Mise en service et vérification de l'installation
+Inclure les frais de déplacement.`,
+  electricite: `Installation d'un tableau électrique neuf dans une maison individuelle.
+- Dépose de l'ancien tableau vétuste
+- Fourniture et pose d'un tableau 3 rangées avec disjoncteurs
+- Reprise des circuits existants et mise aux normes
+- Pose d'un interrupteur différentiel 30mA
+- Contrôle et tests de l'installation
+Détailler la main d'œuvre (temps estimé).
+Inclure la fourniture du matériel et consommables.`,
+}
+
+// ===========================================
+// Trade Options
+// ===========================================
+const tradeOptions = [
+  { value: 'plomberie', label: 'Plomberie' },
+  { value: 'electricite', label: 'Électricité' },
+  { value: 'renovation', label: 'Rénovation' },
+  { value: 'peinture', label: 'Peinture' },
+  { value: 'menuiserie', label: 'Menuiserie' },
+  { value: 'autre', label: 'Autre' },
+]
+
 export default function NewQuotePage() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
@@ -53,6 +133,9 @@ export default function NewQuotePage() {
   const [vatRate, setVatRate] = useState('20')
   const [depositPercent, setDepositPercent] = useState('30')
   const [aiDescription, setAiDescription] = useState('')
+  const [selectedTrade, setSelectedTrade] = useState('')
+  const [selectedChips, setSelectedChips] = useState<Set<string>>(new Set())
+  const [replaceMode, setReplaceMode] = useState(true) // true = replace, false = append
   const [items, setItems] = useState<QuoteItem[]>([
     { id: '1', description: '', quantity: 1, unit_price_ht: 0, vat_rate: 20 },
   ])
@@ -73,6 +156,36 @@ export default function NewQuotePage() {
       }
     }
     loadClients()
+  }, [])
+
+  // Toggle helper chip
+  const toggleChip = useCallback((chip: HelperChip) => {
+    setSelectedChips(prev => {
+      const next = new Set(prev)
+      if (next.has(chip.id)) {
+        next.delete(chip.id)
+        // Remove the append text from description
+        setAiDescription(desc => 
+          desc.replace(chip.appendText, '').replace(/\n{3,}/g, '\n\n').trim()
+        )
+      } else {
+        next.add(chip.id)
+        // Add the append text to description
+        setAiDescription(desc => {
+          const trimmed = desc.trim()
+          return trimmed ? `${trimmed}\n${chip.appendText}` : chip.appendText
+        })
+      }
+      return next
+    })
+  }, [])
+
+  // Fill example description
+  const fillExample = useCallback((type: 'plomberie' | 'electricite') => {
+    setAiDescription(exampleDescriptions[type])
+    setSelectedTrade(type)
+    // Reset chips
+    setSelectedChips(new Set())
   }, [])
 
   const addItem = () => {
@@ -129,7 +242,15 @@ export default function NewQuotePage() {
 
   // Génération IA des lignes de devis
   const generateWithAI = async () => {
-    if (!aiDescription.trim()) return
+    if (!aiDescription.trim()) {
+      toast.error('Veuillez décrire les travaux à réaliser')
+      return
+    }
+
+    if (aiDescription.trim().length < 20) {
+      toast.error('La description doit contenir au moins 20 caractères')
+      return
+    }
 
     setIsGeneratingAI(true)
     try {
@@ -138,13 +259,16 @@ export default function NewQuotePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           description: aiDescription,
-          trade: 'general', // TODO: permettre de sélectionner le métier
+          trade: selectedTrade || undefined,
+          vat_rate: parseFloat(vatRate),
         }),
       })
 
-      if (!response.ok) throw new Error('Erreur lors de la génération')
-
       const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Erreur lors de la génération')
+      }
       
       if (data.items && Array.isArray(data.items)) {
         const newItems: QuoteItem[] = data.items.map((item: Omit<QuoteItem, 'id'>, index: number) => ({
@@ -155,16 +279,24 @@ export default function NewQuotePage() {
           vat_rate: item.vat_rate || parseFloat(vatRate),
         }))
 
-        // Remplacer les lignes vides ou ajouter les nouvelles
-        if (items.length === 1 && !items[0].description) {
+        if (replaceMode) {
+          // Replace all lines
           setItems(newItems)
         } else {
-          setItems([...items, ...newItems])
+          // Append to existing lines (filter out empty ones first)
+          const existingNonEmpty = items.filter(item => item.description.trim())
+          if (existingNonEmpty.length === 0) {
+            setItems(newItems)
+          } else {
+            setItems([...existingNonEmpty, ...newItems])
+          }
         }
+
+        toast.success('Lignes générées ! Vous pouvez ajuster les prix.')
       }
     } catch (error) {
       console.error('Erreur génération IA:', error)
-      // TODO: afficher une notification d'erreur
+      toast.error(error instanceof Error ? error.message : 'Erreur lors de la génération')
     } finally {
       setIsGeneratingAI(false)
     }
@@ -444,16 +576,129 @@ export default function NewQuotePage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              <Textarea
-                value={aiDescription}
-                onChange={(e) => setAiDescription(e.target.value)}
-                placeholder="Ex: Installation d'un ballon d'eau chaude de 200L en remplacement d'un ancien cumulus, avec dépose de l'ancien équipement et mise aux normes des raccordements..."
-                rows={4}
-              />
+            <div className="space-y-4">
+              {/* Quick Examples */}
+              <div>
+                <Label className="text-xs text-muted-foreground mb-2 block">Exemples rapides</Label>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fillExample('plomberie')}
+                    className="h-8"
+                  >
+                    <Droplets className="h-3 w-3 mr-1.5" />
+                    Exemple plomberie
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fillExample('electricite')}
+                    className="h-8"
+                  >
+                    <Zap className="h-3 w-3 mr-1.5" />
+                    Exemple électricité
+                  </Button>
+                </div>
+              </div>
+
+              {/* Trade Selection */}
+              <div>
+                <Label htmlFor="trade">Métier (optionnel)</Label>
+                <Select value={selectedTrade} onValueChange={setSelectedTrade}>
+                  <SelectTrigger id="trade" className="mt-1">
+                    <SelectValue placeholder="Sélectionner un métier" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {tradeOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Description Textarea */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <Label htmlFor="aiDescription">Décrivez les travaux</Label>
+                  <span className={`text-xs ${aiDescription.length > 1800 ? 'text-destructive' : 'text-muted-foreground'}`}>
+                    {aiDescription.length}/2000
+                  </span>
+                </div>
+                <Textarea
+                  id="aiDescription"
+                  value={aiDescription}
+                  onChange={(e) => {
+                    if (e.target.value.length <= 2000) {
+                      setAiDescription(e.target.value)
+                    }
+                  }}
+                  placeholder="Ex: Installation d'un ballon d'eau chaude de 200L en remplacement d'un ancien cumulus, avec dépose de l'ancien équipement..."
+                  rows={5}
+                  className="resize-none"
+                />
+              </div>
+
+              {/* Helper Chips */}
+              <div>
+                <Label className="text-xs text-muted-foreground mb-2 block">
+                  Ajouter des précisions (cliquez pour activer/désactiver)
+                </Label>
+                <div className="flex flex-wrap gap-2">
+                  {helperChips.map((chip) => (
+                    <Badge
+                      key={chip.id}
+                      variant={selectedChips.has(chip.id) ? 'default' : 'outline'}
+                      className={`cursor-pointer transition-colors py-1.5 px-3 ${
+                        selectedChips.has(chip.id)
+                          ? 'bg-primary hover:bg-primary/90'
+                          : 'hover:bg-muted'
+                      }`}
+                      onClick={() => toggleChip(chip)}
+                    >
+                      {chip.icon}
+                      <span className="ml-1.5">{chip.label}</span>
+                      {selectedChips.has(chip.id) && (
+                        <Check className="h-3 w-3 ml-1.5" />
+                      )}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+
+              {/* Replace/Append Toggle */}
+              <div className="flex items-center gap-4 p-3 rounded-lg bg-background border">
+                <span className="text-sm text-muted-foreground">Mode :</span>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant={replaceMode ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setReplaceMode(true)}
+                    className="h-8"
+                  >
+                    <Replace className="h-3 w-3 mr-1.5" />
+                    Remplacer
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={!replaceMode ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setReplaceMode(false)}
+                    className="h-8"
+                  >
+                    <PlusCircle className="h-3 w-3 mr-1.5" />
+                    Ajouter
+                  </Button>
+                </div>
+              </div>
+
+              {/* Generate Button */}
               <Button
                 onClick={generateWithAI}
-                disabled={!aiDescription.trim() || isGeneratingAI}
+                disabled={!aiDescription.trim() || aiDescription.trim().length < 20 || isGeneratingAI}
                 className="w-full h-12 text-base"
               >
                 {isGeneratingAI ? (
@@ -464,10 +709,16 @@ export default function NewQuotePage() {
                 ) : (
                   <>
                     <Sparkles className="h-4 w-4 mr-2" />
-                    Générer le devis avec l&apos;IA
+                    Générer les lignes
                   </>
                 )}
               </Button>
+
+              {aiDescription.trim().length > 0 && aiDescription.trim().length < 20 && (
+                <p className="text-xs text-muted-foreground text-center">
+                  Encore {20 - aiDescription.trim().length} caractères minimum
+                </p>
+              )}
             </div>
           </CardContent>
         </Card>
