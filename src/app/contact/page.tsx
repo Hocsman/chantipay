@@ -8,17 +8,21 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ArrowLeft, Send, Loader2, CheckCircle, AlertCircle } from 'lucide-react'
+import { useAntiBot, HoneypotField } from '@/hooks/useAntiBot'
 
 export default function ContactPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [result, setResult] = useState<'success' | 'error' | null>(null)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     subject: '',
     message: '',
-    company: '', // honeypot
   })
+  
+  // Anti-bot protection
+  const { honeypot, setHoneypot, formLoadedAt } = useAntiBot()
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -28,24 +32,42 @@ export default function ContactPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // Anti-bot: honeypot check
+    if (honeypot) {
+      // Silently pretend success for bots
+      setResult('success')
+      return
+    }
+    
+    // Anti-bot: time check (submitted too fast = bot)
+    if (Date.now() - formLoadedAt < 3000) {
+      setErrorMessage('Veuillez patienter quelques secondes avant d\'envoyer.')
+      return
+    }
+    
     setIsSubmitting(true)
     setResult(null)
+    setErrorMessage(null)
 
     try {
       const response = await fetch('/api/contact', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({ ...formData, company: honeypot }),
       })
 
       if (response.ok) {
         setResult('success')
-        setFormData({ name: '', email: '', subject: '', message: '', company: '' })
+        setFormData({ name: '', email: '', subject: '', message: '' })
       } else {
+        const data = await response.json().catch(() => ({}))
+        setErrorMessage(data.error || 'Erreur lors de l\'envoi')
         setResult('error')
       }
     } catch {
       setResult('error')
+      setErrorMessage('Erreur de connexion')
     } finally {
       setIsSubmitting(false)
     }
@@ -102,19 +124,15 @@ export default function ContactPage() {
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-4">
-                {/* Honeypot field - hidden from users */}
-                <div className="hidden" aria-hidden="true">
-                  <Label htmlFor="company">Entreprise</Label>
-                  <Input
-                    type="text"
-                    id="company"
-                    name="company"
-                    value={formData.company}
-                    onChange={handleChange}
-                    tabIndex={-1}
-                    autoComplete="off"
-                  />
-                </div>
+                {/* Honeypot anti-bot field */}
+                <HoneypotField value={honeypot} onChange={setHoneypot} name="company_url" />
+                
+                {errorMessage && (
+                  <div className="rounded-md bg-red-50 p-3 text-sm text-red-600 flex items-center gap-2">
+                    <AlertCircle className="h-4 w-4" />
+                    {errorMessage}
+                  </div>
+                )}
 
                 <div>
                   <Label htmlFor="name">Nom</Label>

@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { FileText, Loader2, Building2, User, Phone, MapPin, Hash, Eye, EyeOff } from 'lucide-react';
+import { useAntiBot, HoneypotField } from '@/hooks/useAntiBot';
 
 export default function RegisterPage() {
   // Form state
@@ -25,9 +26,25 @@ export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  
+  // Anti-bot protection
+  const { honeypot, setHoneypot, formLoadedAt } = useAntiBot();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Anti-bot: honeypot check
+    if (honeypot) {
+      // Silently fail for bots
+      return;
+    }
+    
+    // Anti-bot: time check (submitted too fast = bot)
+    if (Date.now() - formLoadedAt < 3000) {
+      setError('Veuillez patienter quelques secondes.');
+      return;
+    }
+    
     setIsLoading(true);
     setError(null);
 
@@ -101,6 +118,9 @@ export default function RegisterPage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Honeypot anti-bot field */}
+            <HoneypotField value={honeypot} onChange={setHoneypot} name="company_website" />
+            
             {error && (
               <div className="rounded-md bg-red-50 p-3 text-sm text-red-600">
                 {error}
