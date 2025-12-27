@@ -216,12 +216,31 @@ function BillingContent() {
         .eq('id', user.id)
         .single()
 
-      if (profileError) throw profileError
+      if (profileError) {
+        console.error('Profile fetch error:', profileError)
+        // Set default subscription state if profile not found
+        setSubscription({
+          subscription_status: 'trial',
+          subscription_plan: null,
+          stripe_customer_id: null,
+          stripe_subscription_id: null,
+          current_period_end: null,
+        })
+        return
+      }
 
       setSubscription(profile)
     } catch (err) {
       console.error('Error loading subscription:', err)
-      setError('Erreur lors du chargement de l\'abonnement')
+      setError('Erreur lors du chargement de l\'abonnement. Veuillez rafraîchir la page.')
+      // Still set a default state so the page renders
+      setSubscription({
+        subscription_status: 'trial',
+        subscription_plan: null,
+        stripe_customer_id: null,
+        stripe_subscription_id: null,
+        current_period_end: null,
+      })
     } finally {
       setIsLoading(false)
     }
