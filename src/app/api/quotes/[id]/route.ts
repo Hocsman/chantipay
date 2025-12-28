@@ -11,6 +11,16 @@ export async function GET(
 ) {
   try {
     const { id } = await params
+    
+    // Valider que l'ID est un UUID valide
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+    if (!uuidRegex.test(id)) {
+      return NextResponse.json(
+        { error: 'ID de devis invalide' },
+        { status: 400 }
+      )
+    }
+    
     const supabase = await createClient()
 
     console.log('API /api/quotes/[id] - Fetching quote ID:', id)
