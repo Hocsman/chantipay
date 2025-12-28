@@ -97,8 +97,9 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (clientError || !client) {
+      console.error('Client non trouvé:', clientError)
       return NextResponse.json(
-        { error: 'Client non trouvé' },
+        { error: `Client non trouvé: ${clientError?.message || 'ID invalide'}` },
         { status: 404 }
       )
     }
@@ -142,7 +143,7 @@ export async function POST(request: NextRequest) {
     if (quoteError || !quote) {
       console.error('Erreur création devis:', quoteError)
       return NextResponse.json(
-        { error: 'Erreur lors de la création du devis' },
+        { error: `Erreur lors de la création du devis: ${quoteError?.message || 'Unknown'}` },
         { status: 500 }
       )
     }
@@ -166,7 +167,7 @@ export async function POST(request: NextRequest) {
       // Supprimer le devis créé en cas d'erreur
       await supabase.from('quotes').delete().eq('id', quote.id)
       return NextResponse.json(
-        { error: 'Erreur lors de la création des lignes du devis' },
+        { error: `Erreur lors de la création des lignes: ${itemsError.message}` },
         { status: 500 }
       )
     }
