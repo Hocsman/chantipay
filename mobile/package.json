@@ -1,0 +1,24 @@
+{
+  "name": "chantipay-mobile",
+  "version": "1.0.0",
+  "description": "ChantiPay mobile app (iOS/Android wrapper)",
+  "main": "index.js",
+  "scripts": {
+    "cap:sync": "cap sync",
+    "ios": "cap open ios",
+    "android": "cap open android",
+    "add:ios": "cap add ios",
+    "add:android": "cap add android"
+  },
+  "keywords": [
+    "capacitor",
+    "mobile",
+    "chantipay"
+  ],
+  "author": "ChantiPay",
+  "license": "MIT",
+  "dependencies": {
+    "@capacitor/core": "^6.2.0",
+    "@capacitor/cli": "^6.2.0"
+  }
+}
