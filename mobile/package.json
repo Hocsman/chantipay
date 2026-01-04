@@ -4,11 +4,14 @@
   "description": "ChantiPay mobile app (iOS/Android wrapper)",
   "main": "index.js",
   "scripts": {
-    "cap:sync": "cap sync",
-    "ios": "cap open ios",
-    "android": "cap open android",
-    "add:ios": "cap add ios",
-    "add:android": "cap add android"
+    "use:prod": "node scripts/set-server-url.mjs prod && npx cap sync",
+    "use:dev": "node scripts/set-server-url.mjs dev && npx cap sync",
+    "run:ios": "npx cap open ios",
+    "run:android": "npx cap open android",
+    "sync": "npx cap sync",
+    "build": "tsc && npx cap sync",
+    "add:ios": "npx cap add ios",
+    "add:android": "npx cap add android"
   },
   "keywords": [
     "capacitor",
@@ -18,7 +21,16 @@
   "author": "ChantiPay",
   "license": "MIT",
   "dependencies": {
-    "@capacitor/core": "^6.2.0",
-    "@capacitor/cli": "^6.2.0"
+    "@capacitor/android": "^8.0.0",
+    "@capacitor/app": "^8.0.0",
+    "@capacitor/browser": "^8.0.0",
+    "@capacitor/cli": "^8.0.0",
+    "@capacitor/core": "^8.0.0",
+    "@capacitor/filesystem": "^8.0.0",
+    "@capacitor/ios": "^8.0.0",
+    "@capacitor/share": "^8.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
   }
 }

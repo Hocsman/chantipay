@@ -1,0 +1,184 @@
+┌──────────────────────────────────────────────────────────────────┐
+│  ✅ DEEP LINKS + EXTERNAL LINKS - IMPLÉMENTATION TERMINÉE       │
+└──────────────────────────────────────────────────────────────────┘
+
+📦 FICHIERS CRÉÉS
+─────────────────
+
+MOBILE (mobile/)
+├── src/
+│   ├── deeplinks.ts              ✅ Handler deep links Supabase
+│   └── index.ts                  ✅ Bootstrap mobile app
+├── dist/                         ✅ TypeScript compilé
+│   ├── deeplinks.js
+│   └── index.js
+├── scripts/
+│   ├── set-server-url.mjs        ✅ Existant (dev/prod switcher)
+│   └── test-deeplinks.sh         ✅ NOUVEAU - Tests automatiques
+├── ios/App/App/Info.plist        ✅ URL Scheme configuré
+├── android/.../AndroidManifest   ✅ Intent filter configuré
+├── DEEPLINKS.md                  ✅ Guide complet (150+ lignes)
+├── SUPABASE_CONFIG.md            ✅ URLs à copier-coller
+├── IMPLEMENTATION_SUMMARY.md     ✅ Résumé technique
+├── QUICKSTART.md                 ✅ Démarrage rapide
+└── README.md                     ✅ Mis à jour
+
+NEXT.JS (src/)
+├── lib/capacitor/
+│   └── openExternal.ts           ✅ Utilitaires in-app browser
+├── components/
+│   └── ExternalLinkHandler.tsx   ✅ Intercepteur global
+└── app/
+    └── layout.tsx                ✅ Handler activé
+
+──────────────────────────────────────────────────────────────────
+
+🎯 ACTION REQUISE (5 MINUTES)
+──────────────────────────────
+
+1️⃣ CONFIGURER SUPABASE (OBLIGATOIRE)
+
+   Ouvrez : mobile/SUPABASE_CONFIG.md
+   
+   Ou directement :
+   - Allez sur https://supabase.com/dashboard
+   - Projet ChantiPay > Authentication > URL Configuration
+   - Ajoutez dans "Redirect URLs" :
+   
+     https://www.chantipay.com/auth/callback
+     chantipay://auth/callback
+   
+   - Cliquez Save
+
+──────────────────────────────────────────────────────────────────
+
+🧪 TESTER (10 MINUTES)
+──────────────────────
+
+2️⃣ LANCER L'APP iOS
+
+   cd mobile
+   npm run use:dev
+   npm run run:ios
+   
+   → Xcode s'ouvre
+   → Sélectionnez iPhone 15 Pro simulator
+   → Cliquez ▶️ Play
+
+3️⃣ TESTER UN DEEP LINK
+
+   cd mobile
+   ./scripts/test-deeplinks.sh ios
+   
+   → L'app devrait s'ouvrir
+   → Console : "Deep link received: chantipay://auth/callback"
+   → Navigation vers /auth/callback
+
+4️⃣ TESTER LE FLUX COMPLET
+
+   Dans l'app :
+   - Allez sur /register
+   - Créez un compte avec votre email
+   - Consultez vos emails
+   - Cliquez sur "Confirmer mon compte"
+   → L'app s'ouvre automatiquement
+   → Vous êtes redirigé vers /dashboard
+
+5️⃣ TESTER LES LIENS EXTERNES
+
+   Dans l'app :
+   - Allez sur une page marketing (/)
+   - Scrollez jusqu'au footer
+   - Cliquez "Politique de confidentialité"
+   → S'ouvre dans un navigateur in-app
+   → Bouton "Fermer" ramène à l'app
+
+──────────────────────────────────────────────────────────────────
+
+📊 RÉCAPITULATIF
+────────────────
+
+✅ Deep Links Supabase
+   - URL Scheme iOS : chantipay://
+   - Intent filter Android : chantipay://auth
+   - Handler TypeScript compilé
+   - Support dev (192.168.x.x:3000) + prod (chantipay.com)
+
+✅ In-App Browser
+   - Détection automatique liens externes
+   - Ouvre avec @capacitor/browser
+   - Intercepteur global dans layout.tsx
+   - Pas d'impact sur le web (uniquement natif)
+
+✅ Documentation
+   - 5 fichiers Markdown
+   - Guide complet iOS/Android
+   - Script de test automatique
+   - Troubleshooting inclus
+
+✅ Code prêt pour production
+   - TypeScript compilé dans dist/
+   - Capacitor sync effectué
+   - Configurations natives OK
+   - Tests prêts
+
+──────────────────────────────────────────────────────────────────
+
+📖 DOCUMENTATION
+────────────────
+
+Consultez ces fichiers dans l'ordre :
+
+1. QUICKSTART.md          → Démarrage rapide (3 commandes)
+2. SUPABASE_CONFIG.md     → URLs à copier-coller (2 min)
+3. DEEPLINKS.md           → Guide complet + troubleshooting
+4. IMPLEMENTATION_SUMMARY → Détails techniques
+
+Ou lancez directement :
+   cat mobile/QUICKSTART.md
+
+──────────────────────────────────────────────────────────────────
+
+⚡ COMMANDES RAPIDES
+────────────────────
+
+# Passer en mode dev (serveur local)
+npm run use:dev
+
+# Passer en mode prod
+npm run use:prod
+
+# Ouvrir Xcode (iOS)
+npm run run:ios
+
+# Ouvrir Android Studio
+npm run run:android
+
+# Tester deep links
+./scripts/test-deeplinks.sh ios
+./scripts/test-deeplinks.sh android
+
+# Recompiler le TypeScript mobile
+npm run build
+
+# Synchroniser avec plateformes natives
+npm run sync
+
+──────────────────────────────────────────────────────────────────
+
+🎉 SUCCÈS !
+───────────
+
+Toute l'infrastructure est prête. Il ne reste plus qu'à :
+
+1. Configurer Supabase (5 min)
+2. Tester l'app (10 min)
+3. Profiter des deep links ! 🚀
+
+Questions ? Consultez mobile/DEEPLINKS.md section Troubleshooting
+
+──────────────────────────────────────────────────────────────────
+
+Implémenté le 1er janvier 2026
+GitHub Copilot x Capacitor x Supabase
+

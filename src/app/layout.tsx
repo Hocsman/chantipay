@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
+import { ExternalLinkHandler } from "@/components/ExternalLinkHandler";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -115,6 +116,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
+        <ExternalLinkHandler />
         {children}
         <Toaster position="top-center" richColors />
         <ServiceWorkerRegistration />

@@ -1,10 +1,14 @@
 # Capacitor
 ios/
 android/
+dist/
 
 # Dependencies
 node_modules/
 package-lock.json
+
+# Generated config
+capacitor.config.json
 
 # IDE
 .idea/

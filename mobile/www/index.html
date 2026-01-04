@@ -33,11 +33,18 @@
     <h1>ChantiPay</h1>
     <p>Chargement...</p>
   </div>
-  <script>
-    // Redirect to live app
+  
+  <!-- Capacitor bootstrap - initializes deep links -->
+  <script type="module">
+    // Import the mobile bootstrap
+    import '../src/index.js';
+    
+    // Fallback redirect if Capacitor config fails
     setTimeout(() => {
-      window.location.href = 'https://www.chantipay.com';
-    }, 100);
+      if (!window.Capacitor) {
+        window.location.href = 'https://www.chantipay.com';
+      }
+    }, 1000);
   </script>
 </body>
 </html>

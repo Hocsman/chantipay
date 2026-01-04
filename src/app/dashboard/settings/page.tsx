@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { PageHeader } from '@/components/PageHeader'
 import { LayoutContainer } from '@/components/LayoutContainer'
 import { Button } from '@/components/ui/button'
@@ -16,11 +16,17 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
-import { Loader2, Save, Upload, Building2, CreditCard } from 'lucide-react'
+import { Loader2, Save, Upload, Building2, CreditCard, X, Image as ImageIcon } from 'lucide-react'
 import Link from 'next/link'
+import Image from 'next/image'
+import { uploadCompanyLogo, deleteCompanyLogo } from '@/lib/uploadLogo'
+import { toast } from 'sonner'
 
 export default function SettingsPage() {
   const [isLoading, setIsLoading] = useState(false)
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false)
+  const [logoUrl, setLogoUrl] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   
   // État du formulaire (pré-rempli avec des données de démo)
   const [formData, setFormData] = useState({
@@ -38,6 +44,43 @@ export default function SettingsPage() {
 
   const handleChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
+  }
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setIsUploadingLogo(true)
+    try {
+      // TODO: Récupérer le vrai userId depuis la session
+      const userId = 'demo-user-123'
+      const url = await uploadCompanyLogo(file, userId)
+      
+      if (url) {
+        setLogoUrl(url)
+        toast.success('Logo téléversé avec succès')
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'Erreur lors du téléversement')
+    } finally {
+      setIsUploadingLogo(false)
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+    }
+  }
+
+  const handleLogoDelete = async () => {
+    if (!logoUrl) return
+
+    try {
+      const userId = 'demo-user-123'
+      await deleteCompanyLogo(logoUrl, userId)
+      setLogoUrl(null)
+      toast.success('Logo supprimé')
+    } catch (error) {
+      toast.error('Erreur lors de la suppression')
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -155,16 +198,55 @@ export default function SettingsPage() {
             <div className="space-y-2">
               <Label>Logo de l&apos;entreprise</Label>
               <div className="flex items-center gap-4">
-                <div className="h-20 w-20 rounded-lg border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted">
-                  <Building2 className="h-8 w-8 text-muted-foreground" />
+                {logoUrl ? (
+                  <div className="relative h-20 w-20 rounded-lg border-2 border-border overflow-hidden bg-white">
+                    <Image
+                      src={logoUrl}
+                      alt="Logo entreprise"
+                      fill
+                      className="object-contain p-2"
+                    />
+                  </div>
+                ) : (
+                  <div className="h-20 w-20 rounded-lg border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted">
+                    <Building2 className="h-8 w-8 text-muted-foreground" />
+                  </div>
+                )}
+                
+                <div className="flex items-center gap-2">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/png, image/jpeg, image/jpg"
+                    onChange={handleLogoUpload}
+                    className="hidden"
+                    id="logo-upload"
+                  />
+                  <Button 
+                    type="button" 
+                    variant="outline"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploadingLogo}
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    {isUploadingLogo ? 'Téléversement...' : logoUrl ? 'Changer le logo' : 'Téléverser un logo'}
+                  </Button>
+                  
+                  {logoUrl && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={handleLogoDelete}
+                      className="text-destructive hover:text-destructive"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
                 </div>
-                <Button type="button" variant="outline">
-                  <Upload className="h-4 w-4 mr-2" />
-                  Téléverser un logo
-                </Button>
               </div>
               <p className="text-xs text-muted-foreground">
-                Format recommandé : PNG ou JPG, max 1 Mo
+                Format : PNG ou JPG, max 1 Mo
               </p>
             </div>
           </CardContent>
