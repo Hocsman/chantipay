@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { PageHeader } from '@/components/PageHeader'
 import { LayoutContainer } from '@/components/LayoutContainer'
 import { Button } from '@/components/ui/button'
@@ -21,12 +21,26 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { uploadCompanyLogo, deleteCompanyLogo } from '@/lib/uploadLogo'
 import { toast } from 'sonner'
+import { createClient } from '@/lib/supabase/client'
 
 export default function SettingsPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [isUploadingLogo, setIsUploadingLogo] = useState(false)
   const [logoUrl, setLogoUrl] = useState<string | null>(null)
+  const [userId, setUserId] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Récupérer l'utilisateur authentifié
+  useEffect(() => {
+    const getUser = async () => {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        setUserId(user.id)
+      }
+    }
+    getUser()
+  }, [])
   
   // État du formulaire (pré-rempli avec des données de démo)
   const [formData, setFormData] = useState({
@@ -50,10 +64,13 @@ export default function SettingsPage() {
     const file = e.target.files?.[0]
     if (!file) return
 
+    if (!userId) {
+      toast.error('Utilisateur non authentifié')
+      return
+    }
+
     setIsUploadingLogo(true)
     try {
-      // TODO: Récupérer le vrai userId depuis la session
-      const userId = 'demo-user-123'
       const url = await uploadCompanyLogo(file, userId)
       
       if (url) {
@@ -71,10 +88,9 @@ export default function SettingsPage() {
   }
 
   const handleLogoDelete = async () => {
-    if (!logoUrl) return
+    if (!logoUrl || !userId) return
 
     try {
-      const userId = 'demo-user-123'
       await deleteCompanyLogo(logoUrl, userId)
       setLogoUrl(null)
       toast.success('Logo supprimé')
