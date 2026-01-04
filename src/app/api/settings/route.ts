@@ -55,23 +55,27 @@ export async function PATCH(request: NextRequest) {
     // ============================================
     // 3. Mettre à jour les settings
     // ============================================
+    const settingsData = {
+      user_id: user.id,
+      company_logo_url: company_logo_url || null,
+      default_vat_rate: parseFloat(defaultVatRate) || 20,
+      default_deposit_percent: parseFloat(defaultDepositPercent) || 30,
+      pdf_footer_text: pdfFooterText || null,
+      updated_at: new Date().toISOString(),
+    }
+
     const { data, error } = await supabase
       .from('settings')
-      .upsert({
-        user_id: user.id,
-        company_logo_url: company_logo_url || null,
-        default_vat_rate: parseFloat(defaultVatRate) || 20,
-        default_deposit_percent: parseFloat(defaultDepositPercent) || 30,
-        pdf_footer_text: pdfFooterText || null,
-        updated_at: new Date().toISOString(),
+      .upsert(settingsData, {
+        onConflict: 'user_id',
       })
       .select()
-      .single()
+      .maybeSingle()
 
     if (error) {
       console.error('[Settings API] Error updating settings:', error)
       return NextResponse.json(
-        { error: 'Erreur lors de la sauvegarde' },
+        { error: 'Erreur lors de la sauvegarde', details: error.message },
         { status: 500 }
       )
     }
