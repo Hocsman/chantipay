@@ -3,6 +3,8 @@
 import { useState, useRef, useEffect } from 'react'
 import { PageHeader } from '@/components/PageHeader'
 import { LayoutContainer } from '@/components/LayoutContainer'
+import { ThemeToggle } from '@/components/theme/ThemeToggle'
+import { useTheme } from '@/components/theme/ThemeProvider'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -16,7 +18,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
-import { Loader2, Save, Upload, Building2, CreditCard, X, Image as ImageIcon } from 'lucide-react'
+import { Loader2, Save, Upload, Building2, CreditCard, X, Image as ImageIcon, Palette } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { uploadCompanyLogo, deleteCompanyLogo } from '@/lib/uploadLogo'
@@ -337,6 +339,31 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
+        {/* Thème */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Palette className="h-5 w-5" />
+              Apparence
+            </CardTitle>
+            <CardDescription>
+              Personnalisez l&apos;apparence de l&apos;application
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <Label>Thème</Label>
+                <p className="text-sm text-muted-foreground">
+                  Choisissez entre le mode clair, sombre ou automatique
+                </p>
+              </div>
+              <ThemeToggle />
+            </div>
+            <ThemePreview />
+          </CardContent>
+        </Card>
+
         {/* Lien vers la facturation */}
         <Card>
           <CardHeader>
@@ -381,5 +408,36 @@ export default function SettingsPage() {
         </div>
       </form>
     </LayoutContainer>
+  )
+}
+
+// Theme preview component
+function ThemePreview() {
+  const { theme, resolvedTheme } = useTheme()
+  
+  const themeLabels: Record<string, string> = {
+    light: 'Clair',
+    dark: 'Sombre',
+    system: 'Automatique',
+  }
+
+  const resolvedLabels: Record<string, string> = {
+    light: 'clair',
+    dark: 'sombre',
+  }
+
+  return (
+    <div className="rounded-lg border p-3 text-sm">
+      <div className="flex items-center justify-between">
+        <span className="text-muted-foreground">Mode actuel:</span>
+        <span className="font-medium">{themeLabels[theme]}</span>
+      </div>
+      {theme === 'system' && (
+        <div className="flex items-center justify-between mt-1">
+          <span className="text-muted-foreground">Détecté:</span>
+          <span className="font-medium">Thème {resolvedLabels[resolvedTheme]}</span>
+        </div>
+      )}
+    </div>
   )
 }

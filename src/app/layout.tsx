@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { ExternalLinkHandler } from "@/components/ExternalLinkHandler";
+import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -109,19 +110,51 @@ export default function RootLayout({
   return (
     <html lang="fr" suppressHydrationWarning>
       <head>
+        <ThemeScript />
         <link rel="apple-touch-icon" href="/icons/icon-192x192.svg" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
       >
-        <ExternalLinkHandler />
-        {children}
-        <Toaster position="top-center" richColors />
-        <ServiceWorkerRegistration />
+        <ThemeProvider>
+          <ExternalLinkHandler />
+          {children}
+          <Toaster position="top-center" richColors />
+          <ServiceWorkerRegistration />
+        </ThemeProvider>
       </body>
     </html>
+  );
+}
+
+// Prevent theme flicker on page load
+function ThemeScript() {
+  return (
+    <script
+      dangerouslySetInnerHTML={{
+        __html: `
+          (function() {
+            const storageKey = 'chantipay_theme';
+            const stored = localStorage.getItem(storageKey);
+            const theme = stored || 'system';
+            
+            function getSystemTheme() {
+              return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+            }
+            
+            const resolved = theme === 'system' ? getSystemTheme() : theme;
+            
+            if (resolved === 'dark') {
+              document.documentElement.classList.add('dark');
+            } else {
+              document.documentElement.classList.remove('dark');
+            }
+          })();
+        `,
+      }}
+    />
   );
 }
 

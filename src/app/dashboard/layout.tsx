@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { MobileBottomNav } from '@/components/MobileBottomNav';
+import { ThemeToggle } from '@/components/theme/ThemeToggle';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -66,7 +67,8 @@ export default function DashboardLayout({
               </Link>
             </nav>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
             <Link href="/dashboard/quotes/new">
               <Button size="sm">+ Nouveau devis</Button>
             </Link>
