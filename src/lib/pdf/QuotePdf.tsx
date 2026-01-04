@@ -259,6 +259,11 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontFamily: 'Helvetica-Bold',
     color: '#1E3A8A',
+    marginBottom: 4,
+  },
+  signatureSubtitle: {
+    fontSize: 8,
+    color: '#64748B',
     marginBottom: 6,
   },
   signatureImage: {
@@ -567,7 +572,8 @@ export const QuotePdfDocument = ({
         <View style={styles.signatureSection}>
           <View style={styles.signatureContainer}>
             <View style={styles.signatureBox}>
-              <Text style={styles.signatureTitle}>Signature client</Text>
+              <Text style={styles.signatureTitle}>Bon pour accord</Text>
+              <Text style={styles.signatureSubtitle}>Signature client</Text>
               {quote.signature_image_url ? (
                 <>
                   <Image

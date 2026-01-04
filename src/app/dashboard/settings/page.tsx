@@ -88,11 +88,21 @@ export default function SettingsPage() {
     setIsLoading(true)
     
     try {
-      // TODO: Appeler l'API pour sauvegarder les paramètres
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-      // Afficher une notification de succès
+      const response = await fetch('/api/settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...formData,
+          company_logo_url: logoUrl,
+        }),
+      })
+
+      if (!response.ok) throw new Error('Erreur lors de la sauvegarde')
+      
+      toast.success('Paramètres sauvegardés avec succès')
     } catch (error) {
       console.error('Erreur:', error)
+      toast.error('Erreur lors de la sauvegarde')
     } finally {
       setIsLoading(false)
     }
