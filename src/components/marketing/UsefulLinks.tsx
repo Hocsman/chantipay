@@ -21,7 +21,7 @@ export function UsefulLinks({ currentPath }: UsefulLinksProps) {
   const filteredLinks = usefulLinks.filter((link) => link.href !== currentPath)
 
   return (
-    <section className="py-12 bg-slate-50">
+    <section className="py-12 bg-slate-50 dark:bg-slate-900">
       <div className="mx-auto max-w-4xl px-4">
         <h2 className="text-xl font-bold mb-6 text-center">Pages utiles</h2>
         <div className="flex flex-wrap justify-center gap-2">
@@ -29,7 +29,7 @@ export function UsefulLinks({ currentPath }: UsefulLinksProps) {
             <Link
               key={link.href}
               href={link.href}
-              className="px-3 py-2 text-sm bg-white border rounded-lg hover:bg-primary hover:text-white transition-colors"
+              className="px-3 py-2 text-sm bg-background border rounded-lg hover:bg-primary hover:text-white transition-colors"
             >
               {link.label}
             </Link>

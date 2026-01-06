@@ -25,13 +25,13 @@ interface ThemeProviderProps {
 }
 
 export function ThemeProvider({ children }: ThemeProviderProps) {
-  const [theme, setThemeState] = useState<Theme>('system')
+  const [theme, setThemeState] = useState<Theme>('light')
   const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>('light')
 
   // Initialize theme from localStorage on mount
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY) as Theme | null
-    const initialTheme = stored || 'system'
+    const initialTheme = stored || 'light'
     setThemeState(initialTheme)
     
     const resolved = initialTheme === 'system' ? getSystemTheme() : initialTheme

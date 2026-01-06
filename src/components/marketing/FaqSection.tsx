@@ -24,7 +24,7 @@ export function FaqSection({ faqs, pageUrl }: FaqSectionProps) {
   }
 
   return (
-    <section className="py-16 bg-white">
+    <section className="py-16 bg-white dark:bg-slate-950">
       {/* JSON-LD */}
       <script
         type="application/ld+json"

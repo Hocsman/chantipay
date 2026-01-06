@@ -76,14 +76,16 @@ export default function PlanningPage() {
                 label: 'Planifier une intervention',
                 onClick: () => router.push('/dashboard/planning/new'),
               }}
+              variant="colorful"
             />
           )}
 
           {activeTab === 'En retard' && (
             <EmptyState
               icon={Calendar}
-              title="Aucune intervention en retard"
+              title="Tout est à jour !"
               description="Excellent ! Toutes vos interventions sont à jour."
+              variant="colorful"
             />
           )}
 
@@ -96,6 +98,7 @@ export default function PlanningPage() {
                 label: 'Planifier une intervention',
                 onClick: () => router.push('/dashboard/planning/new'),
               }}
+              variant="colorful"
             />
           )}
         </div>

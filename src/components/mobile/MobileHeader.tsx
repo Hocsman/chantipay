@@ -22,35 +22,37 @@ export function MobileHeader({ title, subtitle, user, className }: MobileHeaderP
     .map((n) => n[0])
     .join('')
     .toUpperCase()
-    .slice(0, 2) || 'U';
+    .slice(0, 2) || 'HM';
 
   return (
     <header
       className={cn(
-        'sticky top-0 z-40 md:hidden bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md',
+        'sticky top-0 z-40 md:hidden bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg',
         className
       )}
       style={{
         paddingTop: 'env(safe-area-inset-top)',
       }}
     >
-      <div className="px-4 py-3 flex items-center justify-between">
+      <div className="px-4 py-4 flex items-center justify-between">
         {/* Left: Title */}
         <div className="flex-1 min-w-0">
-          <h1 className="text-lg font-semibold truncate">{title}</h1>
+          <h1 className="text-xl font-bold truncate">{title}</h1>
           {subtitle && (
-            <p className="text-sm text-blue-100 truncate">{subtitle}</p>
+            <p className="text-sm text-blue-100 truncate mt-0.5">{subtitle}</p>
           )}
         </div>
 
         {/* Right: Actions */}
-        <div className="flex items-center gap-1 ml-3">
+        <div className="flex items-center gap-2 ml-3">
           <Link
             href="/dashboard/notifications"
-            className="p-2 rounded-full hover:bg-white/10 active:bg-white/20 transition-colors"
+            className="relative p-2 rounded-full hover:bg-white/10 active:bg-white/20 transition-colors"
             aria-label="Notifications"
           >
             <Bell className="w-5 h-5" />
+            {/* Badge notification */}
+            <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full ring-2 ring-blue-600" />
           </Link>
 
           <Link
@@ -63,20 +65,12 @@ export function MobileHeader({ title, subtitle, user, className }: MobileHeaderP
 
           <Link
             href="/dashboard/settings"
-            className="p-2 rounded-full hover:bg-white/10 active:bg-white/20 transition-colors"
-            aria-label="Paramètres"
-          >
-            <Settings className="w-5 h-5" />
-          </Link>
-
-          <Link
-            href="/dashboard/settings/profile"
             className="ml-1"
             aria-label="Profil"
           >
-            <Avatar className="w-8 h-8 border-2 border-white/30">
+            <Avatar className="w-9 h-9 border-2 border-white/40 shadow-md">
               <AvatarImage src={user?.avatar} alt={user?.name} />
-              <AvatarFallback className="bg-white/20 text-white text-xs">
+              <AvatarFallback className="bg-white/20 text-white text-sm font-semibold">
                 {initials}
               </AvatarFallback>
             </Avatar>

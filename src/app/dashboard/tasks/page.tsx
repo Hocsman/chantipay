@@ -13,12 +13,13 @@ export default function TasksPage() {
       <div className="p-4">
         <EmptyState
           icon={CheckSquare}
-          title="Aucune tâche en cours"
-          description="Créez des tâches pour suivre les actions importantes de vos chantiers et relances clients."
+          title="Aucune tâche !"
+          description="Créez vos premières tâches pour suivre les actions importantes de vos chantiers et relances clients."
           action={{
             label: 'Créer une tâche',
             onClick: () => router.push('/dashboard/tasks/new'),
           }}
+          variant="colorful"
         />
       </div>
     </MobileAppShell>

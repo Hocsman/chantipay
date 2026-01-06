@@ -29,8 +29,8 @@ export function MobileAppShell({
 
   return (
     <>
-      {/* Mobile-only shell */}
-      <div className="md:hidden min-h-screen bg-gray-50">
+      {/* Mobile shell - visible on mobile screens AND in browser mobile view */}
+      <div className="min-h-screen bg-gray-50">
         <MobileHeader title={title} subtitle={subtitle} user={user} />
 
         <main
@@ -44,9 +44,6 @@ export function MobileAppShell({
 
         <MobileBottomNav onFabClick={() => setCreateSheetOpen(true)} />
       </div>
-
-      {/* Desktop: render children without shell */}
-      <div className="hidden md:block">{children}</div>
 
       {/* Action Sheet */}
       <CreateActionSheet

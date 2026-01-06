@@ -1,8 +1,11 @@
+'use client';
+
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { FileText, Pen, CreditCard, Smartphone, Zap, Shield, Sparkles } from 'lucide-react';
+import { ThemeToggle } from '@/components/theme/ThemeToggle';
 
 // JSON-LD Structured Data
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://www.chantipay.com';
@@ -67,7 +70,7 @@ const organizationJsonLd = {
 
 export default function MarketingPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white dark:from-slate-950 dark:to-slate-900">
       {/* JSON-LD Structured Data */}
       <script
         type="application/ld+json"
@@ -83,7 +86,7 @@ export default function MarketingPage() {
       />
 
       {/* Header */}
-      <header className="sticky top-0 z-50 border-b bg-white/80 backdrop-blur-sm">
+      <header className="sticky top-0 z-50 border-b bg-background/80 backdrop-blur-sm">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
           <div className="flex items-center gap-2">
             <div className="bg-primary flex h-8 w-8 items-center justify-center rounded-lg">
@@ -91,7 +94,8 @@ export default function MarketingPage() {
             </div>
             <span className="text-xl font-bold">ChantiPay</span>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
             <Link href="/login">
               <Button variant="ghost">Connexion</Button>
             </Link>
@@ -104,7 +108,7 @@ export default function MarketingPage() {
 
       {/* Hero Section */}
       <section className="mx-auto max-w-7xl px-4 py-20 text-center md:py-32">
-        <h1 className="mb-6 text-4xl font-bold tracking-tight text-slate-900 md:text-6xl">
+        <h1 className="mb-6 text-4xl font-bold tracking-tight text-foreground md:text-6xl">
           Devis signé, acompte encaissé,
           <br />
           <span className="text-primary">chantier sécurisé.</span>
@@ -131,7 +135,7 @@ export default function MarketingPage() {
       </section>
 
       {/* Features Section */}
-      <section className="bg-slate-50 py-20">
+      <section className="bg-slate-50 dark:bg-slate-900 py-20">
         <div className="mx-auto max-w-7xl px-4">
           <div className="mb-12 text-center">
             <h2 className="mb-4 text-3xl font-bold">Pensé pour les artisans sur le terrain</h2>
@@ -238,7 +242,7 @@ export default function MarketingPage() {
       </section>
 
       {/* Pricing Section */}
-      <section className="bg-slate-50 py-20">
+      <section className="bg-slate-50 dark:bg-slate-900 py-20">
         <div className="mx-auto max-w-7xl px-4">
           <div className="mb-12 text-center">
             <h2 className="mb-4 text-3xl font-bold">Tarifs simples et transparents</h2>
@@ -343,7 +347,7 @@ export default function MarketingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t bg-slate-50 py-12">
+      <footer className="border-t bg-slate-50 dark:bg-slate-900 py-12">
         <div className="mx-auto max-w-7xl px-4">
           <div className="flex flex-col items-center justify-between gap-6 md:flex-row">
             <div className="flex items-center gap-2">

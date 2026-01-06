@@ -10,9 +10,9 @@ export const metadata: Metadata = {
 
 export default function MentionsLegalesPage() {
   return (
-    <main className="min-h-screen bg-background">
+    <main className="min-h-screen bg-gradient-to-b from-slate-50 to-white dark:from-slate-950 dark:to-slate-900">
       {/* Header */}
-      <div className="border-b">
+      <div className="border-b bg-background/80 backdrop-blur-sm">
         <div className="container mx-auto px-4 py-4">
           <Link 
             href="/" 

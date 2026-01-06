@@ -4,6 +4,7 @@ import { FileText } from 'lucide-react'
 import { UsefulLinks } from './UsefulLinks'
 import { CtaBlock } from './CtaBlock'
 import { FaqSection } from './FaqSection'
+import { ThemeToggle } from '@/components/theme/ThemeToggle'
 
 interface FaqItem {
   question: string
@@ -28,9 +29,9 @@ export function SeoPageLayout({
   const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://www.chantipay.com'
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white dark:from-slate-950 dark:to-slate-900">
       {/* Header */}
-      <header className="sticky top-0 z-50 border-b bg-white/80 backdrop-blur-sm">
+      <header className="sticky top-0 z-50 border-b bg-background/80 backdrop-blur-sm">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
           <Link href="/" className="flex items-center gap-2">
             <div className="bg-primary flex h-8 w-8 items-center justify-center rounded-lg">
@@ -38,7 +39,8 @@ export function SeoPageLayout({
             </div>
             <span className="text-xl font-bold">ChantiPay</span>
           </Link>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
             <Link href="/login" className="hidden sm:block">
               <Button variant="ghost">Connexion</Button>
             </Link>
@@ -62,7 +64,7 @@ export function SeoPageLayout({
       <UsefulLinks currentPath={currentPath} />
 
       {/* Footer */}
-      <footer className="border-t bg-slate-50 py-8">
+      <footer className="border-t bg-slate-50 dark:bg-slate-900 py-8">
         <div className="mx-auto max-w-7xl px-4">
           <div className="flex flex-col items-center justify-between gap-4 md:flex-row">
             <Link href="/" className="flex items-center gap-2">

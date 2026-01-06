@@ -74,9 +74,9 @@ export default function ContactPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white dark:from-slate-950 dark:to-slate-900">
       {/* Header */}
-      <header className="sticky top-0 z-50 border-b bg-white/80 backdrop-blur-sm">
+      <header className="sticky top-0 z-50 border-b bg-background/80 backdrop-blur-sm">
         <div className="mx-auto flex h-14 max-w-3xl items-center justify-between px-4">
           <Link
             href="/"
