@@ -1,43 +1,37 @@
-import { Metadata } from 'next'
-import Link from 'next/link'
-import { ArrowLeft } from 'lucide-react'
-import { LEGAL_ENTITY } from '@/lib/legal'
+"use client";
 
-export const metadata: Metadata = {
-  title: 'Mentions légales - ChantiPay',
-  description: 'Mentions légales du site ChantiPay',
-}
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
+import { LEGAL_ENTITY } from "@/lib/legal";
 
 export default function MentionsLegalesPage() {
   return (
-    <main className="min-h-screen bg-gradient-to-b from-slate-50 to-white dark:from-slate-950 dark:to-slate-900">
-      {/* Header */}
-      <div className="border-b bg-background/80 backdrop-blur-sm">
-        <div className="container mx-auto px-4 py-4">
-          <Link 
-            href="/" 
-            className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Retour à l&apos;accueil
-          </Link>
-        </div>
-      </div>
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white dark:from-slate-950 dark:to-slate-900 py-8 px-4">
+      <div className="max-w-3xl mx-auto">
+        <Link
+          href="/"
+          className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-6"
+        >
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Retour à l&apos;accueil
+        </Link>
 
-      {/* Content */}
-      <div className="container mx-auto px-4 py-8 md:py-12 max-w-3xl">
-        <h1 className="text-3xl md:text-4xl font-bold mb-2">Mentions légales</h1>
-        <p className="text-muted-foreground mb-8">
-          Dernière mise à jour : {LEGAL_ENTITY.lastUpdate.mentions}
-        </p>
+        <div className="bg-card rounded-lg shadow-sm p-6 md:p-8 space-y-8">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-2">
+              Mentions légales
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Dernière mise à jour : {LEGAL_ENTITY.lastUpdate.mentions}
+            </p>
+          </div>
 
-        <div className="space-y-8">
           {/* Éditeur du site */}
-          <section>
-            <h2 className="text-xl font-semibold mb-4 border-b pb-2">
+          <section className="space-y-3">
+            <h2 className="text-lg font-semibold text-foreground">
               1. Éditeur du site
             </h2>
-            <div className="space-y-2 text-muted-foreground">
+            <div className="space-y-2 text-muted-foreground leading-relaxed">
               <p>
                 Le site <strong className="text-foreground">{LEGAL_ENTITY.serviceUrl}</strong> est édité par :
               </p>
@@ -54,11 +48,11 @@ export default function MentionsLegalesPage() {
           </section>
 
           {/* Hébergeur */}
-          <section>
-            <h2 className="text-xl font-semibold mb-4 border-b pb-2">
+          <section className="space-y-3">
+            <h2 className="text-lg font-semibold text-foreground">
               2. Hébergeur
             </h2>
-            <div className="space-y-2 text-muted-foreground">
+            <div className="space-y-2 text-muted-foreground leading-relaxed">
               <p>Le site est hébergé par :</p>
               <ul className="list-none space-y-1 mt-4">
                 <li><strong className="text-foreground">Nom :</strong> {LEGAL_ENTITY.hostingProvider.name}</li>
@@ -73,7 +67,12 @@ export default function MentionsLegalesPage() {
             <h2 className="text-xl font-semibold mb-4 border-b pb-2">
               3. Propriété intellectuelle
             </h2>
-            <div className="space-y-4 text-muted-foreground">
+          {/* Propriété intellectuelle */}
+          <section className="space-y-3">
+            <h2 className="text-lg font-semibold text-foreground">
+              3. Propriété intellectuelle
+            </h2>
+            <div className="space-y-4 text-muted-foreground leading-relaxed">
               <p>
                 L&apos;ensemble du contenu de ce site (textes, images, graphismes, logo, icônes, 
                 logiciels, etc.) est la propriété exclusive de {LEGAL_ENTITY.companyName} ou de 
@@ -94,11 +93,11 @@ export default function MentionsLegalesPage() {
           </section>
 
           {/* Responsabilité */}
-          <section>
-            <h2 className="text-xl font-semibold mb-4 border-b pb-2">
+          <section className="space-y-3">
+            <h2 className="text-lg font-semibold text-foreground">
               4. Limitation de responsabilité
             </h2>
-            <div className="space-y-4 text-muted-foreground">
+            <div className="space-y-4 text-muted-foreground leading-relaxed">
               <p>
                 {LEGAL_ENTITY.companyName} s&apos;efforce d&apos;assurer l&apos;exactitude et la mise à jour 
                 des informations diffusées sur ce site. Toutefois, {LEGAL_ENTITY.companyName} ne peut 
@@ -117,11 +116,11 @@ export default function MentionsLegalesPage() {
           </section>
 
           {/* Liens hypertextes */}
-          <section>
-            <h2 className="text-xl font-semibold mb-4 border-b pb-2">
+          <section className="space-y-3">
+            <h2 className="text-lg font-semibold text-foreground">
               5. Liens hypertextes
             </h2>
-            <div className="space-y-4 text-muted-foreground">
+            <div className="space-y-4 text-muted-foreground leading-relaxed">
               <p>
                 Le site peut contenir des liens hypertextes vers d&apos;autres sites. 
                 {LEGAL_ENTITY.companyName} n&apos;exerce aucun contrôle sur ces sites et décline 
@@ -131,11 +130,11 @@ export default function MentionsLegalesPage() {
           </section>
 
           {/* Contact */}
-          <section>
-            <h2 className="text-xl font-semibold mb-4 border-b pb-2">
+          <section className="space-y-3">
+            <h2 className="text-lg font-semibold text-foreground">
               6. Contact
             </h2>
-            <div className="space-y-4 text-muted-foreground">
+            <div className="space-y-4 text-muted-foreground leading-relaxed">
               <p>
                 Pour toute question relative aux présentes mentions légales, vous pouvez nous contacter :
               </p>
@@ -146,19 +145,7 @@ export default function MentionsLegalesPage() {
             </div>
           </section>
         </div>
-
-        {/* Footer links */}
-        <div className="mt-12 pt-8 border-t">
-          <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-            <Link href="/cgu" className="hover:text-foreground transition-colors">
-              Conditions Générales d&apos;Utilisation
-            </Link>
-            <Link href="/politique-confidentialite" className="hover:text-foreground transition-colors">
-              Politique de confidentialité
-            </Link>
-          </div>
-        </div>
       </div>
-    </main>
-  )
+    </div>
+  );
 }
