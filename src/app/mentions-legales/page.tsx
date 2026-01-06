@@ -63,11 +63,6 @@ export default function MentionsLegalesPage() {
           </section>
 
           {/* Propriété intellectuelle */}
-          <section>
-            <h2 className="text-xl font-semibold mb-4 border-b pb-2">
-              3. Propriété intellectuelle
-            </h2>
-          {/* Propriété intellectuelle */}
           <section className="space-y-3">
             <h2 className="text-lg font-semibold text-foreground">
               3. Propriété intellectuelle
