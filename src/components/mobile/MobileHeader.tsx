@@ -27,7 +27,7 @@ export function MobileHeader({ title, subtitle, user, className }: MobileHeaderP
   return (
     <header
       className={cn(
-        'sticky top-0 z-40 md:hidden bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg',
+        'sticky top-0 z-40 bg-primary text-white shadow-sm',
         className
       )}
       style={{
@@ -39,28 +39,42 @@ export function MobileHeader({ title, subtitle, user, className }: MobileHeaderP
         <div className="flex-1 min-w-0">
           <h1 className="text-xl font-bold truncate">{title}</h1>
           {subtitle && (
-            <p className="text-sm text-blue-100 truncate mt-0.5">{subtitle}</p>
+            <p className="text-sm text-white/80 truncate mt-0.5">{subtitle}</p>
           )}
         </div>
 
         {/* Right: Actions */}
-        <div className="flex items-center gap-2 ml-3">
+        <div className="flex items-center gap-3 ml-3">
+          <button
+            className="relative p-2"
+            aria-label="Chronomètre"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <circle cx="12" cy="13" r="8" strokeWidth="2"/>
+              <path d="M12 9v4l2 2" strokeWidth="2" strokeLinecap="round"/>
+              <path d="M9 2h6" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+          </button>
+
+          <button
+            className="p-2"
+            aria-label="QR Code"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <rect x="3" y="3" width="7" height="7" strokeWidth="2"/>
+              <rect x="14" y="3" width="7" height="7" strokeWidth="2"/>
+              <rect x="3" y="14" width="7" height="7" strokeWidth="2"/>
+              <rect x="14" y="14" width="7" height="7" strokeWidth="2"/>
+            </svg>
+          </button>
+
           <Link
             href="/dashboard/notifications"
-            className="relative p-2 rounded-full hover:bg-white/10 active:bg-white/20 transition-colors"
+            className="relative p-2"
             aria-label="Notifications"
           >
             <Bell className="w-5 h-5" />
-            {/* Badge notification */}
-            <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full ring-2 ring-blue-600" />
-          </Link>
-
-          <Link
-            href="/dashboard/help"
-            className="p-2 rounded-full hover:bg-white/10 active:bg-white/20 transition-colors"
-            aria-label="Aide"
-          >
-            <HelpCircle className="w-5 h-5" />
+            <span className="absolute top-1 right-1 w-2 h-2 bg-orange-500 rounded-full" />
           </Link>
 
           <Link
@@ -68,7 +82,7 @@ export function MobileHeader({ title, subtitle, user, className }: MobileHeaderP
             className="ml-1"
             aria-label="Profil"
           >
-            <Avatar className="w-9 h-9 border-2 border-white/40 shadow-md">
+            <Avatar className="w-9 h-9 ring-2 ring-white/30">
               <AvatarImage src={user?.avatar} alt={user?.name} />
               <AvatarFallback className="bg-white/20 text-white text-sm font-semibold">
                 {initials}
