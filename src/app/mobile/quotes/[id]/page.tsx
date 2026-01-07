@@ -1,39 +1,224 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { MobileLayout } from '@/components/mobile/MobileLayout';
 import { Button } from '@/components/ui/button';
 import { createClient } from '@/lib/supabase/client';
-import { ArrowLeft, Mail, Download, Share2 } from 'lucide-react';
+import { SignaturePad } from '@/components/SignaturePad';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
+import { ArrowLeft, Mail, Download, Share2, PenTool, Wallet, Check } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
+
+type QuoteStatus = 'draft' | 'sent' | 'signed' | 'deposit_paid' | 'completed' | 'canceled';
+
+interface QuoteItem {
+  id: string;
+  description: string;
+  quantity: number;
+  unit_price_ht: number;
+  vat_rate: number;
+}
+
+interface Client {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  address_line1: string | null;
+  address_line2: string | null;
+  postal_code: string | null;
+  city: string | null;
+}
+
+interface Quote {
+  id: string;
+  quote_number: string;
+  status: QuoteStatus;
+  created_at: string;
+  valid_until: string | null;
+  signed_at: string | null;
+  signature_image_url: string | null;
+  deposit_percent: number;
+  deposit_amount: number;
+  deposit_status: 'pending' | 'paid';
+  deposit_paid_at: string | null;
+  deposit_method: 'virement' | 'cash' | 'cheque' | 'autre' | null;
+  items: QuoteItem[];
+  clients: Client;
+}
 
 export default function QuoteDetailPage() {
   const router = useRouter();
   const params = useParams();
-  const [quote, setQuote] = useState<any>(null);
+  const [quote, setQuote] = useState<Quote | null>(null);
   const [loading, setLoading] = useState(true);
+  
+  // États UI pour signature et acompte
+  const [isSignatureDialogOpen, setIsSignatureDialogOpen] = useState(false);
+  const [isDepositDialogOpen, setIsDepositDialogOpen] = useState(false);
+  const [depositMethod, setDepositMethod] = useState<string>('');
+  const [isSavingSignature, setIsSavingSignature] = useState(false);
+  const [isMarkingDeposit, setIsMarkingDeposit] = useState(false);
 
-  useEffect(() => {
-    const loadQuote = async () => {
+  // Charger le devis avec toutes les données
+  const loadQuote = useCallback(async () => {
+    if (!params.id) return;
+
+    try {
+      setLoading(true);
       const supabase = createClient();
-      const { data, error } = await supabase
+
+      // Récupérer le devis avec les infos client
+      const { data: quoteData, error: quoteError } = await supabase
         .from('quotes')
-        .select('*')
+        .select(`
+          *,
+          clients (*)
+        `)
         .eq('id', params.id)
         .single();
 
-      if (error) {
-        console.error('Erreur:', error);
+      if (quoteError) {
+        console.error('Erreur Supabase:', quoteError);
         router.push('/mobile/quotes');
-      } else {
-        setQuote(data);
+        return;
       }
-      setLoading(false);
-    };
 
-    loadQuote();
+      // Récupérer les lignes du devis
+      const { data: items, error: itemsError } = await supabase
+        .from('quote_items')
+        .select('*')
+        .eq('quote_id', params.id)
+        .order('created_at', { ascending: true });
+
+      if (itemsError) {
+        console.error('Erreur items:', itemsError);
+      }
+
+      const fullQuote = {
+        ...quoteData,
+        items: items || [],
+      };
+
+      setQuote(fullQuote);
+    } catch (error) {
+      console.error('Erreur chargement devis:', error);
+      router.push('/mobile/quotes');
+    } finally {
+      setLoading(false);
+    }
   }, [params.id, router]);
+
+  useEffect(() => {
+    loadQuote();
+  }, [loadQuote]);
+
+  // Calculs des totaux
+  const totalHT =
+    quote?.items?.reduce((sum, item) => sum + item.quantity * item.unit_price_ht, 0) || 0;
+  const totalVAT =
+    quote?.items?.reduce(
+      (sum, item) => sum + item.quantity * item.unit_price_ht * (item.vat_rate / 100),
+      0
+    ) || 0;
+  const totalTTC = totalHT + totalVAT;
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('fr-FR', {
+      style: 'currency',
+      currency: 'EUR',
+    }).format(amount);
+  };
+
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return '';
+    return new Date(dateString).toLocaleDateString('fr-FR', {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric',
+    });
+  };
+
+  // Gestion de la signature
+  const handleSignature = async (signatureDataUrl: string) => {
+    if (!quote) return;
+
+    setIsSavingSignature(true);
+    try {
+      const response = await fetch(`/api/quotes/${quote.id}/sign`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ signature: signatureDataUrl }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) throw new Error(data.error || 'Erreur lors de la sauvegarde');
+
+      // Fermer le dialog
+      setIsSignatureDialogOpen(false);
+
+      // Recharger le devis pour avoir les données à jour
+      await loadQuote();
+
+      // Afficher une notification
+      toast.success('✅ ' + data.message);
+    } catch (error) {
+      console.error('Erreur signature:', error);
+      toast.error('❌ Erreur lors de la signature. Veuillez réessayer.');
+    } finally {
+      setIsSavingSignature(false);
+    }
+  };
+
+  // Marquer l'acompte comme payé
+  const handleMarkDepositPaid = async () => {
+    if (!quote || !depositMethod) return;
+
+    setIsMarkingDeposit(true);
+    try {
+      const response = await fetch(`/api/quotes/${quote.id}/deposit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ method: depositMethod }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) throw new Error(data.error || 'Erreur lors de la mise à jour');
+
+      // Fermer le dialog et recharger
+      setIsDepositDialogOpen(false);
+      setDepositMethod('');
+
+      // Recharger le devis
+      await loadQuote();
+
+      // Afficher une notification
+      toast.success('✅ Acompte marqué comme payé');
+    } catch (error) {
+      console.error('Erreur marquage acompte:', error);
+      toast.error('❌ Erreur lors du marquage de l\'acompte');
+    } finally {
+      setIsMarkingDeposit(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -102,69 +287,246 @@ export default function QuoteDetailPage() {
             </span>
           </div>
 
+          {/* Numéro de devis */}
+          {quote.quote_number && (
+            <div>
+              <p className="text-sm text-muted-foreground">Numéro</p>
+              <p className="text-lg font-semibold text-foreground">
+                {quote.quote_number}
+              </p>
+            </div>
+          )}
+
           {/* Client */}
           <div>
             <p className="text-sm text-muted-foreground">Client</p>
             <p className="text-lg font-semibold text-foreground">
-              {quote.client_name}
+              {quote.clients?.name || 'Client non trouvé'}
             </p>
-            {quote.client_email && (
-              <p className="text-sm text-muted-foreground">
-                {quote.client_email}
-              </p>
+            {quote.clients?.email && (
+              <p className="text-sm text-muted-foreground">{quote.clients.email}</p>
+            )}
+            {quote.clients?.phone && (
+              <p className="text-sm text-muted-foreground">{quote.clients.phone}</p>
             )}
           </div>
 
-          {/* Montant */}
-          <div>
-            <p className="text-sm text-muted-foreground">Montant</p>
-            <p className="text-2xl font-bold text-primary">
-              {(quote.total_amount || 0).toLocaleString('fr-FR')} €
-            </p>
+          {/* Montants */}
+          <div className="space-y-2 pt-2 border-t">
+            <div className="flex justify-between">
+              <span className="text-sm text-muted-foreground">Total HT</span>
+              <span className="text-foreground">{formatCurrency(totalHT)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-sm text-muted-foreground">TVA</span>
+              <span className="text-foreground">{formatCurrency(totalVAT)}</span>
+            </div>
+            <div className="flex justify-between text-lg font-bold border-t pt-2">
+              <span>Total TTC</span>
+              <span className="text-primary">{formatCurrency(totalTTC)}</span>
+            </div>
+            {quote.deposit_amount > 0 && (
+              <div className="flex justify-between text-primary font-medium pt-2">
+                <span>Acompte ({quote.deposit_percent}%)</span>
+                <span>{formatCurrency(quote.deposit_amount)}</span>
+              </div>
+            )}
           </div>
 
           {/* Date */}
           <div>
             <p className="text-sm text-muted-foreground">Date de création</p>
-            <p className="text-foreground">
-              {new Date(quote.created_at).toLocaleDateString('fr-FR', {
-                day: 'numeric',
-                month: 'long',
-                year: 'numeric',
-              })}
-            </p>
+            <p className="text-foreground">{formatDate(quote.created_at)}</p>
           </div>
 
-          {/* Description */}
-          {quote.description && (
+          {/* Signature */}
+          {quote.signed_at && (
             <div>
-              <p className="text-sm text-muted-foreground mb-2">Description</p>
-              <p className="text-foreground whitespace-pre-wrap">
-                {quote.description}
+              <p className="text-sm text-muted-foreground">Signé le</p>
+              <p className="text-foreground font-medium flex items-center gap-2">
+                <Check className="h-4 w-4 text-green-600" />
+                {formatDate(quote.signed_at)}
+              </p>
+              {quote.signature_image_url && (
+                <div className="mt-2 p-3 bg-muted/30 rounded-lg">
+                  <img
+                    src={quote.signature_image_url}
+                    alt="Signature"
+                    className="w-full max-w-xs mx-auto"
+                  />
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Acompte payé */}
+          {quote.deposit_status === 'paid' && quote.deposit_paid_at && (
+            <div>
+              <p className="text-sm text-muted-foreground">Acompte payé le</p>
+              <p className="text-foreground font-medium flex items-center gap-2">
+                <Check className="h-4 w-4 text-green-600" />
+                {formatDate(quote.deposit_paid_at)}
               </p>
             </div>
           )}
         </div>
 
+        {/* Lignes du devis */}
+        {quote.items && quote.items.length > 0 && (
+          <div className="rounded-2xl bg-card p-6 shadow-sm space-y-4">
+            <h3 className="font-semibold text-foreground">Détail des prestations</h3>
+            <div className="space-y-3">
+              {quote.items.map((item, index) => (
+                <div key={item.id} className="p-3 bg-muted/30 rounded-lg space-y-2">
+                  <div className="flex justify-between items-start">
+                    <span className="text-sm font-medium text-foreground">
+                      Ligne {index + 1}
+                    </span>
+                    <span className="text-sm font-medium text-primary">
+                      {formatCurrency(item.quantity * item.unit_price_ht)} HT
+                    </span>
+                  </div>
+                  <p className="text-foreground">{item.description}</p>
+                  <div className="flex justify-between text-sm text-muted-foreground">
+                    <span>
+                      {item.quantity} × {formatCurrency(item.unit_price_ht)}
+                    </span>
+                    <span>TVA {item.vat_rate}%</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Actions */}
         <div className="space-y-3">
-          <Button className="w-full" variant="default">
-            <Mail className="mr-2 h-4 w-4" />
+          {/* Bouton Signer (si pas encore signé) */}
+          {quote.status !== 'signed' &&
+            quote.status !== 'deposit_paid' &&
+            quote.status !== 'completed' && (
+              <Button
+                className="w-full h-12 text-base"
+                onClick={() => setIsSignatureDialogOpen(true)}
+              >
+                <PenTool className="mr-2 h-5 w-5" />
+                Signer le devis
+              </Button>
+            )}
+
+          {/* Bouton Marquer acompte payé (si signé mais pas payé) */}
+          {quote.status === 'signed' &&
+            quote.deposit_amount > 0 &&
+            quote.deposit_status === 'pending' && (
+              <Button
+                className="w-full h-12 text-base"
+                variant="default"
+                onClick={() => setIsDepositDialogOpen(true)}
+              >
+                <Wallet className="mr-2 h-5 w-5" />
+                Marquer l'acompte comme payé
+              </Button>
+            )}
+
+          {/* Autres actions */}
+          <Button className="w-full h-12 text-base" variant="outline">
+            <Mail className="mr-2 h-5 w-5" />
             Envoyer par email
           </Button>
-          
+
           <div className="grid grid-cols-2 gap-3">
-            <Button variant="outline" className="w-full">
+            <Button variant="outline" className="w-full h-12">
               <Download className="mr-2 h-4 w-4" />
               Télécharger
             </Button>
-            <Button variant="outline" className="w-full">
+            <Button variant="outline" className="w-full h-12">
               <Share2 className="mr-2 h-4 w-4" />
               Partager
             </Button>
           </div>
         </div>
       </div>
+
+      {/* Dialog Signature */}
+      <Dialog open={isSignatureDialogOpen} onOpenChange={setIsSignatureDialogOpen}>
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-auto">
+          <DialogHeader className="pb-2">
+            <DialogTitle className="text-xl">✍️ Signature du client</DialogTitle>
+            <DialogDescription className="text-base">
+              <strong>{quote.clients?.name || 'Client'}</strong>, veuillez signer ci-dessous pour
+              accepter le devis <strong>{quote.quote_number}</strong> d'un montant de{' '}
+              <strong>{formatCurrency(totalTTC)}</strong>
+            </DialogDescription>
+          </DialogHeader>
+          <SignaturePad
+            onSave={handleSignature}
+            onCancel={() => setIsSignatureDialogOpen(false)}
+            isLoading={isSavingSignature}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog Acompte */}
+      <Dialog open={isDepositDialogOpen} onOpenChange={setIsDepositDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl">💰 Marquer l'acompte comme payé</DialogTitle>
+            <DialogDescription className="text-base">
+              Montant : <strong>{formatCurrency(quote.deposit_amount)}</strong>
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="deposit-method">Méthode de paiement</Label>
+              <Select value={depositMethod} onValueChange={setDepositMethod}>
+                <SelectTrigger id="deposit-method" className="w-full h-12">
+                  <SelectValue placeholder="Sélectionnez une méthode" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="virement">
+                    <span className="flex items-center gap-2">🏦 Virement bancaire</span>
+                  </SelectItem>
+                  <SelectItem value="cash">
+                    <span className="flex items-center gap-2">💵 Espèces</span>
+                  </SelectItem>
+                  <SelectItem value="cheque">
+                    <span className="flex items-center gap-2">📝 Chèque</span>
+                  </SelectItem>
+                  <SelectItem value="autre">
+                    <span className="flex items-center gap-2">📋 Autre</span>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="flex gap-3">
+            <Button
+              variant="outline"
+              onClick={() => setIsDepositDialogOpen(false)}
+              disabled={isMarkingDeposit}
+              className="flex-1"
+            >
+              Annuler
+            </Button>
+            <Button
+              onClick={handleMarkDepositPaid}
+              disabled={!depositMethod || isMarkingDeposit}
+              className="flex-1"
+            >
+              {isMarkingDeposit ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Enregistrement...
+                </>
+              ) : (
+                'Confirmer'
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </MobileLayout>
   );
 }

@@ -1,0 +1,10 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Git commit and push",
+			"type": "shell",
+			"command": "git add -A && git commit -m \"feat: signature client devis mobile - parité web/mobile complète\" && git push"
+		}
+	]
+}
