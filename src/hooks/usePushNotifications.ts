@@ -21,33 +21,42 @@ export function usePushNotifications() {
       }
 
       try {
-        // TODO: Install @capacitor/push-notifications
-        // const { PushNotifications } = await import('@capacitor/push-notifications');
+        const { PushNotifications } = await import('@capacitor/push-notifications');
 
         // Check permission
-        // const permStatus = await PushNotifications.checkPermissions();
+        const permStatus = await PushNotifications.checkPermissions();
         
-        // if (permStatus.receive === 'granted') {
-        //   setIsRegistered(true);
-        // }
+        if (permStatus.receive === 'granted') {
+          setIsRegistered(true);
+        }
 
         // Listen for notifications
-        // PushNotifications.addListener('pushNotificationReceived', (notification) => {
-        //   setNotifications((prev) => [
-        //     {
-        //       id: Date.now().toString(),
-        //       title: notification.title || '',
-        //       body: notification.body || '',
-        //       data: notification.data,
-        //     },
-        //     ...prev,
-        //   ]);
-        // });
+        PushNotifications.addListener('pushNotificationReceived', (notification) => {
+          setNotifications((prev) => [
+            {
+              id: Date.now().toString(),
+              title: notification.title || '',
+              body: notification.body || '',
+              data: notification.data,
+            },
+            ...prev,
+          ]);
+        });
 
         // Handle notification tap
-        // PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
-        //   console.log('Notification action:', action);
-        // });
+        PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
+          console.log('Notification action:', action);
+        });
+
+        // Registration success
+        PushNotifications.addListener('registration', (token) => {
+          console.log('Push registration success, token: ' + token.value);
+        });
+
+        // Registration error
+        PushNotifications.addListener('registrationError', (error) => {
+          console.error('Push registration error:', error);
+        });
 
       } catch (error) {
         console.error('Push notification setup failed:', error);
@@ -63,16 +72,15 @@ export function usePushNotifications() {
     }
 
     try {
-      // TODO: Implement permission request
-      // const { PushNotifications } = await import('@capacitor/push-notifications');
+      const { PushNotifications } = await import('@capacitor/push-notifications');
       
-      // const permStatus = await PushNotifications.requestPermissions();
+      const permStatus = await PushNotifications.requestPermissions();
       
-      // if (permStatus.receive === 'granted') {
-      //   await PushNotifications.register();
-      //   setIsRegistered(true);
-      //   return { success: true };
-      // }
+      if (permStatus.receive === 'granted') {
+        await PushNotifications.register();
+        setIsRegistered(true);
+        return { success: true };
+      }
 
       return { success: false, error: 'Permission denied' };
     } catch (error) {
@@ -86,9 +94,8 @@ export function usePushNotifications() {
     }
 
     try {
-      // TODO: Implement unregistration
-      // const { PushNotifications } = await import('@capacitor/push-notifications');
-      // await PushNotifications.unregister();
+      const { PushNotifications } = await import('@capacitor/push-notifications');
+      await PushNotifications.unregister();
       setIsRegistered(false);
     } catch (error) {
       console.error('Unregister failed:', error);

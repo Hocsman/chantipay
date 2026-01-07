@@ -22,14 +22,23 @@ export function useBiometric() {
       }
 
       try {
-        // TODO: Install @capgo/capacitor-native-biometric
-        // const { NativeBiometric } = await import('@capgo/capacitor-native-biometric');
-        // const result = await NativeBiometric.isAvailable();
+        const { NativeBiometric } = await import('@capgo/capacitor-native-biometric');
+        const result = await NativeBiometric.isAvailable();
         
-        // For now, mock the availability
+        // Map biometry types
+        let biometryType: BiometricInfo['biometryType'] = 'none';
+        if (result.isAvailable) {
+          if (result.biometryType === 0) biometryType = 'none';
+          else if (result.biometryType === 1) biometryType = 'touchId';
+          else if (result.biometryType === 2) biometryType = 'faceId';
+          else if (result.biometryType === 3) biometryType = 'fingerprint';
+          else if (result.biometryType === 4) biometryType = 'faceAuthentication';
+          else if (result.biometryType === 5) biometryType = 'irisAuthentication';
+        }
+
         setBiometricInfo({
-          isAvailable: true,
-          biometryType: Capacitor.getPlatform() === 'ios' ? 'faceId' : 'fingerprint',
+          isAvailable: result.isAvailable,
+          biometryType,
         });
 
         // Check if user has enabled biometric auth
@@ -49,12 +58,11 @@ export function useBiometric() {
     }
 
     try {
-      // TODO: Implement actual biometric enrollment
-      // const { NativeBiometric } = await import('@capgo/capacitor-native-biometric');
-      // await NativeBiometric.verifyIdentity({
-      //   reason: 'Activer l\'authentification biométrique',
-      //   title: 'Authentification',
-      // });
+      const { NativeBiometric } = await import('@capgo/capacitor-native-biometric');
+      await NativeBiometric.verifyIdentity({
+        reason: 'Activer l\'authentification biométrique',
+        title: 'Authentification',
+      });
 
       localStorage.setItem('chantipay_biometric_enabled', 'true');
       setIsEnabled(true);
@@ -75,12 +83,11 @@ export function useBiometric() {
     }
 
     try {
-      // TODO: Implement actual biometric authentication
-      // const { NativeBiometric } = await import('@capgo/capacitor-native-biometric');
-      // await NativeBiometric.verifyIdentity({
-      //   reason: 'Authentifiez-vous pour accéder à ChantiPay',
-      //   title: 'Connexion',
-      // });
+      const { NativeBiometric } = await import('@capgo/capacitor-native-biometric');
+      await NativeBiometric.verifyIdentity({
+        reason: 'Authentifiez-vous pour accéder à ChantiPay',
+        title: 'Connexion',
+      });
 
       return { success: true };
     } catch (error) {
