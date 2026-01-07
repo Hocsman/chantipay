@@ -17,22 +17,22 @@ export default function MobileMenuPage() {
     {
       label: 'Clients / Prospects',
       icon: Users,
-      href: '/dashboard/clients',
+      href: '/mobile/clients',
     },
     {
       label: 'Fournisseurs',
       icon: Building,
-      href: '/dashboard/suppliers',
+      href: '/mobile/suppliers',
     },
     {
       label: 'Chantiers',
       icon: Calendar,
-      href: '/dashboard/projects',
+      href: '/mobile/projects',
     },
     {
       label: 'Stocks',
       icon: Package,
-      href: '/dashboard/inventory',
+      href: '/mobile/inventory',
     },
   ];
 

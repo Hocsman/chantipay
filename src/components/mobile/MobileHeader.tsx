@@ -69,7 +69,7 @@ export function MobileHeader({ title, subtitle, user, className }: MobileHeaderP
           </button>
 
           <Link
-            href="/dashboard/notifications"
+            href="/mobile/notifications"
             className="relative p-2"
             aria-label="Notifications"
           >
@@ -78,7 +78,7 @@ export function MobileHeader({ title, subtitle, user, className }: MobileHeaderP
           </Link>
 
           <Link
-            href="/dashboard/settings"
+            href="/mobile/settings"
             className="ml-1"
             aria-label="Profil"
           >

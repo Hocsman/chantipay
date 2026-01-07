@@ -75,19 +75,19 @@ export function MobileDashboard({ stats, recentQuotes = [] }: MobileDashboardPro
     {
       label: 'Nouveau devis',
       icon: Plus,
-      href: '/dashboard/quotes/new',
+      href: '/mobile/quotes/new',
       color: 'bg-primary',
     },
     {
       label: 'Mes clients',
       icon: Users,
-      href: '/dashboard/clients',
+      href: '/mobile/clients',
       color: 'bg-blue-600',
     },
     {
       label: 'Planning',
       icon: Calendar,
-      href: '/dashboard/planning',
+      href: '/mobile/planning',
       color: 'bg-purple-600',
     },
   ];
@@ -179,7 +179,7 @@ export function MobileDashboard({ stats, recentQuotes = [] }: MobileDashboardPro
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => router.push('/dashboard/quotes')}
+              onClick={() => router.push('/mobile/quotes')}
               className="text-primary"
             >
               Tout voir
@@ -193,7 +193,7 @@ export function MobileDashboard({ stats, recentQuotes = [] }: MobileDashboardPro
               return (
                 <div
                   key={quote.id}
-                  onClick={() => router.push(`/dashboard/quotes/${quote.id}`)}
+                  onClick={() => router.push(`/mobile/quotes/${quote.id}`)}
                   className="rounded-xl bg-card p-4 shadow-sm transition-transform active:scale-98"
                 >
                   <div className="mb-2 flex items-start justify-between">
@@ -215,7 +215,7 @@ export function MobileDashboard({ stats, recentQuotes = [] }: MobileDashboardPro
                     </span>
                   </div>
                   <div className="text-lg font-bold text-foreground">
-                    {quote.total_amount.toLocaleString('fr-FR')} €
+                    {(quote.total_amount || 0).toLocaleString('fr-FR')} €
                   </div>
                 </div>
               );
@@ -237,7 +237,7 @@ export function MobileDashboard({ stats, recentQuotes = [] }: MobileDashboardPro
             Créez votre premier devis pour commencer
           </p>
           <Button
-            onClick={() => router.push('/dashboard/quotes/new')}
+            onClick={() => router.push('/mobile/quotes/new')}
             className="w-full"
           >
             <Plus className="mr-2 h-5 w-5" />

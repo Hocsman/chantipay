@@ -47,7 +47,7 @@ export function MobileLayout({
       </main>
 
       {showBottomNav && (
-        <MobileBottomNavV2 onFabClick={() => router.push('/dashboard/quotes/new')} />
+        <MobileBottomNavV2 onFabClick={() => router.push('/mobile/quotes/new')} />
       )}
     </div>
   );
