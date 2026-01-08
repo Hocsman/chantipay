@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { MobileAppShell } from '@/components/mobile/MobileAppShell'
+import { FloatingActionButton } from '@/components/FloatingActionButton'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Loader2, Plus, FileText, Euro } from 'lucide-react'
@@ -83,11 +84,6 @@ export default function MobileInvoicesPage() {
     <MobileAppShell
       title="Factures"
       subtitle="Gérez vos factures"
-      action={{
-        icon: Plus,
-        onClick: () => router.push('/mobile/factures/new'),
-        label: 'Nouvelle facture',
-      }}
     >
       <div className="p-4 space-y-4">
         {/* Stats rapides */}
@@ -213,6 +209,7 @@ export default function MobileInvoicesPage() {
           </div>
         )}
       </div>
+      <FloatingActionButton href="/mobile/factures/new" label="Nouvelle facture" />
     </MobileAppShell>
   )
 }
