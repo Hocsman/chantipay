@@ -166,7 +166,7 @@ export default function InvoiceDetailMobilePage({ params }: { params: Promise<{ 
 
   if (isLoading) {
     return (
-      <MobileAppShell title="Facture" showBack>
+      <MobileAppShell title="Facture">
         <div className="flex items-center justify-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
@@ -181,7 +181,7 @@ export default function InvoiceDetailMobilePage({ params }: { params: Promise<{ 
   const StatusIcon = paymentStatusConfig[invoice.payment_status].icon
 
   return (
-    <MobileAppShell title={invoice.invoice_number} showBack>
+    <MobileAppShell title={invoice.invoice_number}>
       <div className="p-4 space-y-4">
         {/* Statut et actions rapides */}
         <Card className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 border-blue-200 dark:border-blue-800">

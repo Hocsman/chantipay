@@ -167,7 +167,7 @@ export default function NewInvoiceMobilePage() {
   }
 
   return (
-    <MobileAppShell title="Nouvelle facture" showBack>
+    <MobileAppShell title="Nouvelle facture">
       <form onSubmit={handleSubmit} className="p-4 space-y-4">
         {/* Client */}
         <Card>
