@@ -640,7 +640,7 @@ export default function QuoteDetailPage() {
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                           quote_id: quote.id,
-                          client_id: quote.client_id,
+                          client_id: client.id,
                           client_name: client.name,
                           client_email: client.email || '',
                           client_phone: client.phone || '',
