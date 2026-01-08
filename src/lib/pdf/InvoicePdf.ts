@@ -11,18 +11,18 @@ interface InvoiceItem {
 interface Invoice {
   invoice_number: string
   issue_date: string
-  due_date: string | null
+  due_date?: string | null
   client_name: string
-  client_email: string | null
-  client_phone: string | null
-  client_address: string | null
+  client_email?: string | null
+  client_phone?: string | null
+  client_address?: string | null
   subtotal: number
   tax_rate: number
   tax_amount: number
   total: number
   payment_status: string
-  payment_terms: string | null
-  notes: string | null
+  payment_terms?: string | null
+  notes?: string | null
   items: InvoiceItem[]
 }
 
