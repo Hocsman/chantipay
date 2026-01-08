@@ -237,25 +237,6 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
       setIsSendingEmail(false)
     }
   }
-      const response = await fetch(`/api/invoices/${invoice.id}/send-email`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
-      })
-
-      if (!response.ok) {
-        throw new Error('Erreur')
-      }
-
-      const data = await response.json()
-      await loadInvoice(invoice.id)
-      toast.success(`✅ ${data.message}`)
-    } catch (error) {
-      toast.error('Erreur lors de l\'envoi de l\'email')
-    } finally {
-      setIsSendingEmail(false)
-    }
-  }
 
   if (isLoading) {
     return (
