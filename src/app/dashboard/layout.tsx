@@ -15,7 +15,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { FileText, LogOut, Settings, User, Home, Users, Receipt } from 'lucide-react';
+import { FileText, LogOut, Settings, User, Home, Users, Receipt, Calendar, BarChart3 } from 'lucide-react';
 
 export default function DashboardLayout({
   children,
@@ -71,6 +71,20 @@ export default function DashboardLayout({
               >
                 <Receipt className="h-4 w-4" />
                 Factures
+              </Link>
+              <Link
+                href="/dashboard/calendar"
+                className="text-muted-foreground hover:text-foreground flex items-center gap-2 text-sm font-medium transition-colors"
+              >
+                <Calendar className="h-4 w-4" />
+                Calendrier
+              </Link>
+              <Link
+                href="/dashboard/stats"
+                className="text-muted-foreground hover:text-foreground flex items-center gap-2 text-sm font-medium transition-colors"
+              >
+                <BarChart3 className="h-4 w-4" />
+                Statistiques
               </Link>
             </nav>
           </div>

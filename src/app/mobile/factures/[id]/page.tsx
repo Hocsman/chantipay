@@ -13,9 +13,10 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
-import { Loader2, Trash2, FileText, Euro, Calendar, Send, CheckCircle2, ArrowLeft } from 'lucide-react'
+import { Loader2, Trash2, FileText, Euro, Calendar, Send, CheckCircle2, ArrowLeft, Download } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import { downloadInvoicePDF } from '@/lib/pdf/InvoicePdf'
 
 interface Invoice {
   id: string
@@ -64,6 +65,7 @@ export default function InvoiceDetailMobilePage({ params }: { params: Promise<{ 
   const [isLoading, setIsLoading] = useState(true)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [isSendingEmail, setIsSendingEmail] = useState(false)
 
   useEffect(() => {
     params.then(p => {
@@ -97,6 +99,48 @@ export default function InvoiceDetailMobilePage({ params }: { params: Promise<{ 
       const response = await fetch(`/api/invoices/${id}`, {
         method: 'DELETE',
       })
+
+      if (response.ok) {
+        toast.success('✅ Facture supprimée')
+        router.push('/mobile/factures')
+      } else {
+        toast.error('Erreur lors de la suppression')
+      }
+    } catch (error) {
+      console.error('Erreur:', error)
+      toast.error('Erreur lors de la suppression')
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
+  const sendEmail = async () => {
+    if (!invoice || !invoice.client_email) {
+      toast.error('Aucun email client configuré')
+      return
+    }
+
+    setIsSendingEmail(true)
+    try {
+      const response = await fetch(`/api/invoices/${invoice.id}/send-email`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      })
+
+      if (!response.ok) {
+        throw new Error('Erreur')
+      }
+
+      const data = await response.json()
+      await loadInvoice(invoice.id)
+      toast.success(`✅ ${data.message}`)
+    } catch (error) {
+      toast.error('Erreur lors de l\'envoi de l\'email')
+    } finally {
+      setIsSendingEmail(false)
+    }
+  }
 
       if (!response.ok) {
         toast.error('Erreur lors de la suppression')
@@ -327,11 +371,64 @@ export default function InvoiceDetailMobilePage({ params }: { params: Promise<{ 
           </Card>
         )}
 
-        {/* Bouton supprimer */}
-        <Button variant="destructive" onClick={() => setDeleteDialogOpen(true)} className="w-full">
-          <Trash2 className="mr-2 h-4 w-4" />
-          Supprimer la facture
-        </Button>
+        {/* Boutons d'action */}
+        <div className="space-y-2">
+          <Button
+            variant="default"
+            onClick={sendEmail}
+            disabled={isSendingEmail || !invoice.client_email}
+            className="w-full"
+          >
+            {isSendingEmail ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Envoi...
+              </>
+            ) : (
+              <>
+                <Send className="mr-2 h-4 w-4" />
+                Envoyer par email
+              </>
+            )}
+          </Button>
+          <Button
+            variant="outline"
+            onClick={async () => {
+              try {
+                await downloadInvoicePDF(
+                  {
+                    ...invoice,
+                    items: items.map((item) => ({
+                      description: item.description,
+                      quantity: item.quantity,
+                      unit_price: item.unit_price,
+                      total: item.total,
+                    })),
+                  },
+                  {
+                    name: 'ChantiPay',
+                    address: '123 Avenue Exemple, 75001 Paris',
+                    phone: '+33 1 23 45 67 89',
+                    email: 'contact@chantipay.fr',
+                    siret: '123 456 789 00012',
+                  }
+                )
+                toast.success('PDF téléchargé')
+              } catch (error) {
+                console.error(error)
+                toast.error('Erreur lors du téléchargement')
+              }
+            }}
+            className="w-full"
+          >
+            <Download className="mr-2 h-4 w-4" />
+            Télécharger PDF
+          </Button>
+          <Button variant="destructive" onClick={() => setDeleteDialogOpen(true)} className="w-full">
+            <Trash2 className="mr-2 h-4 w-4" />
+            Supprimer la facture
+          </Button>
+        </div>
       </div>
 
       {/* Dialog de confirmation */}

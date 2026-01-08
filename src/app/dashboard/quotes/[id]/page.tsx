@@ -613,6 +613,74 @@ export default function QuoteDetailPage() {
           </CardContent>
         </Card>
 
+        {/* Bouton Convertir en facture (si signé) */}
+        {isQuoteSigned && (
+          <Card className="border-2 border-blue-500 bg-gradient-to-br from-blue-50 to-indigo-50">
+            <CardContent className="pt-6">
+              <div className="space-y-4">
+                <div className="flex items-start gap-3">
+                  <div className="h-10 w-10 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0">
+                    <FileText className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-blue-900 text-lg">Prêt à facturer</p>
+                    <p className="text-sm text-blue-700">
+                      Ce devis est signé et peut être converti en facture
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  className="w-full h-12 text-base font-semibold bg-blue-600 hover:bg-blue-700"
+                  onClick={async () => {
+                    if (!quote) return
+                    try {
+                      const response = await fetch('/api/invoices', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          quote_id: quote.id,
+                          client_id: quote.client_id,
+                          client_name: client.name,
+                          client_email: client.email || '',
+                          client_phone: client.phone || '',
+                          client_address: [client.address_line1, client.address_line2, client.postal_code, client.city].filter(Boolean).join(', '),
+                          client_siret: '',
+                          subtotal: quote.total_ht,
+                          tax_rate: quote.vat_rate,
+                          tax_amount: totalTTC - quote.total_ht,
+                          total: totalTTC,
+                          payment_status: 'draft',
+                          issue_date: new Date().toISOString().split('T')[0],
+                          due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                          payment_terms: 'Paiement à 30 jours',
+                          notes: `Facture générée depuis le devis ${quote.quote_number}`,
+                          items: quote.items.map((item, idx) => ({
+                            description: item.description,
+                            quantity: item.quantity,
+                            unit_price: item.unit_price_ht,
+                            total: item.quantity * item.unit_price_ht,
+                            sort_order: idx,
+                          })),
+                        }),
+                      })
+                      const data = await response.json()
+                      if (!response.ok) throw new Error(data.error)
+                      alert(`✅ Facture ${data.invoice.invoice_number} créée avec succès`)
+                      router.push(`/dashboard/invoices/${data.invoice.id}`)
+                    } catch (error) {
+                      console.error(error)
+                      alert('❌ Erreur lors de la création de la facture')
+                    }
+                  }}
+                >
+                  <FileText className="h-5 w-5 mr-2" />
+                  Convertir en facture
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Actions */}
         <div className="flex flex-col sm:flex-row gap-3 pb-24">
           <Button
