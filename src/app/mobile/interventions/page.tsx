@@ -24,32 +24,31 @@ export default function MobileInterventionsPage() {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    // TODO: Charger les interventions depuis l'API
-    // Pour l'instant, données de démo
-    setTimeout(() => {
-      setInterventions([
-        {
-          id: '1',
-          client: 'Jean Dupont',
-          type: 'Installation électrique',
-          address: '15 Rue de la République, Paris',
-          date: '2026-01-08',
-          time: '09:00',
-          status: 'planned',
-        },
-        {
-          id: '2',
-          client: 'Marie Martin',
-          type: 'Dépannage plomberie',
-          address: '28 Avenue des Champs, Lyon',
-          date: '2026-01-10',
-          time: '14:00',
-          status: 'planned',
-        },
-      ])
-      setIsLoading(false)
-    }, 500)
+    loadInterventions()
   }, [])
+
+  const loadInterventions = async () => {
+    try {
+      const response = await fetch('/api/interventions')
+      if (response.ok) {
+        const data = await response.json()
+        const formattedInterventions = (data.interventions || []).map((intervention: any) => ({
+          id: intervention.id,
+          client: intervention.client_name,
+          type: intervention.type,
+          address: intervention.address,
+          date: intervention.date,
+          time: intervention.time,
+          status: intervention.status,
+        }))
+        setInterventions(formattedInterventions)
+      }
+    } catch (error) {
+      console.error('Erreur chargement interventions:', error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   const getStatusColor = (status: Intervention['status']) => {
     switch (status) {

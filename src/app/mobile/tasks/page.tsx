@@ -38,54 +38,66 @@ export default function MobileTasksPage() {
   const [filter, setFilter] = useState<'all' | 'todo' | 'in-progress' | 'done'>('all')
 
   useEffect(() => {
-    // TODO: Charger les tâches depuis l'API
-    // Pour l'instant, données de démo
-    setTimeout(() => {
-      setTasks([
-        {
-          id: '1',
-          title: 'Rappeler M. Dupont pour le devis',
-          description: 'Devis installation électrique envoyé le 5 janvier',
-          status: 'todo',
-          priority: 'high',
-          dueDate: '2026-01-09',
-          createdAt: '2026-01-05',
-        },
-        {
-          id: '2',
-          title: 'Commander matériel pour chantier Lyon',
-          description: 'Câbles électriques, disjoncteurs, boîtier',
-          status: 'in-progress',
-          priority: 'medium',
-          dueDate: '2026-01-12',
-          createdAt: '2026-01-06',
-        },
-        {
-          id: '3',
-          title: 'Préparer facture Mme Martin',
-          status: 'done',
-          priority: 'low',
-          createdAt: '2026-01-03',
-        },
-      ])
-      setIsLoading(false)
-    }, 500)
+    loadTasks()
   }, [])
+
+  const loadTasks = async () => {
+    try {
+      const response = await fetch('/api/tasks')
+      if (response.ok) {
+        const data = await response.json()
+        const formattedTasks = (data.tasks || []).map((task: any) => ({
+          id: task.id,
+          title: task.title,
+          description: task.description,
+          status: task.status,
+          priority: task.priority,
+          dueDate: task.due_date,
+          createdAt: task.created_at,
+        }))
+        setTasks(formattedTasks)
+      }
+    } catch (error) {
+      console.error('Erreur chargement tâches:', error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   const filteredTasks = filter === 'all' 
     ? tasks 
     : tasks.filter(task => task.status === filter)
 
-  const handleToggleTask = (taskId: string) => {
-    setTasks(tasks.map(task => {
-      if (task.id === taskId) {
-        return {
-          ...task,
-          status: task.status === 'done' ? 'todo' : 'done'
-        }
+  const handleToggleTask = async (taskId: string) => {
+    const task = tasks.find(t => t.id === taskId)
+    if (!task) return
+
+    const newStatus = task.status === 'done' ? 'todo' : 'done'
+    
+    // Optimistic update
+    setTasks(tasks.map(t => {
+      if (t.id === taskId) {
+        return { ...t, status: newStatus }
       }
-      return task
+      return t
     }))
+
+    try {
+      await fetch(`/api/tasks/${taskId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
+      })
+    } catch (error) {
+      console.error('Erreur mise à jour tâche:', error)
+      // Rollback on error
+      setTasks(tasks.map(t => {
+        if (t.id === taskId) {
+          return { ...t, status: task.status }
+        }
+        return t
+      }))
+    }
   }
 
   const getStatusIcon = (status: Task['status']) => {
