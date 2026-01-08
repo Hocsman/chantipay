@@ -3,7 +3,14 @@ import { createClient } from '@/lib/supabase/server'
 import { Resend } from 'resend'
 import { generateInvoicePDF } from '@/lib/pdf/InvoicePdf'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+// Initialisation lazy de Resend pour éviter les erreurs au build
+let resend: Resend | null = null
+function getResend() {
+  if (!resend && process.env.RESEND_API_KEY) {
+    resend = new Resend(process.env.RESEND_API_KEY)
+  }
+  return resend
+}
 
 /**
  * ===========================================
@@ -103,8 +110,17 @@ export async function POST(
     // Convertir le Blob en Buffer pour Resend
     const pdfBuffer = Buffer.from(await pdfBlob.arrayBuffer())
 
+    // Vérifier que Resend est configuré
+    const resendClient = getResend()
+    if (!resendClient) {
+      return NextResponse.json(
+        { error: 'Service d\'email non configuré. Veuillez configurer RESEND_API_KEY.' },
+        { status: 503 }
+      )
+    }
+
     // Envoyer l'email avec Resend
-    const { data: emailData, error: emailError } = await resend.emails.send({
+    const { data: emailData, error: emailError } = await resendClient.emails.send({
       from: 'ChantiPay <onboarding@resend.dev>', // Remplacer par votre domaine vérifié
       to: [toEmail],
       subject: `Facture ${invoice.invoice_number}`,

@@ -21,8 +21,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, Mail, Download, Share2, PenTool, Wallet, Check } from 'lucide-react';
-import { Loader2 } from 'lucide-react';
+import { ArrowLeft, Mail, Download, Share2, PenTool, Wallet, Check, FileText, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 type QuoteStatus = 'draft' | 'sent' | 'signed' | 'deposit_paid' | 'completed' | 'canceled';
@@ -447,7 +446,7 @@ export default function QuoteDetailPage() {
                       client_siret: '',
                       subtotal: totalHT,
                       tax_rate: 20,
-                      tax_amount: totalTVA,
+                      tax_amount: totalVAT,
                       total: totalTTC,
                       payment_status: 'draft',
                       issue_date: new Date().toISOString().split('T')[0],
