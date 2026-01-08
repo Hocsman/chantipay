@@ -7,6 +7,7 @@ import {
   Building,
   Calendar,
   Package,
+  Receipt,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
@@ -18,6 +19,11 @@ export default function MobileMenuPage() {
       label: 'Clients / Prospects',
       icon: Users,
       href: '/mobile/clients',
+    },
+    {
+      label: 'Factures',
+      icon: Receipt,
+      href: '/mobile/factures',
     },
     {
       label: 'Fournisseurs',

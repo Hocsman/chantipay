@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Users, FileText, Settings } from 'lucide-react';
+import { Home, Users, FileText, Settings, Receipt } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navItems = [
@@ -20,6 +20,11 @@ const navItems = [
     href: '/dashboard/quotes',
     label: 'Devis',
     icon: FileText,
+  },
+  {
+    href: '/dashboard/invoices',
+    label: 'Factures',
+    icon: Receipt,
   },
   {
     href: '/dashboard/settings',
