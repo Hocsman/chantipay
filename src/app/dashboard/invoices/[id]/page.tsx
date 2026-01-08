@@ -229,6 +229,46 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
       }
 
       const data = await response.json()
+      await loadInvoice(id)
+      toast.success(`✅ ${data.message}`)
+    } catch (error) {
+      toast.error('Erreur lors de l\'envoi de l\'email')
+    } finally {
+      setIsSendingEmail(false)
+    }
+  }
+
+      if (!response.ok) {
+        throw new Error('Erreur')
+      }
+
+      const data = await response.json()
+      setInvoice(data.invoice)
+      toast.success('✅ Facture marquée comme envoyée')
+    } catch (error) {
+      toast.error('Erreur lors de la mise à jour')
+    }
+  }
+
+  const sendEmail = async () => {
+    if (!invoice || !invoice.client_email) {
+      toast.error('Aucun email client configuré')
+      return
+    }
+
+    setIsSendingEmail(true)
+    try {
+      const response = await fetch(`/api/invoices/${invoice.id}/send-email`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      })
+
+      if (!response.ok) {
+        throw new Error('Erreur')
+      }
+
+      const data = await response.json()
       await loadInvoice(invoice.id)
       toast.success(`✅ ${data.message}`)
     } catch (error) {

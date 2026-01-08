@@ -142,22 +142,6 @@ export default function InvoiceDetailMobilePage({ params }: { params: Promise<{ 
     }
   }
 
-      if (!response.ok) {
-        toast.error('Erreur lors de la suppression')
-        return
-      }
-
-      toast.success('✅ Facture supprimée')
-      router.push('/mobile/factures')
-    } catch (error) {
-      console.error('Erreur:', error)
-      toast.error('Une erreur est survenue')
-    } finally {
-      setIsDeleting(false)
-      setDeleteDialogOpen(false)
-    }
-  }
-
   const markAsPaid = async () => {
     if (!invoice) return
 
