@@ -4,18 +4,22 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { MobileLayout } from '@/components/mobile/MobileLayout';
 import { EmptyState } from '@/components/mobile/EmptyState';
-import { FileText } from 'lucide-react';
+import { FileText, Receipt } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+type TabType = 'devis' | 'factures';
+
 export default function MobileQuotesPage() {
   const router = useRouter();
   const [quotes, setQuotes] = useState<any[]>([]);
+  const [invoices, setInvoices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<TabType>('devis');
 
   useEffect(() => {
-    const loadQuotes = async () => {
+    const loadData = async () => {
       const supabase = createClient();
       const {
         data: { session },
@@ -26,17 +30,22 @@ export default function MobileQuotesPage() {
         return;
       }
 
-      const { data } = await supabase
+      // Charger les devis
+      const { data: quotesData } = await supabase
         .from('quotes')
         .select('*')
         .eq('user_id', session.user.id)
         .order('created_at', { ascending: false });
 
-      setQuotes(data || []);
+      setQuotes(quotesData || []);
+
+      // Pour l'instant, les factures sont vides (à implémenter plus tard)
+      setInvoices([]);
+      
       setLoading(false);
     };
 
-    loadQuotes();
+    loadData();
   }, [router]);
 
   const getStatusInfo = (status: string) => {
@@ -54,7 +63,7 @@ export default function MobileQuotesPage() {
 
   if (loading) {
     return (
-      <MobileLayout title="Dev./Fac." subtitle="Vos devis et factures">
+      <MobileLayout title="Devis / Fact." subtitle="Vos devis et factures">
         <div className="flex min-h-[50vh] items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
@@ -62,57 +71,95 @@ export default function MobileQuotesPage() {
     );
   }
 
-  if (quotes.length === 0) {
-    return (
-      <MobileLayout title="Dev./Fac." subtitle="Vos devis et factures">
+  const currentData = activeTab === 'devis' ? quotes : invoices;
+  const isEmpty = currentData.length === 0;
+
+  return (
+    <MobileLayout title="Devis / Fact." subtitle="Vos devis et factures">
+      {/* Onglets */}
+      <div className="sticky top-0 z-10 bg-background border-b">
+        <div className="flex">
+          <button
+            onClick={() => setActiveTab('devis')}
+            className={cn(
+              'flex-1 py-3 px-4 text-sm font-medium transition-colors relative',
+              activeTab === 'devis'
+                ? 'text-primary'
+                : 'text-muted-foreground hover:text-foreground'
+            )}
+          >
+            Devis
+            {activeTab === 'devis' && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
+            )}
+          </button>
+          <button
+            onClick={() => setActiveTab('factures')}
+            className={cn(
+              'flex-1 py-3 px-4 text-sm font-medium transition-colors relative',
+              activeTab === 'factures'
+                ? 'text-primary'
+                : 'text-muted-foreground hover:text-foreground'
+            )}
+          >
+            Factures
+            {activeTab === 'factures' && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* Contenu */}
+      {isEmpty ? (
         <div className="p-4">
           <EmptyState
-            icon={FileText}
-            title="Aucun devis !"
-            description="Créez votre premier devis en cliquant sur le bouton + ci-dessous."
+            icon={activeTab === 'devis' ? FileText : Receipt}
+            title={activeTab === 'devis' ? 'Aucun devis !' : 'Aucune facture !'}
+            description={
+              activeTab === 'devis'
+                ? 'Créez votre premier devis en cliquant sur le bouton + ci-dessous.'
+                : 'Les factures apparaîtront ici une fois créées.'
+            }
             variant="colorful"
           />
         </div>
-      </MobileLayout>
-    );
-  }
-
-  return (
-    <MobileLayout title="Dev./Fac." subtitle="Vos devis et factures">
-      <div className="space-y-3 p-4">
-        {quotes.map((quote) => {
-          const statusInfo = getStatusInfo(quote.status);
-          return (
-            <div
-              key={quote.id}
-              onClick={() => router.push(`/mobile/quotes/${quote.id}`)}
-              className="rounded-xl bg-card p-4 shadow-sm transition-transform active:scale-98"
-            >
-              <div className="mb-2 flex items-start justify-between">
-                <div className="flex-1">
-                  <h3 className="font-semibold text-foreground">
-                    {quote.client_name}
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    {new Date(quote.created_at).toLocaleDateString('fr-FR')}
-                  </p>
+      ) : (
+        <div className="space-y-3 p-4">
+          {currentData.map((item) => {
+            const statusInfo = getStatusInfo(item.status);
+            return (
+              <div
+                key={item.id}
+                onClick={() => router.push(`/mobile/quotes/${item.id}`)}
+                className="rounded-xl bg-card p-4 shadow-sm transition-transform active:scale-98"
+              >
+                <div className="mb-2 flex items-start justify-between">
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-foreground">
+                      {item.client_name}
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      {new Date(item.created_at).toLocaleDateString('fr-FR')}
+                    </p>
+                  </div>
+                  <span
+                    className={cn(
+                      'rounded-full px-3 py-1 text-xs font-medium',
+                      statusInfo.color
+                    )}
+                  >
+                    {statusInfo.label}
+                  </span>
                 </div>
-                <span
-                  className={cn(
-                    'rounded-full px-3 py-1 text-xs font-medium',
-                    statusInfo.color
-                  )}
-                >
-                  {statusInfo.label}
-                </span>
+                <div className="text-lg font-bold text-foreground">
+                  {(item.total_amount || 0).toLocaleString('fr-FR')} €
+                </div>
               </div>
-              <div className="text-lg font-bold text-foreground">
-                {(quote.total_amount || 0).toLocaleString('fr-FR')} €
-              </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
     </MobileLayout>
   );
 }
