@@ -7,9 +7,10 @@ import { createClient } from '@/lib/supabase/server';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const supabase = await createClient();
 
     // Vérifier l'authentification
@@ -26,7 +27,7 @@ export async function GET(
     const { data: client, error } = await supabase
       .from('clients')
       .select('*')
-      .eq('id', params.id)
+      .eq('id', id)
       .eq('user_id', user.id)
       .single();
 
@@ -47,9 +48,10 @@ export async function GET(
  */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const supabase = await createClient();
 
     // Vérifier l'authentification
@@ -77,7 +79,7 @@ export async function PATCH(
     const { data: existingClient } = await supabase
       .from('clients')
       .select('id')
-      .eq('id', params.id)
+      .eq('id', id)
       .eq('user_id', user.id)
       .single();
 
@@ -97,7 +99,7 @@ export async function PATCH(
         city: city?.trim() || null,
         notes: notes?.trim() || null,
       })
-      .eq('id', params.id)
+      .eq('id', id)
       .select()
       .single();
 
@@ -121,10 +123,10 @@ export async function PATCH(
  * Supprime un client
  */
 export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { id: string } }
+  request: NextRequest,Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const supabase = await createClient();
 
     // Vérifier l'authentification
@@ -141,7 +143,7 @@ export async function DELETE(
     const { data: existingClient } = await supabase
       .from('clients')
       .select('id')
-      .eq('id', params.id)
+      .eq('id', id)
       .eq('user_id', user.id)
       .single();
 
@@ -150,6 +152,7 @@ export async function DELETE(
     }
 
     // Supprimer le client
+    const { error } = await supabase.from('clients').delete().eq('id', 
     const { error } = await supabase.from('clients').delete().eq('id', params.id);
 
     if (error) {
