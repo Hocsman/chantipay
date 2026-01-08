@@ -47,6 +47,7 @@ import {
   AlertCircle,
   Wallet,
   CalendarCheck,
+  FileText,
 } from 'lucide-react'
 
 type QuoteStatus = 'draft' | 'sent' | 'signed' | 'deposit_paid' | 'completed' | 'canceled'
