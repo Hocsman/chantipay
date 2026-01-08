@@ -17,8 +17,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Plus, Search, FileText, Loader2 } from 'lucide-react'
+import { Plus, Search, FileText, Loader2, Receipt } from 'lucide-react'
 
+type TabType = 'devis' | 'factures'
 type QuoteStatus = 'draft' | 'sent' | 'signed' | 'deposit_paid' | 'completed' | 'canceled'
 
 interface Quote {
@@ -44,6 +45,7 @@ const statusFilters: { label: string; value: QuoteStatus | 'all' }[] = [
 
 export default function QuotesPage() {
   const router = useRouter()
+  const [activeTab, setActiveTab] = useState<TabType>('devis')
   const [quotes, setQuotes] = useState<Quote[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
@@ -93,8 +95,8 @@ export default function QuotesPage() {
   return (
     <LayoutContainer>
       <PageHeader
-        title="Devis"
-        description="Gérez tous vos devis"
+        title="Devis & Factures"
+        description="Gérez tous vos devis et factures"
         action={
           <Button onClick={() => router.push('/dashboard/quotes/new')} className="hidden sm:flex">
             <Plus className="h-4 w-4 mr-2" />
@@ -102,6 +104,38 @@ export default function QuotesPage() {
           </Button>
         }
       />
+
+      {/* Onglets */}
+      <div className="sticky top-0 z-10 bg-background border-b mb-6">
+        <div className="flex gap-0">
+          <button
+            onClick={() => setActiveTab('devis')}
+            className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 font-medium transition-colors ${
+              activeTab === 'devis'
+                ? 'text-primary border-b-2 border-primary'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <FileText className="h-4 w-4" />
+            Devis
+          </button>
+          <button
+            onClick={() => setActiveTab('factures')}
+            className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 font-medium transition-colors ${
+              activeTab === 'factures'
+                ? 'text-primary border-b-2 border-primary'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <Receipt className="h-4 w-4" />
+            Factures
+          </button>
+        </div>
+      </div>
+
+      {/* Contenu de l'onglet Devis */}
+      {activeTab === 'devis' && (
+        <>
 
       {/* Barre de recherche */}
       <div className="mb-4">
@@ -216,6 +250,19 @@ export default function QuotesPage() {
       )}
 
       <FloatingActionButton href="/dashboard/quotes/new" label="Nouveau devis" />
+      </>
+      )}
+
+      {/* Contenu de l'onglet Factures */}
+      {activeTab === 'factures' && (
+        <div className="text-center py-12">
+          <Receipt className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-lg font-medium mb-2">Aucune facture</h3>
+          <p className="text-muted-foreground mb-4">
+            Les factures seront disponibles prochainement
+          </p>
+        </div>
+      )}
     </LayoutContainer>
   )
 }
