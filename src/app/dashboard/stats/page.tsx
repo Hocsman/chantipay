@@ -155,7 +155,7 @@ export default function StatsPage() {
                   <XAxis dataKey="month" />
                   <YAxis />
                   <Tooltip
-                    formatter={(value: number) => `${value.toFixed(2)} €`}
+                    formatter={(value: number | undefined) => value !== undefined ? `${value.toFixed(2)} €` : ''}
                   />
                   <Legend />
                   <Line
@@ -216,7 +216,7 @@ export default function StatsPage() {
                   <XAxis dataKey="name" />
                   <YAxis />
                   <Tooltip
-                    formatter={(value: number) => `${value.toFixed(2)} €`}
+                    formatter={(value: number | undefined) => value !== undefined ? `${value.toFixed(2)} €` : ''}
                   />
                   <Legend />
                   <Bar dataKey="total" name="CA total" fill="#10B981" />
