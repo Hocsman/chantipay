@@ -241,7 +241,7 @@ export default function InvoicesPage() {
       )}
 
       {/* FAB pour mobile */}
-      <FloatingActionButton onClick={() => router.push('/dashboard/invoices/new')} />
+      <FloatingActionButton href="/dashboard/invoices/new" label="Nouvelle facture" />
     </LayoutContainer>
   )
 }

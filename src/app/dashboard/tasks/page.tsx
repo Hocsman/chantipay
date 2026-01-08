@@ -262,7 +262,7 @@ export default function TasksPage() {
       )}
 
       {/* FAB pour mobile */}
-      <FloatingActionButton onClick={() => router.push('/dashboard/tasks/new')} />
+      <FloatingActionButton href="/dashboard/tasks/new" label="Nouvelle tâche" />
     </LayoutContainer>
   )
 }
