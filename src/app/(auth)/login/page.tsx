@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { FileText, Loader2, Eye, EyeOff } from 'lucide-react';
 import { useAntiBot, HoneypotField } from '@/hooks/useAntiBot';
+import { useIsNativeApp } from '@/hooks/usePlatform';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -18,6 +19,7 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  const isNativeApp = useIsNativeApp();
   
   // Anti-bot protection
   const { honeypot, setHoneypot, formLoadedAt } = useAntiBot();
@@ -52,7 +54,9 @@ export default function LoginPage() {
         return;
       }
 
-      router.push('/dashboard');
+      // Redirect to mobile or dashboard based on platform
+      const redirectPath = isNativeApp ? '/mobile' : '/dashboard';
+      router.push(redirectPath);
       router.refresh();
     } catch {
       setError('Une erreur est survenue. Veuillez réessayer.');

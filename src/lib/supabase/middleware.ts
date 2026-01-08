@@ -47,7 +47,7 @@ export async function updateSession(request: NextRequest) {
   // Protected routes
   if (
     !user &&
-    request.nextUrl.pathname.startsWith('/dashboard')
+    (request.nextUrl.pathname.startsWith('/dashboard') || request.nextUrl.pathname.startsWith('/mobile'))
   ) {
     // no user, redirect to login page
     const url = request.nextUrl.clone();
@@ -61,6 +61,7 @@ export async function updateSession(request: NextRequest) {
     (request.nextUrl.pathname === '/login' || request.nextUrl.pathname === '/register')
   ) {
     const url = request.nextUrl.clone();
+    // Default redirect to dashboard (mobile app will handle its own redirect via login page)
     url.pathname = '/dashboard';
     return NextResponse.redirect(url);
   }
