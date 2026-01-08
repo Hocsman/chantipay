@@ -123,7 +123,8 @@ export async function PATCH(
  * Supprime un client
  */
 export async function DELETE(
-  request: NextRequest,Promise<{ id: string }> }
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params;
@@ -152,8 +153,7 @@ export async function DELETE(
     }
 
     // Supprimer le client
-    const { error } = await supabase.from('clients').delete().eq('id', 
-    const { error } = await supabase.from('clients').delete().eq('id', params.id);
+    const { error } = await supabase.from('clients').delete().eq('id', id);
 
     if (error) {
       console.error('Erreur suppression client:', error);
