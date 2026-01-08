@@ -350,12 +350,12 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
                     await downloadInvoicePDF(
                       {
                         ...invoice,
-                        items: items.map((item) => ({
+                        items: invoice.items?.map((item) => ({
                           description: item.description,
                           quantity: item.quantity,
                           unit_price: item.unit_price,
                           total: item.total,
-                        })),
+                        })) || [],
                       },
                       {
                         name: 'ChantiPay',
