@@ -5,11 +5,19 @@ import { useRouter } from 'next/navigation'
 import { MobileAppShell } from '@/components/mobile/MobileAppShell'
 import { FloatingActionButton } from '@/components/FloatingActionButton'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
-import { Loader2, Plus, FileText, Euro } from 'lucide-react'
+import { Loader2, Plus, FileText, Euro, Search } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { EmptyState } from '@/components/mobile/EmptyState'
+
+interface InvoiceItem {
+  id: string
+  description: string
+  quantity: number
+  unit_price: number
+}
 
 interface Invoice {
   id: string
@@ -20,6 +28,7 @@ interface Invoice {
   total: number
   payment_status: 'draft' | 'sent' | 'paid' | 'partial' | 'overdue' | 'canceled'
   paid_amount?: number
+  items?: InvoiceItem[]
 }
 
 const paymentStatusConfig = {
@@ -38,6 +47,7 @@ export default function MobileInvoicesPage() {
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [filter, setFilter] = useState<FilterStatus>('all')
+  const [searchQuery, setSearchQuery] = useState('')
 
   useEffect(() => {
     loadInvoices()
@@ -58,8 +68,23 @@ export default function MobileInvoicesPage() {
   }
 
   const filteredInvoices = invoices.filter(invoice => {
-    if (filter === 'all') return true
-    return invoice.payment_status === filter
+    // Filtrage par statut
+    const matchesStatus = filter === 'all' || invoice.payment_status === filter
+    
+    // Recherche étendue
+    if (!searchQuery) return matchesStatus
+    
+    const searchLower = searchQuery.toLowerCase()
+    const totalAmount = invoice.total?.toString() || '0'
+    const itemsDescriptions = invoice.items?.map(item => item.description.toLowerCase()).join(' ') || ''
+    
+    const matchesSearch =
+      invoice.invoice_number.toLowerCase().includes(searchLower) ||
+      invoice.client_name.toLowerCase().includes(searchLower) ||
+      totalAmount.includes(searchQuery) ||
+      itemsDescriptions.includes(searchLower)
+    
+    return matchesStatus && matchesSearch
   })
 
   const totalRevenue = invoices
@@ -115,6 +140,17 @@ export default function MobileInvoicesPage() {
               </div>
             </CardContent>
           </Card>
+        </div>
+
+        {/* Barre de recherche */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Rechercher par numéro, client, montant..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10"
+          />
         </div>
 
         {/* Filtres */}
