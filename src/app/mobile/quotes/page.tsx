@@ -11,8 +11,9 @@ import { createClient } from '@/lib/supabase/client';
 import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-type TabType = 'devis' | 'factures';
+type TabType = 'devis' | 'factures' | 'avoirs';
 type QuoteStatus = 'draft' | 'sent' | 'signed' | 'deposit_paid' | 'completed' | 'canceled'
+type CreditNoteStatus = 'draft' | 'sent' | 'finalized'
 
 interface QuoteItem {
   id: string
@@ -50,6 +51,25 @@ interface Invoice {
   total: number
   payment_status: string
   items?: InvoiceItem[]
+}
+
+interface CreditNoteItem {
+  id: string
+  description: string
+  quantity: number
+  unit_prcreditNotes, setCreditNotes] = useState<CreditNote[]>([]);
+  const [ice: number
+}
+
+interface CreditNote {
+  id: string
+  credit_note_number: string
+  client_name: string
+  issue_date: string
+  total: number
+  status: CreditNoteStatus
+  reason?: string
+  items?: CreditNoteItem[]
 }
 
 export default function MobileQuotesPage() {
@@ -107,6 +127,23 @@ export default function MobileQuotesPage() {
         .order('issue_date', { ascending: false });
       
       setInvoices(invoicesData || []);
+
+      // Charger les avoirs avec items
+      const { data: creditNotesData } = await supabase
+        .from('credit_notes')
+        .select(`
+          *,
+          items:credit_note_items (
+            id,
+            description,
+            quantity,
+            unit_price
+          )
+        `)
+        .eq('user_id', session.user.id)
+        .order('issue_date', { ascending: false });
+      
+      setCreditNotes(creditNotesData || []);
       
       setLoading(false);
     };
@@ -122,8 +159,12 @@ export default function MobileQuotesPage() {
         return { label: 'Envoyé', color: 'text-blue-600 bg-blue-50 dark:bg-blue-950/30' };
       case 'draft':
         return { label: 'Brouillon', color: 'text-gray-600 bg-gray-50 dark:bg-gray-950/30' };
+      case 'refused':
+        return { label: 'Refusé', color: 'text-red-600 bg-red-50 dark:bg-red-950/30' };
       case 'paid':
         return { label: 'Payée', color: 'text-green-600 bg-green-50 dark:bg-green-950/30' };
+      case 'finalized':
+        return { label: 'Finalisé', color: 'text-green-600 bg-green-50 dark:bg-green-950/30' };
       case 'overdue':
         return { label: 'En retard', color: 'text-red-600 bg-red-50 dark:bg-red-950/30' };
       case 'partial':
@@ -165,6 +206,22 @@ export default function MobileQuotesPage() {
     return matchesSearch
   })
 
+  // Filtrage des avoirs
+  const filteredCreditNotes = creditNotes.filter((creditNote) => {
+    const totalAmount = Math.abs(creditNote.total || 0).toString()
+    const itemsDescriptions = creditNote.items?.map(item => item.description.toLowerCase()).join(' ') || ''
+    
+    const searchLower = searchQuery.toLowerCase()
+    const matchesSearch = !searchQuery ||
+      creditNote.credit_note_number?.toLowerCase().includes(searchLower) ||
+      creditNote.client_name?.toLowerCase().includes(searchLower) ||
+      totalAmount.includes(searchQuery) ||
+      itemsDescriptions.includes(searchLower) ||
+      (creditNote.reason && creditNote.reason.toLowerCase().includes(searchLower))
+    
+    return matchesSearch
+  })
+
   const statusFilters: { label: string; value: QuoteStatus | 'all' }[] = [
     { label: 'Tous', value: 'all' },
     { label: 'Brouillon', value: 'draft' },
@@ -182,9 +239,13 @@ export default function MobileQuotesPage() {
     );
   }
 
-  const currentData = activeTab === 'devis' ? filteredQuotes : filteredInvoices;
+  const currentData = activeTab === 'devis' ? filteredQuotes : activeTab === 'factures' ? filteredInvoices : filteredCreditNotes;
   const isEmpty = currentData.length === 0;
-  const hasNoResults = (activeTab === 'devis' ? quotes.length > 0 : invoices.length > 0) && isEmpty;
+  const hasNoResults = (
+    activeTab === 'devis' ? quotes.length > 0 : 
+    activeTab === 'factures' ? invoices.length > 0 : 
+    creditNotes.length > 0
+  ) && isEmpty;
 
   return (
     <MobileLayout title="Devis / Fact." subtitle="Vos devis et factures">
@@ -216,6 +277,20 @@ export default function MobileQuotesPage() {
           >
             Factures
             {activeTab === 'factures' && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
+            )}
+          </button>
+          <button
+            onClick={() => setActiveTab('avoirs')}
+            className={cn(
+              'flex-1 py-3 px-4 text-sm font-medium transition-colors relative',
+              activeTab === 'avoirs'
+                ? 'text-primary'
+                : 'text-muted-foreground hover:text-foreground'
+            )}
+          >
+            Avoirs
+            {activeTab === 'avoirs' && (
               <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
             )}
           </button>
@@ -266,11 +341,13 @@ export default function MobileQuotesPage() {
         <div className="p-4">
           <EmptyState
             icon={activeTab === 'devis' ? FileText : Receipt}
-            title={activeTab === 'devis' ? 'Aucun devis !' : 'Aucune facture !'}
+            title={activeTab === 'devis' ? 'Aucun devis !' : activeTab === 'factures' ? 'Aucune facture !' : 'Aucun avoir !'}
             description={
               activeTab === 'devis'
                 ? 'Créez votre premier devis en cliquant sur le bouton + ci-dessous.'
-                : 'Les factures apparaîtront ici une fois créées.'
+                : activeTab === 'factures'
+                ? 'Les factures apparaîtront ici une fois créées.'
+                : 'Les avoirs apparaîtront ici une fois créés.'
             }
             variant="colorful"
           />
@@ -278,21 +355,40 @@ export default function MobileQuotesPage() {
       ) : (
         <div className="space-y-3 p-4">
           {currentData.map((item) => {
-            const statusInfo = getStatusInfo(activeTab === 'devis' ? (item as Quote).status : (item as Invoice).payment_status);
+            const statusInfo = getStatusInfo(
+              activeTab === 'devis' ? (item as Quote).status : 
+              activeTab === 'factures' ? (item as Invoice).payment_status :
+              (item as CreditNote).status
+            );
             const displayName = activeTab === 'devis' 
               ? ((item as Quote).clients?.name || (item as Quote).client_name)
-              : (item as Invoice).client_name;
+              : activeTab === 'factures'
+              ? (item as Invoice).client_name
+              : (item as CreditNote).client_name;
             const displayDate = activeTab === 'devis'
               ? new Date((item as Quote).created_at).toLocaleDateString('fr-FR')
-              : new Date((item as Invoice).issue_date).toLocaleDateString('fr-FR');
+              : activeTab === 'factures'
+              ? new Date((item as Invoice).issue_date).toLocaleDateString('fr-FR')
+              : new Date((item as CreditNote).issue_date).toLocaleDateString('fr-FR');
             const displayAmount = activeTab === 'devis'
               ? ((item as Quote).total_ttc || (item as Quote).total_amount || 0)
-              : (item as Invoice).total;
+              : activeTab === 'factures'
+              ? (item as Invoice).total
+              : Math.abs((item as CreditNote).total);
+            const displayNumber = activeTab === 'devis'
+              ? (item as Quote).quote_number
+              : activeTab === 'factures'
+              ? (item as Invoice).invoice_number
+              : (item as CreditNote).credit_note_number;
             
             return (
               <div
                 key={item.id}
-                onClick={() => router.push(activeTab === 'devis' ? `/mobile/quotes/${item.id}` : `/mobile/factures/${item.id}`)}
+                onClick={() => router.push(
+                  activeTab === 'devis' ? `/mobile/quotes/${item.id}` : 
+                  activeTab === 'factures' ? `/mobile/factures/${item.id}` :
+                  `/mobile/avoirs`
+                )}
                 className="rounded-xl bg-card p-4 shadow-sm transition-transform active:scale-98"
               >
                 <div className="mb-2 flex items-start justify-between">
@@ -301,7 +397,7 @@ export default function MobileQuotesPage() {
                       {displayName}
                     </h3>
                     <p className="text-sm text-muted-foreground">
-                      {displayDate}
+                      {displayNumber} • {displayDate}
                     </p>
                   </div>
                   <span
@@ -313,8 +409,11 @@ export default function MobileQuotesPage() {
                     {statusInfo.label}
                   </span>
                 </div>
-                <div className="text-lg font-bold text-foreground">
-                  {displayAmount.toLocaleString('fr-FR')} €
+                <div className={cn(
+                  "text-lg font-bold",
+                  activeTab === 'avoirs' ? 'text-red-600' : 'text-foreground'
+                )}>
+                  {activeTab === 'avoirs' && '-'}{displayAmount.toLocaleString('fr-FR')} €
                 </div>
               </div>
             );

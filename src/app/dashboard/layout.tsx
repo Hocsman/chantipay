@@ -73,6 +73,13 @@ export default function DashboardLayout({
                 Factures
               </Link>
               <Link
+                href="/dashboard/avoirs"
+                className="text-muted-foreground hover:text-foreground flex items-center gap-2 text-sm font-medium transition-colors"
+              >
+                <Receipt className="h-4 w-4" />
+                Avoirs
+              </Link>
+              <Link
                 href="/dashboard/calendar"
                 className="text-muted-foreground hover:text-foreground flex items-center gap-2 text-sm font-medium transition-colors"
               >
