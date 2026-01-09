@@ -19,7 +19,7 @@ export async function GET() {
       )
     }
 
-    // Récupérer les devis avec les infos client
+    // Récupérer les devis avec les infos client et les items
     const { data: quotes, error } = await supabase
       .from('quotes')
       .select(`
@@ -29,6 +29,12 @@ export async function GET() {
           name,
           email,
           phone
+        ),
+        items:quote_items (
+          id,
+          description,
+          quantity,
+          unit_price_ht
         )
       `)
       .eq('user_id', user.id)

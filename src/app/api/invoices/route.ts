@@ -15,7 +15,15 @@ export async function GET() {
 
   const { data: invoices, error } = await supabase
     .from('invoices')
-    .select('*')
+    .select(`
+      *,
+      items:invoice_items (
+        id,
+        description,
+        quantity,
+        unit_price
+      )
+    `)
     .eq('user_id', user.id)
     .order('issue_date', { ascending: false })
 

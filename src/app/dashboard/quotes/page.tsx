@@ -22,6 +22,13 @@ import { Plus, Search, FileText, Loader2, Receipt } from 'lucide-react'
 type TabType = 'devis' | 'factures'
 type QuoteStatus = 'draft' | 'sent' | 'signed' | 'deposit_paid' | 'completed' | 'canceled'
 
+interface QuoteItem {
+  id: string
+  description: string
+  quantity: number
+  unit_price_ht: number
+}
+
 interface Quote {
   id: string
   quote_number: string
@@ -31,6 +38,7 @@ interface Quote {
   clients?: {
     name: string
   }
+  items?: QuoteItem[]
 }
 
 const statusFilters: { label: string; value: QuoteStatus | 'all' }[] = [
@@ -70,9 +78,18 @@ export default function QuotesPage() {
 
   const filteredQuotes = quotes.filter((quote) => {
     const clientName = quote.clients?.name || ''
+    const totalAmount = quote.total_ttc?.toString() || '0'
+    
+    // Recherche dans les descriptions des items (types de prestation)
+    const itemsDescriptions = quote.items?.map(item => item.description.toLowerCase()).join(' ') || ''
+    
+    const searchLower = searchQuery.toLowerCase()
     const matchesSearch =
-      quote.quote_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      clientName.toLowerCase().includes(searchQuery.toLowerCase())
+      quote.quote_number.toLowerCase().includes(searchLower) ||
+      clientName.toLowerCase().includes(searchLower) ||
+      totalAmount.includes(searchQuery) ||
+      itemsDescriptions.includes(searchLower)
+      
     const matchesStatus = statusFilter === 'all' || quote.status === statusFilter
     return matchesSearch && matchesStatus
   })
@@ -142,7 +159,7 @@ export default function QuotesPage() {
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Rechercher par numéro ou client..."
+            placeholder="Rechercher par numéro, client, montant ou prestation..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10"
