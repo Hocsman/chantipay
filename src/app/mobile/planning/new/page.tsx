@@ -157,9 +157,7 @@ export default function NewInterventionMobilePage() {
   if (loadingClients) {
     return (
       <MobileLayout 
-        title="Nouvelle intervention" 
-        showBackButton
-        onBack={() => router.back()}
+        title="Nouvelle intervention"
       >
         <div className="flex min-h-[50vh] items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -170,9 +168,7 @@ export default function NewInterventionMobilePage() {
 
   return (
     <MobileLayout 
-      title="Nouvelle intervention" 
-      showBackButton
-      onBack={() => router.back()}
+      title="Nouvelle intervention"
     >
       <form onSubmit={handleSubmit} className="p-4 space-y-4">
         {/* Client */}
