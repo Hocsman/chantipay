@@ -16,26 +16,26 @@ const navItems: NavItem[] = [
   {
     label: 'Planning',
     icon: Calendar,
-    href: '/dashboard/planning',
-    match: ['/dashboard/planning', '/dashboard'],
+    href: '/mobile/dashboard',
+    match: ['/mobile/dashboard', '/mobile/planning'],
   },
   {
     label: 'Tâches',
     icon: CheckSquare,
-    href: '/dashboard/tasks',
-    match: ['/dashboard/tasks'],
+    href: '/mobile/tasks',
+    match: ['/mobile/tasks'],
   },
   {
     label: 'Devis',
     icon: FileText,
-    href: '/dashboard/quotes',
-    match: ['/dashboard/quotes'],
+    href: '/mobile/quotes',
+    match: ['/mobile/quotes', '/mobile/factures', '/mobile/avoirs'],
   },
   {
     label: 'Menu',
     icon: Menu,
-    href: '/dashboard/menu',
-    match: ['/dashboard/menu', '/dashboard/settings', '/dashboard/clients'],
+    href: '/mobile/menu',
+    match: ['/mobile/menu', '/mobile/settings', '/mobile/clients'],
   },
 ];
 
