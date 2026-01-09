@@ -184,17 +184,23 @@ export default function MobileCreditNotesPage() {
 
         {/* Liste des avoirs */}
         {filteredCreditNotes.length === 0 ? (
-          <EmptyState
-            icon={FileText}
-            title="Aucun avoir"
-            description={
-              filter === 'all'
-                ? "Créez votre premier avoir pour créditer vos clients."
-                : `Aucun avoir avec le statut "${statusConfig[filter as keyof typeof statusConfig]?.label}"`
-            }
-            actionLabel="Créer un avoir"
-            onAction={() => router.push('/mobile/avoirs/new')}
-          />
+          <div className="p-4">
+            <EmptyState
+              icon={FileText}
+              title="Aucun avoir"
+              description={
+                filter === 'all'
+                  ? "Créez votre premier avoir pour créditer vos clients."
+                  : `Aucun avoir avec le statut "${statusConfig[filter as keyof typeof statusConfig]?.label}"`
+              }
+            />
+            <div className="flex justify-center mt-4">
+              <Button onClick={() => router.push('/mobile/avoirs/new')}>
+                <Plus className="mr-2 h-4 w-4" />
+                Créer un avoir
+              </Button>
+            </div>
+          </div>
         ) : (
           <div className="space-y-3">
             {filteredCreditNotes.map((creditNote) => (

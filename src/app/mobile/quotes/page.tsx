@@ -57,8 +57,7 @@ interface CreditNoteItem {
   id: string
   description: string
   quantity: number
-  unit_prcreditNotes, setCreditNotes] = useState<CreditNote[]>([]);
-  const [ice: number
+  unit_price: number
 }
 
 interface CreditNote {
@@ -76,6 +75,7 @@ export default function MobileQuotesPage() {
   const router = useRouter();
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [creditNotes, setCreditNotes] = useState<CreditNote[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<TabType>('devis');
   const [searchQuery, setSearchQuery] = useState('');
