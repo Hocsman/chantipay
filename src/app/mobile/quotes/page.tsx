@@ -6,6 +6,7 @@ import { MobileLayout } from '@/components/mobile/MobileLayout';
 import { EmptyState } from '@/components/mobile/EmptyState';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { FloatingActionButton } from '@/components/FloatingActionButton';
 import { FileText, Receipt, Search } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { Loader2 } from 'lucide-react';
@@ -420,6 +421,20 @@ export default function MobileQuotesPage() {
           })}
         </div>
       )}
+      
+      {/* FAB conditionnel selon l'onglet actif */}
+      <FloatingActionButton 
+        href={
+          activeTab === 'devis' ? '/mobile/quotes/new' : 
+          activeTab === 'factures' ? '/mobile/factures/new' :
+          '/mobile/avoirs/new'
+        }
+        label={
+          activeTab === 'devis' ? 'Nouveau devis' : 
+          activeTab === 'factures' ? 'Nouvelle facture' :
+          'Nouvel avoir'
+        }
+      />
     </MobileLayout>
   );
 }

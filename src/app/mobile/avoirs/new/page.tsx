@@ -228,12 +228,11 @@ export default function NewCreditNoteMobilePage() {
 
             <div className="space-y-2">
               <Label htmlFor="invoice">Facture (optionnel)</Label>
-              <Select value={formData.invoice_id} onValueChange={(value) => setFormData({ ...formData, invoice_id: value })}>
+              <Select value={formData.invoice_id || undefined} onValueChange={(value) => setFormData({ ...formData, invoice_id: value })}>
                 <SelectTrigger id="invoice">
-                  <SelectValue placeholder="Aucune" />
+                  <SelectValue placeholder="Sélectionner une facture (optionnel)" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Aucune</SelectItem>
                   {invoices.map((invoice) => (
                     <SelectItem key={invoice.id} value={invoice.id}>
                       {invoice.invoice_number} ({invoice.total.toFixed(2)} €)
