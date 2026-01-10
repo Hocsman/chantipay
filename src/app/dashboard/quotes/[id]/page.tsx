@@ -121,6 +121,19 @@ export default function QuoteDetailPage() {
   const loadQuote = useCallback(async () => {
     if (!quoteId) return
     
+    // Valider le format UUID
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(quoteId)) {
+      console.error('ID invalide (format UUID attendu):', quoteId);
+      setError('Identifiant du devis invalide');
+      setIsLoading(false);
+      toast.error('Devis non trouvé', {
+        description: 'L\'identifiant du devis est invalide.'
+      });
+      setTimeout(() => router.push('/dashboard/quotes'), 2000);
+      return;
+    }
+    
     try {
       setIsLoading(true)
       setError(null)

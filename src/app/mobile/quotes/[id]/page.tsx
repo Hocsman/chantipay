@@ -79,6 +79,17 @@ export default function QuoteDetailPage() {
   const loadQuote = useCallback(async () => {
     if (!params.id) return;
 
+    // Valider le format UUID
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(params.id as string)) {
+      console.error('ID invalide (format UUID attendu):', params.id);
+      toast.error('Devis non trouvé', {
+        description: 'L\'identifiant du devis est invalide.'
+      });
+      router.push('/mobile/quotes');
+      return;
+    }
+
     try {
       setLoading(true);
       const supabase = createClient();
@@ -95,6 +106,9 @@ export default function QuoteDetailPage() {
 
       if (quoteError) {
         console.error('Erreur Supabase:', quoteError);
+        toast.error('Devis non trouvé', {
+          description: quoteError.message
+        });
         router.push('/mobile/quotes');
         return;
       }

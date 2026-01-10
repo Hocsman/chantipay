@@ -124,8 +124,8 @@ export async function POST(request: NextRequest) {
     const totalTTC = totalHT + totalVAT
     const depositAmount = totalTTC * ((deposit_percent || 30) / 100)
 
-    // Générer le numéro de devis (unique globalement)
-    const quoteNumber = await generateQuoteNumber(supabase)
+    // Le quote_number sera généré automatiquement par le trigger
+    // On n'a plus besoin de l'appeler manuellement
 
     // Créer le devis
     const { data: quote, error: quoteError } = await supabase
@@ -133,7 +133,7 @@ export async function POST(request: NextRequest) {
       .insert({
         user_id: user.id,
         client_id,
-        quote_number: quoteNumber,
+        // quote_number sera auto-généré par le trigger
         status: 'draft',
         total_ht: totalHT,
         total_ttc: totalTTC,
@@ -192,24 +192,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
-}
-
-/**
- * Génère un numéro de devis unique
- * Format: DEV-YYYY-XXXXX (ex: DEV-2025-00001)
- * Unique globalement (pas par utilisateur)
- */
-async function generateQuoteNumber(supabase: Awaited<ReturnType<typeof createClient>>): Promise<string> {
-  const year = new Date().getFullYear()
-  const prefix = `DEV-${year}-`
-
-  // Compter TOUS les devis de l'année (globalement, pas par utilisateur)
-  const { count } = await supabase
-    .from('quotes')
-    .select('*', { count: 'exact', head: true })
-    .like('quote_number', `${prefix}%`)
-
-  const nextNumber = (count || 0) + 1
-  // 5 chiffres pour éviter les collisions
-  return `${prefix}${nextNumber.toString().padStart(5, '0')}`
 }
