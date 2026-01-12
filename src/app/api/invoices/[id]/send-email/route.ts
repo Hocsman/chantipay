@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { Resend } from 'resend'
-import { generateInvoicePDF } from '@/lib/pdf/InvoicePdf'
+import { renderToBuffer } from '@react-pdf/renderer'
+import { InvoicePdfDocument } from '@/lib/pdf/InvoicePdfServer'
 
 // Initialisation lazy de Resend pour éviter les erreurs au build
 let resend: Resend | null = null
@@ -98,17 +99,16 @@ export async function POST(
       siret: profile?.company_siret || '123 456 789 00012',
     }
 
-    // Générer le PDF
-    const pdfBlob = await generateInvoicePDF(
-      {
-        ...invoice,
-        items: invoice.items || [],
-      },
-      companyInfo
+    // Générer le PDF avec @react-pdf/renderer
+    const pdfBuffer = await renderToBuffer(
+      InvoicePdfDocument({
+        invoice: {
+          ...invoice,
+          items: invoice.items || [],
+        },
+        companyInfo,
+      })
     )
-
-    // Convertir le Blob en Buffer pour Resend
-    const pdfBuffer = Buffer.from(await pdfBlob.arrayBuffer())
 
     // Vérifier que Resend est configuré
     const resendClient = getResend()
