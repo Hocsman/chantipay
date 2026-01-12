@@ -297,7 +297,8 @@ export default function RegisterPage() {
               </Label>
               <Input
                 id="siret"
-                type="text"
+                type="tel"
+                inputMode="numeric"
                 placeholder="123 456 789 00012"
                 value={siret}
                 onChange={(e) => setSiret(e.target.value)}
@@ -308,18 +309,6 @@ export default function RegisterPage() {
               </p>
             </div>
 
-            {/* Separator */}
-            <div className="relative py-2">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-white px-2 text-muted-foreground">
-                  Identifiants
-                </span>
-              </div>
-            </div>
-            
             {/* Auth Info */}
             <div className="space-y-2">
               <Label htmlFor="email">Email *</Label>
