@@ -42,15 +42,13 @@ export default function RegisterPage() {
     try {
       const supabase = createClient();
 
-      // Déterminer l'URL de redirection selon la plateforme
-      const redirectTo = isNativeApp
-        ? `${window.location.origin}/mobile`
-        : `${window.location.origin}/dashboard`;
+      // Déterminer la destination finale après authentification
+      const finalDestination = isNativeApp ? '/mobile' : '/dashboard';
 
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-          redirectTo,
+          redirectTo: `${window.location.origin}/auth/callback?next=${finalDestination}`,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
