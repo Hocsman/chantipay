@@ -74,6 +74,7 @@ export default function QuoteDetailPage() {
   const [depositMethod, setDepositMethod] = useState<string>('');
   const [isSavingSignature, setIsSavingSignature] = useState(false);
   const [isMarkingDeposit, setIsMarkingDeposit] = useState(false);
+  const [isDownloadingPDF, setIsDownloadingPDF] = useState(false);
 
   // Charger le devis avec toutes les données
   const loadQuote = useCallback(async () => {
@@ -197,6 +198,44 @@ export default function QuoteDetailPage() {
       toast.error('❌ Erreur lors de la signature. Veuillez réessayer.');
     } finally {
       setIsSavingSignature(false);
+    }
+  };
+
+  // Téléchargement du PDF (compatible Chrome mobile)
+  const handleDownloadPDF = async () => {
+    if (!quote) return;
+    
+    setIsDownloadingPDF(true);
+    try {
+      const response = await fetch(`/api/quotes/${quote.id}/pdf`);
+      
+      if (!response.ok) throw new Error('Erreur lors de la génération du PDF');
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${quote.quote_number}.pdf`;
+      a.style.display = 'none';
+      document.body.appendChild(a);
+      a.click();
+      
+      // Nettoyer après un délai pour assurer la compatibilité mobile
+      setTimeout(() => {
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      }, 100);
+      
+      toast.success('PDF téléchargé', {
+        description: `Le devis ${quote.quote_number} a été téléchargé`
+      });
+    } catch (error) {
+      console.error('Erreur téléchargement PDF:', error);
+      toast.error('Erreur', {
+        description: 'Impossible de télécharger le PDF'
+      });
+    } finally {
+      setIsDownloadingPDF(false);
     }
   };
 
@@ -498,9 +537,23 @@ export default function QuoteDetailPage() {
           </Button>
 
           <div className="grid grid-cols-2 gap-3">
-            <Button variant="outline" className="w-full h-12">
-              <Download className="mr-2 h-4 w-4" />
-              Télécharger
+            <Button 
+              variant="outline" 
+              className="w-full h-12"
+              onClick={handleDownloadPDF}
+              disabled={isDownloadingPDF}
+            >
+              {isDownloadingPDF ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Téléchargement...
+                </>
+              ) : (
+                <>
+                  <Download className="mr-2 h-4 w-4" />
+                  Télécharger
+                </>
+              )}
             </Button>
             <Button variant="outline" className="w-full h-12">
               <Share2 className="mr-2 h-4 w-4" />

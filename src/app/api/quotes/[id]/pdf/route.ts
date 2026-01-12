@@ -132,6 +132,11 @@ export async function GET(
         'Content-Disposition': `attachment; filename="${filename}"`,
         'Content-Length': pdfBuffer.length.toString(),
         'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+        // Headers pour compatibilité mobile Chrome/Google App
+        'X-Content-Type-Options': 'nosniff',
+        'Access-Control-Allow-Origin': '*',
       },
     })
   } catch (error) {

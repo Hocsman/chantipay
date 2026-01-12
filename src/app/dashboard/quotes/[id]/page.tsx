@@ -321,12 +321,24 @@ export default function QuoteDetailPage() {
       const a = document.createElement('a')
       a.href = url
       a.download = `${quote.quote_number}.pdf`
+      a.style.display = 'none'
       document.body.appendChild(a)
       a.click()
-      window.URL.revokeObjectURL(url)
-      document.body.removeChild(a)
+      
+      // Nettoyer après un délai pour assurer la compatibilité mobile
+      setTimeout(() => {
+        window.URL.revokeObjectURL(url)
+        document.body.removeChild(a)
+      }, 100)
+      
+      toast.success('PDF téléchargé', {
+        description: `Le devis ${quote.quote_number} a été téléchargé`
+      })
     } catch (error) {
       console.error('Erreur téléchargement PDF:', error)
+      toast.error('Erreur', {
+        description: 'Impossible de télécharger le PDF'
+      })
     } finally {
       setIsDownloadingPDF(false)
     }
