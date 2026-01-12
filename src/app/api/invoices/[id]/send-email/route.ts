@@ -101,13 +101,13 @@ export async function POST(
 
     // Générer le PDF avec @react-pdf/renderer
     const pdfBuffer = await renderToBuffer(
-      InvoicePdfDocument({
-        invoice: {
+      <InvoicePdfDocument
+        invoice={{
           ...invoice,
           items: invoice.items || [],
-        },
-        companyInfo,
-      })
+        }}
+        companyInfo={companyInfo}
+      />
     )
 
     // Vérifier que Resend est configuré
