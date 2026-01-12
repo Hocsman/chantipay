@@ -362,11 +362,11 @@ export default function RegisterPage() {
           </form>
           <p className="text-muted-foreground mt-4 text-center text-xs">
             En créant un compte, vous acceptez nos{' '}
-            <Link href="#" className="underline">
+            <Link href="/cgu" className="underline hover:text-foreground">
               conditions d&apos;utilisation
             </Link>{' '}
             et notre{' '}
-            <Link href="#" className="underline">
+            <Link href="/politique-confidentialite" className="underline hover:text-foreground">
               politique de confidentialité
             </Link>
             .

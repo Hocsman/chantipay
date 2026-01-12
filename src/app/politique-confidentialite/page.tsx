@@ -170,6 +170,10 @@ export default function PolitiqueConfidentialitePage() {
                 <strong>Stripe :</strong> traitement des paiements et facturation
               </li>
               <li>
+                <strong>Resend :</strong> envoi d&apos;emails transactionnels
+                (notifications, devis)
+              </li>
+              <li>
                 <strong>OpenAI :</strong> génération de contenu par intelligence
                 artificielle (données anonymisées)
               </li>

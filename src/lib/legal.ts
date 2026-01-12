@@ -8,17 +8,17 @@
 
 export const LEGAL_ENTITY = {
   // === Company Information ===
-  companyName: 'Chantipay',
-  legalForm: 'Micro-entreprise',
-  address: 'Paris',
-  postalCode: '75000',
+  companyName: 'SAS IH SOLUTIONS',
+  legalForm: 'SAS (Société par Actions Simplifiée)',
+  address: '66 Avenue des Champs-Élysées',
+  postalCode: '75008',
   city: 'Paris',
   country: 'France',
   email: 'contact@chantipay.com',
   phone: '', // Optional
   siret: '99456306200011',
-  tvaNumber: 'Non assujetti (micro-entreprise)', // If applicable
-  
+  tvaNumber: 'FR 99 999999999', // À remplacer par le vrai numéro
+
   // === Publication Director ===
   publisherName: 'Hocine AZZOUG',
   
@@ -55,6 +55,12 @@ export const LEGAL_ENTITY = {
       location: 'États-Unis',
       website: 'https://vercel.com',
     },
+    {
+      name: 'Resend Inc.',
+      purpose: 'Envoi d\'emails transactionnels',
+      location: 'États-Unis',
+      website: 'https://resend.com',
+    },
   ],
   
   // === Data Retention (indicative) ===
@@ -73,9 +79,9 @@ export const LEGAL_ENTITY = {
   
   // === Last Update Date ===
   lastUpdate: {
-    mentions: '15 janvier 2025',
-    cgu: '15 janvier 2025',
-    privacy: '15 janvier 2025',
+    mentions: '12 janvier 2026',
+    cgu: '12 janvier 2026',
+    privacy: '12 janvier 2026',
   },
 }
 
