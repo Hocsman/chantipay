@@ -25,8 +25,15 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Plus, Trash2, Sparkles, Loader2, Check, Replace, PlusCircle, Car, Package, Clock, AlertTriangle, Construction, Zap, Droplets } from 'lucide-react'
+import { Plus, Trash2, Sparkles, Loader2, Check, Replace, PlusCircle, Car, Package, Clock, AlertTriangle, Construction, Zap, Droplets, Save, RotateCcw } from 'lucide-react'
 import { toast } from 'sonner'
+import { useQuoteAutoSave, formatSavedAt } from '@/hooks/useQuoteAutoSave'
+import {
+  validateQuoteItems,
+  validateDepositPercent,
+  sanitizeQuoteItem,
+  VALIDATION_RULES,
+} from '@/lib/validation/quoteValidation'
 
 // ===========================================
 // Types
@@ -127,7 +134,7 @@ export default function NewQuotePage() {
   const [isGeneratingAI, setIsGeneratingAI] = useState(false)
   const [isLoadingClients, setIsLoadingClients] = useState(true)
   const [clients, setClients] = useState<Client[]>([])
-  
+
   // État du formulaire
   const [selectedClientId, setSelectedClientId] = useState('')
   const [vatRate, setVatRate] = useState('20')
@@ -139,6 +146,17 @@ export default function NewQuotePage() {
   const [items, setItems] = useState<QuoteItem[]>([
     { id: '1', description: '', quantity: 1, unit_price_ht: 0, vat_rate: 20 },
   ])
+
+  // Auto-save hook (sauvegarde automatique en arrière-plan)
+  const { clearDraft } = useQuoteAutoSave(
+    selectedClientId,
+    vatRate,
+    depositPercent,
+    items,
+    aiDescription,
+    selectedTrade,
+    true // enabled
+  )
 
   // Charger les clients au montage
   useEffect(() => {
@@ -309,7 +327,7 @@ export default function NewQuotePage() {
       return
     }
 
-    // Filtrer les lignes vides et valider
+    // Filtrer les lignes vides
     const validItems = items.filter(item => item.description.trim())
 
     if (validItems.length === 0) {
@@ -317,27 +335,32 @@ export default function NewQuotePage() {
       return
     }
 
-    // Valider que tous les prix sont valides
-    const hasInvalidPrice = validItems.some(item =>
-      isNaN(item.unit_price_ht) ||
-      item.unit_price_ht < 0 ||
-      isNaN(item.quantity) ||
-      item.quantity <= 0
-    )
+    // Valider l'acompte
+    const depositValidation = validateDepositPercent(parseFloat(depositPercent))
+    if (!depositValidation.isValid) {
+      toast.error(depositValidation.errors[0])
+      return
+    }
 
-    if (hasInvalidPrice) {
-      toast.error('Veuillez vérifier les prix et quantités')
+    // Nettoyer et sanitizer les items
+    const sanitizedItems = validItems.map(sanitizeQuoteItem)
+
+    // Validation avancée avec messages détaillés
+    const validation = validateQuoteItems(sanitizedItems)
+    if (!validation.isValid) {
+      // Afficher la première erreur
+      toast.error(validation.errors[0])
       return
     }
 
     setIsLoading(true)
     try {
-      // Nettoyer les items: retirer l'id client et s'assurer que tous les champs sont des nombres
-      const cleanedItems = validItems.map(({ id, ...item }) => ({
-        description: item.description.trim(),
-        quantity: Number(item.quantity),
-        unit_price_ht: Number(item.unit_price_ht),
-        vat_rate: Number(item.vat_rate),
+      // Préparer les items pour l'API (sans l'id client)
+      const cleanedItems = sanitizedItems.map(item => ({
+        description: item.description,
+        quantity: item.quantity,
+        unit_price_ht: item.unit_price_ht,
+        vat_rate: item.vat_rate,
       }))
 
       const response = await fetch('/api/quotes', {
@@ -358,6 +381,9 @@ export default function NewQuotePage() {
       }
 
       toast.success('Devis créé avec succès !')
+
+      // Supprimer le brouillon sauvegardé
+      clearDraft()
 
       // Rediriger vers le devis créé
       router.push(`/dashboard/quotes/${data.quote.id}`)
