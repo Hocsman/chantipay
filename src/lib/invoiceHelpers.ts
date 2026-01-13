@@ -127,23 +127,24 @@ export function formatClientAddress(client: Client): string {
 /**
  * Prépare les données pour créer une facture à partir d'un devis
  * Avec toutes les validations et calculs nécessaires
- *
- * @throws Error si TVA mixte détectée
+ * Supporte les TVA mixtes (calcul par ligne)
  */
 export function prepareInvoiceDataFromQuote(
   quote: Quote,
   client: Client
 ): InvoiceData {
-  // Vérifier la TVA uniforme
-  if (!hasUniformVAT(quote.items)) {
-    throw new Error(
-      'Ce devis contient des TVA différentes. Veuillez créer la facture manuellement pour gérer correctement les taxes.'
-    )
-  }
-
-  // Calculer les totaux (avec double-vérification)
+  // Calculer les totaux (avec calcul TVA par ligne)
   const calculated = calculateInvoiceTotals(quote.items)
-  const taxRate = getInvoiceTaxRate(quote.items) || 20
+  
+  // Pour tax_rate: utiliser le taux uniforme si disponible,
+  // sinon calculer le taux effectif moyen pour l'affichage
+  let taxRate = getInvoiceTaxRate(quote.items)
+  if (taxRate === null) {
+    // TVA mixte: calculer le taux effectif (taxAmount / subtotal * 100)
+    taxRate = calculated.subtotal > 0 
+      ? Math.round((calculated.taxAmount / calculated.subtotal) * 10000) / 100
+      : 20
+  }
 
   // Dates
   const issueDate = new Date().toISOString().split('T')[0]
