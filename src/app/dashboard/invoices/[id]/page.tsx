@@ -383,147 +383,155 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
           )}
         </div>
 
-        {/* Informations client */}
-        <Card>
-          <CardContent className="p-6 space-y-4">
-            <h3 className="font-semibold text-lg mb-4">Informations client</h3>
-            <div className="grid gap-4 md:grid-cols-2">
-              <div>
-                <Label>Client</Label>
-                <p className="text-base font-medium">{invoice.client_name}</p>
+        {/* Facture professionnelle - Design amélioré */}
+        <Card className="overflow-hidden">
+          <CardContent className="p-0">
+            {/* En-tête de facture avec branding */}
+            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-8 py-6 text-white">
+              <div className="flex justify-between items-start">
+                <div>
+                  <div className="flex items-center gap-3 mb-2">
+                    <FileText className="h-8 w-8" />
+                    <h1 className="text-3xl font-bold">ChantiPay</h1>
+                  </div>
+                  <p className="text-blue-100 text-sm">Gestion de devis et factures pour artisans</p>
+                </div>
+                <div className="text-right">
+                  <div className="text-sm text-blue-100 mb-1">FACTURE</div>
+                  <div className="text-2xl font-bold">{invoice.invoice_number}</div>
+                </div>
               </div>
-              {invoice.client_email && (
-                <div>
-                  <Label>Email</Label>
-                  <p className="text-base">{invoice.client_email}</p>
-                </div>
-              )}
-              {invoice.client_phone && (
-                <div>
-                  <Label>Téléphone</Label>
-                  <p className="text-base">{invoice.client_phone}</p>
-                </div>
-              )}
-              {invoice.client_address && (
-                <div className="md:col-span-2">
-                  <Label>Adresse</Label>
-                  <p className="text-base">{invoice.client_address}</p>
-                </div>
-              )}
-              {invoice.client_siret && (
-                <div>
-                  <Label>SIRET</Label>
-                  <p className="text-base">{invoice.client_siret}</p>
-                </div>
-              )}
             </div>
-          </CardContent>
-        </Card>
 
-        {/* Dates et paiement */}
-        <Card>
-          <CardContent className="p-6 space-y-4">
-            <h3 className="font-semibold text-lg mb-4">Dates et paiement</h3>
-            <div className="grid gap-4 md:grid-cols-2">
+            {/* Informations société et client */}
+            <div className="grid md:grid-cols-2 gap-8 px-8 py-6 bg-gray-50 dark:bg-gray-900/20">
               <div>
-                <Label className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4" />
-                  Date d'émission
-                </Label>
-                <p className="text-base font-medium">
-                  {new Date(invoice.issue_date).toLocaleDateString('fr-FR', {
-                    weekday: 'long',
-                    day: '2-digit',
-                    month: 'long',
-                    year: 'numeric',
-                  })}
-                </p>
+                <div className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+                  Facturé par
+                </div>
+                <div className="bg-white dark:bg-gray-900 p-4 rounded-lg border">
+                  <p className="font-bold text-lg mb-1">Votre Entreprise</p>
+                  <p className="text-sm text-muted-foreground">Adresse de votre société</p>
+                  <p className="text-sm text-muted-foreground">Code postal Ville</p>
+                  <p className="text-sm text-muted-foreground mt-2">SIRET : XXX XXX XXX XXXXX</p>
+                </div>
+              </div>
+
+              <div>
+                <div className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+                  Facturé à
+                </div>
+                <div className="bg-white dark:bg-gray-900 p-4 rounded-lg border">
+                  <p className="font-bold text-lg mb-1">{invoice.client_name}</p>
+                  {invoice.client_address && (
+                    <p className="text-sm text-muted-foreground">{invoice.client_address}</p>
+                  )}
+                  {invoice.client_email && (
+                    <p className="text-sm text-muted-foreground mt-2">✉ {invoice.client_email}</p>
+                  )}
+                  {invoice.client_phone && (
+                    <p className="text-sm text-muted-foreground">📞 {invoice.client_phone}</p>
+                  )}
+                  {invoice.client_siret && (
+                    <p className="text-sm text-muted-foreground mt-2">SIRET : {invoice.client_siret}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Informations de dates */}
+            <div className="px-8 py-4 bg-blue-50 dark:bg-blue-950/20 grid grid-cols-2 md:grid-cols-4 gap-4 border-y">
+              <div>
+                <div className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Date d'émission</div>
+                <div className="font-semibold">
+                  {new Date(invoice.issue_date).toLocaleDateString('fr-FR')}
+                </div>
               </div>
               {invoice.due_date && (
                 <div>
-                  <Label className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4" />
-                    Date d'échéance
-                  </Label>
-                  <p className="text-base font-medium">
-                    {new Date(invoice.due_date).toLocaleDateString('fr-FR', {
-                      day: '2-digit',
-                      month: 'long',
-                      year: 'numeric',
-                    })}
-                  </p>
+                  <div className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Date d'échéance</div>
+                  <div className="font-semibold text-orange-600">
+                    {new Date(invoice.due_date).toLocaleDateString('fr-FR')}
+                  </div>
                 </div>
               )}
               {invoice.paid_at && (
                 <div>
-                  <Label className="flex items-center gap-2 text-green-600">
-                    <CheckCircle2 className="h-4 w-4" />
-                    Date de paiement
-                  </Label>
-                  <p className="text-base font-medium text-green-600">
-                    {new Date(invoice.paid_at).toLocaleDateString('fr-FR', {
-                      day: '2-digit',
-                      month: 'long',
-                      year: 'numeric',
-                    })}
-                  </p>
+                  <div className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Payée le</div>
+                  <div className="font-semibold text-green-600">
+                    {new Date(invoice.paid_at).toLocaleDateString('fr-FR')}
+                  </div>
                 </div>
               )}
               {invoice.payment_terms && (
                 <div className="md:col-span-2">
-                  <Label>Conditions de paiement</Label>
-                  <p className="text-base">{invoice.payment_terms}</p>
+                  <div className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Conditions</div>
+                  <div className="font-medium text-sm">{invoice.payment_terms}</div>
                 </div>
               )}
             </div>
-          </CardContent>
-        </Card>
 
-        {/* Détail de la facture */}
-        <Card>
-          <CardContent className="p-6 space-y-4">
-            <h3 className="font-semibold text-lg mb-4">Détail de la facture</h3>
-            
-            {invoice.items && invoice.items.length > 0 && (
-              <div className="space-y-3">
-                {invoice.items.map((item, index) => (
-                  <div key={index} className="border rounded-lg p-3">
-                    <p className="font-medium mb-1">{item.description}</p>
-                    <div className="flex justify-between text-sm text-muted-foreground">
-                      <span>{item.quantity} × {item.unit_price.toFixed(2)} €</span>
-                      <span className="font-medium text-foreground">{item.total.toFixed(2)} €</span>
-                    </div>
-                  </div>
-                ))}
+            {/* Tableau des prestations */}
+            <div className="px-8 py-6">
+              <div className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-4">
+                Détail des prestations
               </div>
-            )}
 
-            <div className="border-t pt-4 space-y-2">
-              <div className="flex justify-between text-sm">
-                <span>Sous-total HT :</span>
-                <span className="font-medium">{invoice.subtotal.toFixed(2)} €</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span>TVA ({invoice.tax_rate}%) :</span>
-                <span className="font-medium">{invoice.tax_amount.toFixed(2)} €</span>
-              </div>
-              <div className="flex justify-between text-lg font-bold border-t pt-2">
-                <span>Total TTC :</span>
-                <span>{invoice.total.toFixed(2)} €</span>
-              </div>
-              
-              {invoice.payment_status === 'partial' && invoice.paid_amount && (
-                <>
-                  <div className="flex justify-between text-sm text-green-600 font-medium">
-                    <span>Montant payé :</span>
-                    <span>{invoice.paid_amount.toFixed(2)} €</span>
-                  </div>
-                  <div className="flex justify-between text-sm text-orange-600 font-medium">
-                    <span>Reste à payer :</span>
-                    <span>{(invoice.total - invoice.paid_amount).toFixed(2)} €</span>
-                  </div>
-                </>
+              {invoice.items && invoice.items.length > 0 && (
+                <div className="border rounded-lg overflow-hidden">
+                  <table className="w-full">
+                    <thead className="bg-gray-100 dark:bg-gray-800">
+                      <tr>
+                        <th className="text-left px-4 py-3 text-sm font-semibold">Description</th>
+                        <th className="text-right px-4 py-3 text-sm font-semibold w-24">Qté</th>
+                        <th className="text-right px-4 py-3 text-sm font-semibold w-32">Prix unit. HT</th>
+                        <th className="text-right px-4 py-3 text-sm font-semibold w-32">Total HT</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                      {invoice.items.map((item, index) => (
+                        <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-900/30">
+                          <td className="px-4 py-3 text-sm">{item.description}</td>
+                          <td className="px-4 py-3 text-sm text-right">{item.quantity}</td>
+                          <td className="px-4 py-3 text-sm text-right">{item.unit_price.toFixed(2)} €</td>
+                          <td className="px-4 py-3 text-sm text-right font-medium">{item.total.toFixed(2)} €</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               )}
+
+              {/* Totaux */}
+              <div className="mt-6 flex justify-end">
+                <div className="w-full md:w-80 space-y-2">
+                  <div className="flex justify-between py-2 text-sm">
+                    <span className="text-muted-foreground">Sous-total HT</span>
+                    <span className="font-medium">{invoice.subtotal.toFixed(2)} €</span>
+                  </div>
+                  <div className="flex justify-between py-2 text-sm">
+                    <span className="text-muted-foreground">TVA ({invoice.tax_rate}%)</span>
+                    <span className="font-medium">{invoice.tax_amount.toFixed(2)} €</span>
+                  </div>
+                  <div className="flex justify-between py-3 text-lg font-bold border-t-2 border-gray-300 dark:border-gray-700">
+                    <span>Total TTC</span>
+                    <span className="text-blue-600">{invoice.total.toFixed(2)} €</span>
+                  </div>
+
+                  {invoice.payment_status === 'partial' && invoice.paid_amount && (
+                    <>
+                      <div className="flex justify-between py-2 text-sm text-green-600 font-medium border-t">
+                        <span>Montant payé</span>
+                        <span>-{invoice.paid_amount.toFixed(2)} €</span>
+                      </div>
+                      <div className="flex justify-between py-2 text-lg font-bold text-orange-600 bg-orange-50 dark:bg-orange-900/20 px-3 rounded">
+                        <span>Reste à payer</span>
+                        <span>{(invoice.total - invoice.paid_amount).toFixed(2)} €</span>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
