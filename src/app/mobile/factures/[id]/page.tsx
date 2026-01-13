@@ -13,10 +13,22 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
-import { Loader2, Trash2, FileText, Euro, Calendar, Send, CheckCircle2, ArrowLeft, Download } from 'lucide-react'
+import { Loader2, Trash2, FileText, Euro, Calendar, Send, CheckCircle2, ArrowLeft, Download, Building2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { downloadInvoicePDF } from '@/lib/pdf/InvoicePdf'
+import { createClient } from '@/lib/supabase/client'
+import Image from 'next/image'
+
+interface UserProfile {
+  company_name: string | null
+  full_name: string | null
+  address: string | null
+  phone: string | null
+  email: string
+  siret: string | null
+  logo_url?: string | null
+}
 
 interface Invoice {
   id: string
@@ -47,6 +59,7 @@ interface InvoiceItem {
   quantity: number
   unit_price: number
   total: number
+  vat_rate?: number
 }
 
 const paymentStatusConfig = {
@@ -66,13 +79,39 @@ export default function InvoiceDetailMobilePage({ params }: { params: Promise<{ 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [isSendingEmail, setIsSendingEmail] = useState(false)
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
 
   useEffect(() => {
     params.then(p => {
       setId(p.id)
       loadInvoice(p.id)
     })
+    loadUserProfile()
   }, [])
+
+  const loadUserProfile = async () => {
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('company_name, full_name, address, phone, email, siret')
+        .eq('id', user.id)
+        .single()
+      
+      if (profile) {
+        const { data: logoData } = await supabase.storage
+          .from('logos')
+          .list(user.id, { limit: 1 })
+        
+        const logoUrl = logoData && logoData.length > 0
+          ? supabase.storage.from('logos').getPublicUrl(`${user.id}/${logoData[0].name}`).data.publicUrl
+          : null
+        
+        setUserProfile({ ...profile, logo_url: logoUrl })
+      }
+    }
+  }
 
   const loadInvoice = async (invoiceId: string) => {
     try {
@@ -244,19 +283,34 @@ export default function InvoiceDetailMobilePage({ params }: { params: Promise<{ 
         </Card>
 
         {/* En-tête facture avec branding */}
-        <Card className="overflow-hidden">
+        <Card className="overflow-hidden shadow-lg">
           <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-5 text-white">
             <div className="flex justify-between items-start mb-3">
-              <div className="flex items-center gap-2">
-                <FileText className="h-6 w-6" />
-                <h1 className="text-xl font-bold">ChantiPay</h1>
+              <div className="flex items-center gap-3">
+                {userProfile?.logo_url ? (
+                  <div className="bg-white rounded-lg p-1.5">
+                    <Image
+                      src={userProfile.logo_url}
+                      alt="Logo"
+                      width={36}
+                      height={36}
+                      className="object-contain"
+                    />
+                  </div>
+                ) : (
+                  <div className="bg-white/20 rounded-lg p-2">
+                    <Building2 className="h-5 w-5" />
+                  </div>
+                )}
+                <h1 className="text-lg font-bold">
+                  {userProfile?.company_name || userProfile?.full_name || 'Mon Entreprise'}
+                </h1>
               </div>
               <div className="text-right">
                 <div className="text-xs text-blue-100 mb-1">FACTURE</div>
                 <div className="text-lg font-bold">{invoice.invoice_number}</div>
               </div>
             </div>
-            <p className="text-blue-100 text-xs">Gestion de devis et factures pour artisans</p>
           </div>
           
           <CardContent className="p-0">
@@ -267,10 +321,21 @@ export default function InvoiceDetailMobilePage({ params }: { params: Promise<{ 
                   Facturé par
                 </div>
                 <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border">
-                  <p className="font-bold text-sm mb-1">Votre Entreprise</p>
-                  <p className="text-xs text-muted-foreground">123 Avenue Exemple</p>
-                  <p className="text-xs text-muted-foreground">75001 Paris</p>
-                  <p className="text-xs text-muted-foreground mt-1">SIRET: 123 456 789 00012</p>
+                  <p className="font-bold text-sm mb-1">
+                    {userProfile?.company_name || userProfile?.full_name || 'Mon Entreprise'}
+                  </p>
+                  {userProfile?.address && (
+                    <p className="text-xs text-muted-foreground">{userProfile.address}</p>
+                  )}
+                  {userProfile?.phone && (
+                    <p className="text-xs text-muted-foreground mt-1">📞 {userProfile.phone}</p>
+                  )}
+                  {userProfile?.email && (
+                    <p className="text-xs text-muted-foreground">✉ {userProfile.email}</p>
+                  )}
+                  {userProfile?.siret && (
+                    <p className="text-xs text-muted-foreground mt-1 font-medium">SIRET: {userProfile.siret}</p>
+                  )}
                 </div>
               </div>
 
@@ -347,23 +412,65 @@ export default function InvoiceDetailMobilePage({ params }: { params: Promise<{ 
               {invoice.items && invoice.items.length > 0 && (
                 <div className="border rounded-lg overflow-hidden mb-4">
                   <div className="bg-gray-100 dark:bg-gray-800 px-3 py-2 grid grid-cols-12 gap-2 text-xs font-semibold">
-                    <div className="col-span-6">Description</div>
-                    <div className="col-span-2 text-right">Qté</div>
-                    <div className="col-span-4 text-right">Total HT</div>
+                    <div className="col-span-5">Description</div>
+                    <div className="col-span-2 text-center">Qté</div>
+                    <div className="col-span-2 text-center">TVA</div>
+                    <div className="col-span-3 text-right">Total</div>
                   </div>
                   <div className="divide-y">
                     {invoice.items.map((item, index) => (
                       <div key={index} className="px-3 py-2 grid grid-cols-12 gap-2 text-xs hover:bg-gray-50 dark:hover:bg-gray-900/20">
-                        <div className="col-span-6">
+                        <div className="col-span-5">
                           <p className="font-medium text-sm">{item.description}</p>
-                          <p className="text-muted-foreground text-xs mt-0.5">{item.unit_price.toFixed(2)} € / unité</p>
+                          <p className="text-muted-foreground text-xs mt-0.5">{item.unit_price.toFixed(2)} €</p>
                         </div>
-                        <div className="col-span-2 text-right text-sm font-medium">{item.quantity}</div>
-                        <div className="col-span-4 text-right text-sm font-semibold">{item.total.toFixed(2)} €</div>
+                        <div className="col-span-2 text-center text-sm font-medium">{item.quantity}</div>
+                        <div className="col-span-2 text-center">
+                          <span className={cn(
+                            "px-1.5 py-0.5 rounded text-xs font-medium",
+                            (item.vat_rate ?? invoice.tax_rate) === 20 ? "bg-blue-100 text-blue-700" :
+                            (item.vat_rate ?? invoice.tax_rate) === 10 ? "bg-green-100 text-green-700" :
+                            "bg-gray-100 text-gray-700"
+                          )}>
+                            {item.vat_rate ?? invoice.tax_rate}%
+                          </span>
+                        </div>
+                        <div className="col-span-3 text-right text-sm font-semibold">{item.total.toFixed(2)} €</div>
                       </div>
                     ))}
                   </div>
                 </div>
+              )}
+
+              {/* Récapitulatif TVA si mixte */}
+              {invoice.items && invoice.items.some(item => item.vat_rate !== undefined) && (
+                (() => {
+                  const vatGroups = invoice.items!.reduce((acc, item) => {
+                    const rate = item.vat_rate ?? invoice.tax_rate
+                    if (!acc[rate]) acc[rate] = { base: 0, tax: 0 }
+                    acc[rate].base += item.total
+                    acc[rate].tax += item.total * (rate / 100)
+                    return acc
+                  }, {} as Record<number, { base: number; tax: number }>)
+                  
+                  const rateCount = Object.keys(vatGroups).length
+                  
+                  return rateCount > 1 ? (
+                    <div className="p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg mb-4">
+                      <div className="text-xs font-semibold text-amber-800 dark:text-amber-400 mb-2">
+                        📊 Détail TVA
+                      </div>
+                      <div className="space-y-1">
+                        {Object.entries(vatGroups).map(([rate, values]) => (
+                          <div key={rate} className="flex justify-between text-xs">
+                            <span className="text-muted-foreground">TVA {rate}%</span>
+                            <span className="font-medium">{values.tax.toFixed(2)} €</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null
+                })()
               )}
 
               {/* Totaux */}
@@ -443,11 +550,11 @@ export default function InvoiceDetailMobilePage({ params }: { params: Promise<{ 
                     })) || [],
                   },
                   {
-                    name: 'ChantiPay',
-                    address: '123 Avenue Exemple, 75001 Paris',
-                    phone: '+33 1 23 45 67 89',
-                    email: 'contact@chantipay.fr',
-                    siret: '123 456 789 00012',
+                    name: userProfile?.company_name || userProfile?.full_name || 'Mon Entreprise',
+                    address: userProfile?.address || '',
+                    phone: userProfile?.phone || '',
+                    email: userProfile?.email || '',
+                    siret: userProfile?.siret || '',
                   }
                 )
                 toast.success('PDF téléchargé')
