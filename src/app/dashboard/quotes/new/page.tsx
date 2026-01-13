@@ -305,17 +305,41 @@ export default function NewQuotePage() {
   // Soumission du formulaire
   const handleSubmit = async () => {
     if (!selectedClientId) {
-      alert('Veuillez sélectionner un client')
+      toast.error('Veuillez sélectionner un client')
       return
     }
 
-    if (items.some((item) => !item.description)) {
-      alert('Veuillez remplir toutes les descriptions')
+    // Filtrer les lignes vides et valider
+    const validItems = items.filter(item => item.description.trim())
+
+    if (validItems.length === 0) {
+      toast.error('Veuillez ajouter au moins une ligne au devis')
+      return
+    }
+
+    // Valider que tous les prix sont valides
+    const hasInvalidPrice = validItems.some(item =>
+      isNaN(item.unit_price_ht) ||
+      item.unit_price_ht < 0 ||
+      isNaN(item.quantity) ||
+      item.quantity <= 0
+    )
+
+    if (hasInvalidPrice) {
+      toast.error('Veuillez vérifier les prix et quantités')
       return
     }
 
     setIsLoading(true)
     try {
+      // Nettoyer les items: retirer l'id client et s'assurer que tous les champs sont des nombres
+      const cleanedItems = validItems.map(({ id, ...item }) => ({
+        description: item.description.trim(),
+        quantity: Number(item.quantity),
+        unit_price_ht: Number(item.unit_price_ht),
+        vat_rate: Number(item.vat_rate),
+      }))
+
       const response = await fetch('/api/quotes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -323,7 +347,7 @@ export default function NewQuotePage() {
           client_id: selectedClientId,
           vat_rate: parseFloat(vatRate),
           deposit_percent: parseFloat(depositPercent),
-          items,
+          items: cleanedItems,
         }),
       })
 
@@ -333,11 +357,13 @@ export default function NewQuotePage() {
         throw new Error(data.error || 'Erreur lors de la création du devis')
       }
 
+      toast.success('Devis créé avec succès !')
+
       // Rediriger vers le devis créé
       router.push(`/dashboard/quotes/${data.quote.id}`)
     } catch (error) {
       console.error('Erreur création devis:', error)
-      alert(error instanceof Error ? error.message : 'Erreur lors de la création du devis')
+      toast.error(error instanceof Error ? error.message : 'Erreur lors de la création du devis')
     } finally {
       setIsLoading(false)
     }
