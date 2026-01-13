@@ -24,6 +24,7 @@ import {
   validateDepositPercent,
   sanitizeQuoteItem,
 } from '@/lib/validation/quoteValidation';
+import { QuoteCreationTracker, QuoteAITracker } from '@/lib/analytics/quoteAnalytics';
 
 // ===========================================
 // Types
@@ -148,6 +149,10 @@ export default function NewQuotePage() {
     true // enabled
   );
 
+  // Analytics trackers
+  const [quoteTracker] = useState(() => new QuoteCreationTracker())
+  const [aiTracker] = useState(() => new QuoteAITracker())
+
   // Charger les clients au montage
   useEffect(() => {
     async function loadClients() {
@@ -258,6 +263,9 @@ export default function NewQuotePage() {
       return;
     }
 
+    // Analytics: Démarrer le tracking de génération IA
+    aiTracker.start(selectedTrade);
+
     setIsGeneratingAI(true);
     try {
       const response = await fetch('/api/ai/generate-quote', {
@@ -301,11 +309,20 @@ export default function NewQuotePage() {
         }
 
         toast.success('Lignes générées ! Vous pouvez ajuster les prix.');
+
+        // Analytics: Succès de la génération IA
+        aiTracker.success();
       }
     } catch (error) {
       console.error('Erreur génération IA:', error);
       toast.error(
         error instanceof Error ? error.message : 'Erreur lors de la génération'
+      );
+
+      // Analytics: Erreur de génération IA
+      aiTracker.error(
+        'ai_generation_failed',
+        error instanceof Error ? error.message : 'Unknown error'
       );
     } finally {
       setIsGeneratingAI(false);
@@ -331,6 +348,9 @@ export default function NewQuotePage() {
     const depositValidation = validateDepositPercent(parseFloat(depositPercent));
     if (!depositValidation.isValid) {
       toast.error(depositValidation.errors[0]);
+
+      // Analytics: Erreur de validation
+      quoteTracker.error('validation_error', depositValidation.errors[0], 'validation');
       return;
     }
 
@@ -341,8 +361,15 @@ export default function NewQuotePage() {
     const validation = validateQuoteItems(sanitizedItems);
     if (!validation.isValid) {
       toast.error(validation.errors[0]);
+
+      // Analytics: Erreur de validation
+      quoteTracker.error('validation_error', validation.errors[0], 'validation');
       return;
     }
+
+    // Analytics: Démarrer le tracking de création
+    const hasAI = aiDescription.trim().length > 0;
+    quoteTracker.start(sanitizedItems.length, hasAI);
 
     setIsLoading(true);
     try {
@@ -373,6 +400,9 @@ export default function NewQuotePage() {
 
       toast.success('Devis créé avec succès !');
 
+      // Analytics: Succès de la création
+      quoteTracker.success(sanitizedItems.length);
+
       // Supprimer le brouillon sauvegardé
       clearDraft();
 
@@ -382,6 +412,13 @@ export default function NewQuotePage() {
       console.error('Erreur création devis:', error);
       toast.error(
         error instanceof Error ? error.message : 'Erreur lors de la création du devis'
+      );
+
+      // Analytics: Erreur lors de l'appel API
+      quoteTracker.error(
+        'api_error',
+        error instanceof Error ? error.message : 'Unknown API error',
+        'api_call'
       );
     } finally {
       setIsLoading(false);
