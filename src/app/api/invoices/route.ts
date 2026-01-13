@@ -65,6 +65,33 @@ export async function POST(request: Request) {
     )
   }
 
+  // 🔒 SÉCURITÉ: Recalculer les montants côté serveur si des items sont fournis
+  let finalSubtotal = body.subtotal || 0
+  let finalTaxAmount = body.tax_amount || 0
+  let finalTotal = body.total || 0
+
+  if (body.items && Array.isArray(body.items) && body.items.length > 0) {
+    // Recalculer pour éviter la manipulation client-side
+    finalSubtotal = body.items.reduce(
+      (sum: number, item: any) => sum + (item.quantity || 0) * (item.unit_price || 0),
+      0
+    )
+
+    // Calculer la TVA totale (peut être mixte maintenant)
+    finalTaxAmount = body.items.reduce((sum: number, item: any) => {
+      const lineTotal = (item.quantity || 0) * (item.unit_price || 0)
+      const vatRate = item.vat_rate || body.tax_rate || 20
+      return sum + lineTotal * (vatRate / 100)
+    }, 0)
+
+    finalTotal = finalSubtotal + finalTaxAmount
+
+    // Arrondir à 2 décimales
+    finalSubtotal = Math.round(finalSubtotal * 100) / 100
+    finalTaxAmount = Math.round(finalTaxAmount * 100) / 100
+    finalTotal = Math.round(finalTotal * 100) / 100
+  }
+
   // Créer la facture
   const { data: invoice, error: invoiceError } = await supabase
     .from('invoices')
@@ -77,10 +104,10 @@ export async function POST(request: Request) {
       client_phone: body.client_phone || null,
       client_address: body.client_address || null,
       client_siret: body.client_siret || null,
-      subtotal: body.subtotal || 0,
+      subtotal: finalSubtotal,
       tax_rate: body.tax_rate || 20.0,
-      tax_amount: body.tax_amount || 0,
-      total: body.total || 0,
+      tax_amount: finalTaxAmount,
+      total: finalTotal,
       payment_status: body.payment_status || 'draft',
       payment_method: body.payment_method || null,
       paid_amount: body.paid_amount || 0,
@@ -98,14 +125,19 @@ export async function POST(request: Request) {
 
   // Créer les lignes de facture si fournies
   if (body.items && Array.isArray(body.items) && body.items.length > 0) {
-    const invoiceItems = body.items.map((item: any, index: number) => ({
-      invoice_id: invoice.id,
-      description: item.description,
-      quantity: item.quantity || 1,
-      unit_price: item.unit_price || 0,
-      total: item.total || 0,
-      sort_order: index,
-    }))
+    const invoiceItems = body.items.map((item: any, index: number) => {
+      // Recalculer le total de chaque ligne pour sécurité
+      const lineTotal = Math.round((item.quantity || 0) * (item.unit_price || 0) * 100) / 100
+
+      return {
+        invoice_id: invoice.id,
+        description: item.description,
+        quantity: item.quantity || 1,
+        unit_price: item.unit_price || 0,
+        total: lineTotal,
+        sort_order: index,
+      }
+    })
 
     const { error: itemsError } = await supabase
       .from('invoice_items')

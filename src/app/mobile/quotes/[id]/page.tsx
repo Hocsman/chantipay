@@ -485,48 +485,42 @@ export default function QuoteDetailPage() {
             <Button
               className="w-full h-12 text-base bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
               onClick={async () => {
+                setLoading(true)
                 try {
-                  const response = await fetch('/api/invoices', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                      quote_id: quote.id,
-                      client_id: quote.clients.id,
-                      client_name: quote.clients.name,
-                      client_email: quote.clients.email || '',
-                      client_phone: quote.clients.phone || '',
-                      client_address: [quote.clients.address_line1, quote.clients.address_line2, quote.clients.postal_code, quote.clients.city].filter(Boolean).join(', '),
-                      client_siret: '',
-                      subtotal: totalHT,
-                      tax_rate: 20,
-                      tax_amount: totalVAT,
-                      total: totalTTC,
-                      payment_status: 'draft',
-                      issue_date: new Date().toISOString().split('T')[0],
-                      due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-                      payment_terms: 'Paiement à 30 jours',
-                      notes: `Facture générée depuis le devis ${quote.quote_number}`,
-                      items: quote.items.map((item, idx) => ({
-                        description: item.description,
-                        quantity: item.quantity,
-                        unit_price: item.unit_price_ht,
-                        total: item.quantity * item.unit_price_ht,
-                        sort_order: idx,
-                      })),
-                    }),
-                  })
-                  const data = await response.json()
-                  if (!response.ok) throw new Error(data.error)
-                  toast.success(`✅ Facture ${data.invoice.invoice_number} créée`)
-                  router.push(`/mobile/factures/${data.invoice.id}`)
+                  const { createInvoiceFromQuote } = await import('@/lib/invoiceHelpers')
+                  const result = await createInvoiceFromQuote(quote, quote.clients)
+
+                  if (!result.success) {
+                    toast.error(result.error)
+                    return
+                  }
+
+                  toast.success(`Facture ${result.invoiceNumber} créée avec succès !`)
+                  router.push(`/mobile/factures/${result.invoiceId}`)
                 } catch (error) {
                   console.error(error)
-                  toast.error('❌ Erreur lors de la création')
+                  toast.error(
+                    error instanceof Error
+                      ? error.message
+                      : 'Erreur lors de la création de la facture'
+                  )
+                } finally {
+                  setLoading(false)
                 }
               }}
+              disabled={loading}
             >
-              <FileText className="mr-2 h-5 w-5" />
-              Convertir en facture
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  Création...
+                </>
+              ) : (
+                <>
+                  <FileText className="mr-2 h-5 w-5" />
+                  Convertir en facture
+                </>
+              )}
             </Button>
           )}
 
