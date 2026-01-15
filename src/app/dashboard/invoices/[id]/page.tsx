@@ -16,10 +16,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Loader2, ArrowLeft, Save, FileText, Euro, Calendar, Send, CheckCircle2, Download, Building2 } from 'lucide-react'
+import { Loader2, ArrowLeft, Save, FileText, Euro, Calendar, Send, CheckCircle2, Download, Building2, FileCode } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { downloadInvoicePDF } from '@/lib/pdf/InvoicePdf'
+import { downloadFacturXML } from '@/lib/facturx'
 import { createClient } from '@/lib/supabase/client'
 import Image from 'next/image'
 
@@ -405,6 +406,28 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
               >
                 <Download className="mr-2 h-4 w-4" />
                 Télécharger PDF
+              </Button>
+              <Button
+                variant="outline"
+                onClick={async () => {
+                  try {
+                    const response = await fetch(`/api/invoices/${invoice.id}/facturx`)
+                    if (!response.ok) {
+                      throw new Error('Erreur lors de la génération')
+                    }
+                    const data = await response.json()
+                    downloadFacturXML(data.xml, invoice.invoice_number)
+                    toast.success('✅ Factur-X XML téléchargé', {
+                      description: 'Format conforme EN 16931'
+                    })
+                  } catch (error) {
+                    console.error(error)
+                    toast.error('Erreur lors du téléchargement Factur-X')
+                  }
+                }}
+              >
+                <FileCode className="mr-2 h-4 w-4" />
+                Factur-X
               </Button>
             </>
           )}

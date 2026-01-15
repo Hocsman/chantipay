@@ -5,10 +5,11 @@ import { useRouter } from 'next/navigation'
 import { MobileAppShell } from '@/components/mobile/MobileAppShell'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { Loader2, FileText, Euro, Calendar, Send, CheckCircle2, ArrowLeft, Download, Building2 } from 'lucide-react'
+import { Loader2, FileText, Euro, Calendar, Send, CheckCircle2, ArrowLeft, Download, Building2, FileCode } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { downloadInvoicePDF } from '@/lib/pdf/InvoicePdf'
+import { downloadFacturXML } from '@/lib/facturx'
 import { createClient } from '@/lib/supabase/client'
 import Image from 'next/image'
 
@@ -560,6 +561,29 @@ export default function InvoiceDetailMobilePage({ params }: { params: Promise<{ 
           >
             <Download className="mr-2 h-4 w-4" />
             Télécharger PDF
+          </Button>
+          <Button
+            variant="outline"
+            onClick={async () => {
+              try {
+                const response = await fetch(`/api/invoices/${invoice.id}/facturx`)
+                if (!response.ok) {
+                  throw new Error('Erreur lors de la génération')
+                }
+                const data = await response.json()
+                downloadFacturXML(data.xml, invoice.invoice_number)
+                toast.success('✅ Factur-X XML téléchargé', {
+                  description: 'Format conforme EN 16931'
+                })
+              } catch (error) {
+                console.error(error)
+                toast.error('Erreur lors du téléchargement Factur-X')
+              }
+            }}
+            className="w-full"
+          >
+            <FileCode className="mr-2 h-4 w-4" />
+            Télécharger Factur-X (XML)
           </Button>
         </div>
       </div>
