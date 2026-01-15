@@ -128,9 +128,11 @@ export default function RegisterPage() {
         }
       }
 
-      // 3. Redirect to dashboard after successful registration
-      router.push('/dashboard');
-      router.refresh();
+      // 3. Stocker l'email pour pouvoir renvoyer le lien de vérification
+      localStorage.setItem('pendingVerificationEmail', email);
+
+      // 4. Rediriger vers la page de vérification d'email
+      router.push('/verify-email');
     } catch {
       setError('Une erreur est survenue. Veuillez réessayer.');
     } finally {

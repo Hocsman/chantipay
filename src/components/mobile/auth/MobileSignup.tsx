@@ -77,8 +77,11 @@ export function MobileSignup({ onSwitchToLogin }: MobileSignupProps) {
         if (profileError) throw profileError;
       }
 
-      router.push('/dashboard');
-      router.refresh();
+      // Stocker l'email pour pouvoir renvoyer le lien de vérification
+      localStorage.setItem('pendingVerificationEmail', formData.email);
+
+      // Rediriger vers la page de vérification d'email
+      router.push('/mobile/verify-email');
     } catch (err: any) {
       setError(err.message || 'Une erreur est survenue');
     } finally {
