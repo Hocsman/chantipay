@@ -16,15 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog'
-import { Loader2, ArrowLeft, Trash2, Save, FileText, Euro, Calendar, Send, CheckCircle2, Download, Building2 } from 'lucide-react'
+import { Loader2, ArrowLeft, Save, FileText, Euro, Calendar, Send, CheckCircle2, Download, Building2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { downloadInvoicePDF } from '@/lib/pdf/InvoicePdf'
@@ -91,8 +83,6 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const [isDeleting, setIsDeleting] = useState(false)
   const [isSendingEmail, setIsSendingEmail] = useState(false)
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
 
@@ -173,30 +163,6 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
       toast.error('Une erreur est survenue')
     } finally {
       setIsSaving(false)
-    }
-  }
-
-  const handleDelete = async () => {
-    setIsDeleting(true)
-
-    try {
-      const response = await fetch(`/api/invoices/${id}`, {
-        method: 'DELETE',
-      })
-
-      if (!response.ok) {
-        toast.error('Erreur lors de la suppression')
-        return
-      }
-
-      toast.success('✅ Facture supprimée')
-      router.push('/dashboard/invoices')
-    } catch (error) {
-      console.error('Erreur:', error)
-      toast.error('Une erreur est survenue')
-    } finally {
-      setIsDeleting(false)
-      setDeleteDialogOpen(false)
     }
   }
 
@@ -440,10 +406,6 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
                 <Download className="mr-2 h-4 w-4" />
                 Télécharger PDF
               </Button>
-              <Button variant="destructive" onClick={() => setDeleteDialogOpen(true)}>
-                <Trash2 className="mr-2 h-4 w-4" />
-                Supprimer
-              </Button>
             </>
           )}
         </div>
@@ -683,33 +645,6 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
           </Card>
         )}
       </div>
-
-      {/* Dialog de confirmation de suppression */}
-      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Supprimer la facture ?</DialogTitle>
-            <DialogDescription>
-              Cette action est irréversible. La facture {invoice.invoice_number} sera définitivement supprimée.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
-              Annuler
-            </Button>
-            <Button variant="destructive" onClick={handleDelete} disabled={isDeleting}>
-              {isDeleting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Suppression...
-                </>
-              ) : (
-                'Supprimer'
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </LayoutContainer>
   )
 }

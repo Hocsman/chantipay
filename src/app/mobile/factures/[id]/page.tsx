@@ -5,15 +5,7 @@ import { useRouter } from 'next/navigation'
 import { MobileAppShell } from '@/components/mobile/MobileAppShell'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog'
-import { Loader2, Trash2, FileText, Euro, Calendar, Send, CheckCircle2, ArrowLeft, Download, Building2 } from 'lucide-react'
+import { Loader2, FileText, Euro, Calendar, Send, CheckCircle2, ArrowLeft, Download, Building2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { downloadInvoicePDF } from '@/lib/pdf/InvoicePdf'
@@ -76,8 +68,6 @@ export default function InvoiceDetailMobilePage({ params }: { params: Promise<{ 
   const [id, setId] = useState<string>('')
   const [invoice, setInvoice] = useState<Invoice | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const [isDeleting, setIsDeleting] = useState(false)
   const [isSendingEmail, setIsSendingEmail] = useState(false)
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
 
@@ -128,28 +118,6 @@ export default function InvoiceDetailMobilePage({ params }: { params: Promise<{ 
       toast.error('Erreur lors du chargement')
     } finally {
       setIsLoading(false)
-    }
-  }
-
-  const handleDelete = async () => {
-    setIsDeleting(true)
-
-    try {
-      const response = await fetch(`/api/invoices/${id}`, {
-        method: 'DELETE',
-      })
-
-      if (response.ok) {
-        toast.success('✅ Facture supprimée')
-        router.push('/mobile/factures')
-      } else {
-        toast.error('Erreur lors de la suppression')
-      }
-    } catch (error) {
-      console.error('Erreur:', error)
-      toast.error('Erreur lors de la suppression')
-    } finally {
-      setIsDeleting(false)
     }
   }
 
@@ -593,39 +561,8 @@ export default function InvoiceDetailMobilePage({ params }: { params: Promise<{ 
             <Download className="mr-2 h-4 w-4" />
             Télécharger PDF
           </Button>
-          <Button variant="destructive" onClick={() => setDeleteDialogOpen(true)} className="w-full">
-            <Trash2 className="mr-2 h-4 w-4" />
-            Supprimer la facture
-          </Button>
         </div>
       </div>
-
-      {/* Dialog de confirmation */}
-      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Supprimer la facture ?</DialogTitle>
-            <DialogDescription>
-              Cette action est irréversible. La facture {invoice.invoice_number} sera définitivement supprimée.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
-              Annuler
-            </Button>
-            <Button variant="destructive" onClick={handleDelete} disabled={isDeleting}>
-              {isDeleting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Suppression...
-                </>
-              ) : (
-                'Supprimer'
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </MobileAppShell>
   )
 }
