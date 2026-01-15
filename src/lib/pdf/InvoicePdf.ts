@@ -6,6 +6,7 @@ interface InvoiceItem {
   quantity: number
   unit_price: number
   total: number
+  vat_rate?: number
 }
 
 interface Invoice {
@@ -169,12 +170,13 @@ export async function generateInvoicePDF(
     item.description,
     item.quantity.toString(),
     formatCurrency(item.unit_price),
+    `${item.vat_rate ?? invoice.tax_rate}%`,
     formatCurrency(item.total),
   ])
 
   autoTable(doc, {
     startY: yPos,
-    head: [['Description', 'Qté', 'Prix unitaire HT', 'Total HT']],
+    head: [['Description', 'Qté', 'Prix unit. HT', 'TVA', 'Total HT']],
     body: tableData,
     theme: 'grid',
     headStyles: {
@@ -190,15 +192,95 @@ export async function generateInvoicePDF(
     },
     columnStyles: {
       0: { cellWidth: 'auto' },
-      1: { cellWidth: 25, halign: 'center' },
-      2: { cellWidth: 40, halign: 'right' },
-      3: { cellWidth: 40, halign: 'right' },
+      1: { cellWidth: 20, halign: 'center' },
+      2: { cellWidth: 35, halign: 'right' },
+      3: { cellWidth: 20, halign: 'center' },
+      4: { cellWidth: 35, halign: 'right' },
     },
     margin: { left: margin, right: margin },
+    didParseCell: function (data) {
+      // Colorier les cellules TVA selon le taux
+      if (data.column.index === 3 && data.section === 'body') {
+        const vatRate = parseFloat(data.cell.text[0])
+        if (vatRate === 20) {
+          data.cell.styles.fillColor = [219, 234, 254] // blue-100
+          data.cell.styles.textColor = [29, 78, 216] // blue-700
+        } else if (vatRate === 10) {
+          data.cell.styles.fillColor = [220, 252, 231] // green-100
+          data.cell.styles.textColor = [21, 128, 61] // green-700
+        } else if (vatRate === 5.5) {
+          data.cell.styles.fillColor = [254, 243, 199] // yellow-100
+          data.cell.styles.textColor = [161, 98, 7] // yellow-700
+        } else {
+          data.cell.styles.fillColor = [243, 244, 246] // gray-100
+          data.cell.styles.textColor = [55, 65, 81] // gray-700
+        }
+        data.cell.styles.fontStyle = 'bold'
+      }
+    },
   })
 
   // @ts-ignore - autoTable modifie lastAutoTable
   yPos = doc.lastAutoTable.finalY + 10
+
+  // ============================================
+  // RÉCAPITULATIF TVA (si taux multiples)
+  // ============================================
+
+  // Calculer les groupes de TVA
+  const vatGroups: Record<number, { base: number; tax: number }> = {}
+  invoice.items.forEach((item) => {
+    const rate = item.vat_rate ?? invoice.tax_rate
+    if (!vatGroups[rate]) {
+      vatGroups[rate] = { base: 0, tax: 0 }
+    }
+    vatGroups[rate].base += item.total
+    vatGroups[rate].tax += item.total * (rate / 100)
+  })
+
+  const vatRates = Object.keys(vatGroups)
+
+  // Afficher le récapitulatif si plusieurs taux de TVA
+  if (vatRates.length > 1) {
+    // Cadre ambré pour le récapitulatif
+    doc.setFillColor(254, 243, 199) // amber-100
+    doc.roundedRect(margin, yPos, pageWidth - 2 * margin, 8 + vatRates.length * 6, 3, 3, 'F')
+
+    // Bordure ambre
+    doc.setDrawColor(251, 191, 36) // amber-400
+    doc.setLineWidth(0.5)
+    doc.roundedRect(margin, yPos, pageWidth - 2 * margin, 8 + vatRates.length * 6, 3, 3, 'S')
+
+    // Titre
+    doc.setFontSize(9)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(146, 64, 14) // amber-800
+    doc.text('📊 Détail TVA (taux multiples)', margin + 5, yPos + 5)
+
+    yPos += 10
+
+    // Détail par taux
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(8)
+    Object.entries(vatGroups).forEach(([rate, values]) => {
+      doc.setTextColor(107, 114, 128) // gray-500
+      doc.text(
+        `TVA ${rate}% (base: ${formatCurrency(values.base)})`,
+        margin + 5,
+        yPos
+      )
+      doc.setTextColor(60, 60, 60)
+      doc.text(
+        formatCurrency(values.tax),
+        pageWidth - margin - 5,
+        yPos,
+        { align: 'right' }
+      )
+      yPos += 6
+    })
+
+    yPos += 5
+  }
 
   // ============================================
   // TOTAUX

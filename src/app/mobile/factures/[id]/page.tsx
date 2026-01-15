@@ -155,7 +155,9 @@ export default function InvoiceDetailMobilePage({ params }: { params: Promise<{ 
 
   const sendEmail = async () => {
     if (!invoice || !invoice.client_email) {
-      toast.error('Aucun email client configuré')
+      toast.error('⚠️ Aucun email client configuré', {
+        description: 'Veuillez ajouter un email au client avant d\'envoyer la facture.'
+      })
       return
     }
 
@@ -167,15 +169,37 @@ export default function InvoiceDetailMobilePage({ params }: { params: Promise<{ 
         body: JSON.stringify({}),
       })
 
+      const data = await response.json()
+
       if (!response.ok) {
-        throw new Error('Erreur')
+        // Gérer les différents types d'erreurs
+        if (data.code === 'RESEND_NOT_CONFIGURED') {
+          toast.error('📧 Service d\'email non configuré', {
+            description: 'Téléchargez le PDF et envoyez-le manuellement en attendant.',
+            duration: 6000
+          })
+        } else if (data.code === 'EMAIL_SEND_FAILED') {
+          toast.error('❌ Échec de l\'envoi', {
+            description: data.details || 'Vérifiez l\'adresse email du client.',
+            duration: 5000
+          })
+        } else {
+          toast.error('❌ Erreur lors de l\'envoi', {
+            description: data.error || 'Une erreur est survenue'
+          })
+        }
+        return
       }
 
-      const data = await response.json()
       await loadInvoice(invoice.id)
-      toast.success(`✅ ${data.message}`)
+      toast.success('✅ Email envoyé avec succès !', {
+        description: `Facture envoyée à ${invoice.client_email}`
+      })
     } catch (error) {
-      toast.error('Erreur lors de l\'envoi de l\'email')
+      console.error('Erreur send email:', error)
+      toast.error('❌ Erreur réseau', {
+        description: 'Impossible de contacter le serveur. Vérifiez votre connexion.'
+      })
     } finally {
       setIsSendingEmail(false)
     }
@@ -547,6 +571,7 @@ export default function InvoiceDetailMobilePage({ params }: { params: Promise<{ 
                       quantity: item.quantity,
                       unit_price: item.unit_price,
                       total: item.total,
+                      vat_rate: item.vat_rate, // ✅ Inclure la TVA par ligne
                     })) || [],
                   },
                   {

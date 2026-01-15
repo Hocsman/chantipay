@@ -84,19 +84,33 @@ export async function POST(
       )
     }
 
+    // Vérifier que Resend est configuré AVANT de générer le PDF
+    const resendClient = getResend()
+    if (!resendClient) {
+      console.error('❌ RESEND_API_KEY non configurée')
+      return NextResponse.json(
+        {
+          error: 'Service d\'email non configuré',
+          details: 'La clé API Resend n\'est pas configurée. Veuillez ajouter RESEND_API_KEY dans vos variables d\'environnement.',
+          code: 'RESEND_NOT_CONFIGURED'
+        },
+        { status: 503 }
+      )
+    }
+
     // Récupérer les infos de l'entreprise (depuis le profil utilisateur)
     const { data: profile } = await supabase
       .from('profiles')
-      .select('company_name, company_address, company_phone, company_email, company_siret')
+      .select('company_name, full_name, address, phone, email, siret')
       .eq('id', user.id)
       .single()
 
     const companyInfo = {
-      name: profile?.company_name || 'ChantiPay',
-      address: profile?.company_address || '123 Avenue Exemple, 75001 Paris',
-      phone: profile?.company_phone || '+33 1 23 45 67 89',
-      email: profile?.company_email || 'contact@chantipay.fr',
-      siret: profile?.company_siret || '123 456 789 00012',
+      name: profile?.company_name || profile?.full_name || 'Mon Entreprise',
+      address: profile?.address || '',
+      phone: profile?.phone || '',
+      email: profile?.email || user.email || '',
+      siret: profile?.siret || '',
     }
 
     // Générer le PDF avec @react-pdf/renderer
@@ -110,63 +124,118 @@ export async function POST(
       />
     )
 
-    // Vérifier que Resend est configuré
-    const resendClient = getResend()
-    if (!resendClient) {
-      return NextResponse.json(
-        { error: 'Service d\'email non configuré. Veuillez configurer RESEND_API_KEY.' },
-        { status: 503 }
-      )
+    // Envoyer l'email avec Resend
+    let emailData
+    let emailError
+
+    try {
+      const result = await resendClient.emails.send({
+        from: 'ChantiPay <onboarding@resend.dev>', // À remplacer par votre domaine vérifié
+        to: [toEmail],
+        subject: `Facture ${invoice.invoice_number} - ${companyInfo.name}`,
+        html: `
+          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <div style="background: linear-gradient(135deg, #2563EB 0%, #4F46E5 100%); padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
+              <h1 style="color: white; margin: 0; font-size: 28px;">📄 Facture</h1>
+              <p style="color: #DBEAFE; margin: 10px 0 0 0; font-size: 18px; font-weight: bold;">${invoice.invoice_number}</p>
+            </div>
+
+            <div style="background: white; padding: 30px; border: 1px solid #E5E7EB; border-top: none; border-radius: 0 0 12px 12px;">
+              <p style="font-size: 16px; color: #374151; margin-bottom: 15px;">Bonjour <strong>${invoice.client_name}</strong>,</p>
+
+              ${message ? `<p style="font-size: 14px; color: #6B7280; line-height: 1.6;">${message}</p>` : `
+                <p style="font-size: 14px; color: #6B7280; line-height: 1.6;">
+                  Veuillez trouver ci-joint votre facture d'un montant de <strong style="color: #2563EB;">${invoice.total.toFixed(2)} €</strong>.
+                </p>
+              `}
+
+              <div style="background-color: #F9FAFB; padding: 20px; border-radius: 8px; margin: 25px 0; border-left: 4px solid #2563EB;">
+                <h3 style="margin: 0 0 15px 0; font-size: 16px; color: #374151;">📋 Détails de la facture</h3>
+                <table style="width: 100%; font-size: 14px;">
+                  <tr>
+                    <td style="padding: 6px 0; color: #6B7280;">Numéro</td>
+                    <td style="padding: 6px 0; color: #111827; font-weight: 600; text-align: right;">${invoice.invoice_number}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 6px 0; color: #6B7280;">Date d'émission</td>
+                    <td style="padding: 6px 0; color: #111827; font-weight: 600; text-align: right;">${new Date(invoice.issue_date).toLocaleDateString('fr-FR')}</td>
+                  </tr>
+                  ${invoice.due_date ? `
+                  <tr>
+                    <td style="padding: 6px 0; color: #6B7280;">Date d'échéance</td>
+                    <td style="padding: 6px 0; color: #F59E0B; font-weight: 600; text-align: right;">${new Date(invoice.due_date).toLocaleDateString('fr-FR')}</td>
+                  </tr>
+                  ` : ''}
+                  <tr>
+                    <td style="padding: 12px 0 6px 0; color: #6B7280; border-top: 1px solid #E5E7EB;">Montant total TTC</td>
+                    <td style="padding: 12px 0 6px 0; color: #2563EB; font-weight: 700; text-align: right; font-size: 18px; border-top: 1px solid #E5E7EB;">${invoice.total.toFixed(2)} €</td>
+                  </tr>
+                </table>
+              </div>
+
+              <p style="font-size: 14px; color: #6B7280; line-height: 1.6;">
+                Le PDF de la facture est joint à cet email. N'hésitez pas à nous contacter pour toute question.
+              </p>
+
+              <p style="font-size: 14px; color: #374151; margin-top: 25px;">
+                Cordialement,<br>
+                <strong>${companyInfo.name}</strong>
+              </p>
+
+              <hr style="border: none; border-top: 1px solid #E5E7EB; margin: 30px 0;">
+
+              <div style="font-size: 12px; color: #9CA3AF; line-height: 1.5;">
+                <strong style="color: #6B7280;">${companyInfo.name}</strong><br>
+                ${companyInfo.address ? `${companyInfo.address}<br>` : ''}
+                ${companyInfo.phone ? `📞 ${companyInfo.phone} ` : ''}
+                ${companyInfo.email ? `• ✉️ ${companyInfo.email}` : ''}<br>
+                ${companyInfo.siret ? `SIRET: ${companyInfo.siret}` : ''}
+              </div>
+            </div>
+          </div>
+        `,
+        attachments: [
+          {
+            filename: `Facture_${invoice.invoice_number}.pdf`,
+            content: pdfBuffer,
+          },
+        ],
+      })
+
+      emailData = result.data
+      emailError = result.error
+    } catch (error) {
+      console.error('❌ Erreur lors de l\'envoi email Resend:', error)
+      emailError = error
     }
 
-    // Envoyer l'email avec Resend
-    const { data: emailData, error: emailError } = await resendClient.emails.send({
-      from: 'ChantiPay <onboarding@resend.dev>', // Remplacer par votre domaine vérifié
-      to: [toEmail],
-      subject: `Facture ${invoice.invoice_number}`,
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h1 style="color: #3B82F6;">Facture ${invoice.invoice_number}</h1>
-          
-          <p>Bonjour ${invoice.client_name},</p>
-          
-          ${message ? `<p>${message}</p>` : `
-            <p>Veuillez trouver ci-joint votre facture d'un montant de <strong>${invoice.total.toFixed(2)} €</strong>.</p>
-          `}
-          
-          <div style="background-color: #F3F4F6; padding: 20px; border-radius: 8px; margin: 20px 0;">
-            <h3 style="margin-top: 0;">Détails de la facture</h3>
-            <ul style="list-style: none; padding: 0;">
-              <li><strong>Numéro:</strong> ${invoice.invoice_number}</li>
-              <li><strong>Date d'émission:</strong> ${new Date(invoice.issue_date).toLocaleDateString('fr-FR')}</li>
-              ${invoice.due_date ? `<li><strong>Date d'échéance:</strong> ${new Date(invoice.due_date).toLocaleDateString('fr-FR')}</li>` : ''}
-              <li><strong>Montant total:</strong> ${invoice.total.toFixed(2)} €</li>
-            </ul>
-          </div>
-          
-          <p>Merci de votre confiance.</p>
-          
-          <hr style="border: none; border-top: 1px solid #E5E7EB; margin: 30px 0;">
-          
-          <p style="color: #6B7280; font-size: 12px;">
-            ${companyInfo.name}<br>
-            ${companyInfo.address}<br>
-            ${companyInfo.phone} - ${companyInfo.email}
-          </p>
-        </div>
-      `,
-      attachments: [
-        {
-          filename: `${invoice.invoice_number}.pdf`,
-          content: pdfBuffer,
-        },
-      ],
-    })
-
     if (emailError) {
-      console.error('Erreur envoi email:', emailError)
+      console.error('❌ Erreur envoi email:', emailError)
+
+      // Message d'erreur détaillé selon le type
+      let errorMessage = 'Erreur lors de l\'envoi de l\'email'
+      let errorDetails = ''
+
+      if (typeof emailError === 'object' && emailError !== null) {
+        const err = emailError as any
+        if (err.message) {
+          errorDetails = err.message
+        }
+        if (err.statusCode === 429) {
+          errorMessage = 'Limite d\'envoi atteinte'
+          errorDetails = 'Trop d\'emails envoyés. Veuillez réessayer dans quelques minutes.'
+        } else if (err.statusCode === 422) {
+          errorMessage = 'Email invalide'
+          errorDetails = 'L\'adresse email du destinataire est invalide.'
+        }
+      }
+
       return NextResponse.json(
-        { error: 'Erreur lors de l\'envoi de l\'email' },
+        {
+          error: errorMessage,
+          details: errorDetails || 'Une erreur est survenue lors de l\'envoi. Vérifiez votre configuration Resend.',
+          code: 'EMAIL_SEND_FAILED'
+        },
         { status: 500 }
       )
     }
