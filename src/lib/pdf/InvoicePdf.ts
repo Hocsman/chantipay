@@ -47,120 +47,142 @@ export async function generateInvoicePDF(
   const pageWidth = doc.internal.pageSize.getWidth()
   const pageHeight = doc.internal.pageSize.getHeight()
   const margin = 20
+  const rightCol = pageWidth - margin
 
   // Couleurs du thème
-  const primaryColor: [number, number, number] = [59, 130, 246] // blue-500
+  const primaryColor: [number, number, number] = [37, 99, 235] // blue-600
   const secondaryColor: [number, number, number] = [107, 114, 128] // gray-500
-  const accentColor: [number, number, number] = [16, 185, 129] // green-500
+  const darkColor: [number, number, number] = [31, 41, 55] // gray-800
 
   let yPos = margin
 
   // ============================================
-  // EN-TÊTE
+  // EN-TÊTE - Bandeau bleu professionnel
   // ============================================
 
-  // Logo de l'entreprise (si disponible)
-  if (companyInfo.logo) {
-    try {
-      doc.addImage(companyInfo.logo, 'PNG', margin, yPos, 40, 40)
-    } catch (error) {
-      console.error('Erreur chargement logo:', error)
-    }
-  }
+  // Bandeau de couleur en haut
+  doc.setFillColor(...primaryColor)
+  doc.rect(0, 0, pageWidth, 45, 'F')
 
-  // Informations entreprise (à droite)
-  doc.setFontSize(12)
+  // Nom de l'entreprise (à gauche dans le bandeau)
+  doc.setFontSize(22)
+  doc.setFont('helvetica', 'bold')
+  doc.setTextColor(255, 255, 255)
+  doc.text(companyInfo.name || 'Mon Entreprise', margin, 20)
+
+  // Sous-titre (type d'activité)
+  doc.setFontSize(10)
+  doc.setFont('helvetica', 'normal')
+  doc.setTextColor(191, 219, 254) // blue-200
+  doc.text('Artisan professionnel', margin, 28)
+
+  // Numéro de facture (à droite dans le bandeau)
+  doc.setFontSize(10)
+  doc.setTextColor(191, 219, 254)
+  doc.text('FACTURE', rightCol, 15, { align: 'right' })
+  doc.setFontSize(16)
+  doc.setFont('helvetica', 'bold')
+  doc.setTextColor(255, 255, 255)
+  doc.text(invoice.invoice_number, rightCol, 25, { align: 'right' })
+
+  // Statut de paiement (badge dans le bandeau)
+  const statusInfo = getPaymentStatusInfo(invoice.payment_status)
+  doc.setFillColor(...statusInfo.color)
+  doc.roundedRect(rightCol - 35, 31, 35, 8, 2, 2, 'F')
+  doc.setFontSize(8)
+  doc.setFont('helvetica', 'bold')
+  doc.setTextColor(255, 255, 255)
+  doc.text(statusInfo.label, rightCol - 17.5, 36.5, { align: 'center' })
+
+  // ============================================
+  // INFORMATIONS ENTREPRISE (sous le bandeau, à droite)
+  // ============================================
+
+  yPos = 55
+  doc.setFontSize(9)
+  doc.setFont('helvetica', 'normal')
   doc.setTextColor(...secondaryColor)
-  const companyX = pageWidth - margin - 80
-  doc.text(companyInfo.name, companyX, yPos, { align: 'right' })
-  yPos += 6
+
   if (companyInfo.address) {
-    doc.setFontSize(9)
-    doc.text(companyInfo.address, companyX, yPos, { align: 'right' })
+    doc.text(companyInfo.address, rightCol, yPos, { align: 'right' })
     yPos += 5
   }
   if (companyInfo.phone) {
-    doc.text(`Tél : ${companyInfo.phone}`, companyX, yPos, { align: 'right' })
+    doc.text(`Tél : ${companyInfo.phone}`, rightCol, yPos, { align: 'right' })
     yPos += 5
   }
   if (companyInfo.email) {
-    doc.text(companyInfo.email, companyX, yPos, { align: 'right' })
+    doc.text(companyInfo.email, rightCol, yPos, { align: 'right' })
     yPos += 5
   }
   if (companyInfo.siret) {
-    doc.text(`SIRET : ${companyInfo.siret}`, companyX, yPos, { align: 'right' })
+    doc.text(`SIRET : ${companyInfo.siret}`, rightCol, yPos, { align: 'right' })
+    yPos += 5
   }
 
-  yPos = Math.max(yPos, 70)
-
   // ============================================
-  // TITRE FACTURE
+  // DATES (à gauche, sous le bandeau)
   // ============================================
 
-  doc.setFontSize(24)
-  doc.setFont('helvetica', 'bold')
-  doc.setTextColor(...primaryColor)
-  doc.text('FACTURE', margin, yPos)
-  yPos += 10
-
-  // Numéro et dates
-  doc.setFontSize(11)
+  let leftY = 55
+  doc.setFontSize(10)
   doc.setFont('helvetica', 'normal')
-  doc.setTextColor(60, 60, 60)
-  doc.text(`N° ${invoice.invoice_number}`, margin, yPos)
-  yPos += 6
-  doc.text(`Date d'émission : ${formatDate(invoice.issue_date)}`, margin, yPos)
-  yPos += 6
+  doc.setTextColor(...darkColor)
+  doc.text(`Date d'émission : ${formatDate(invoice.issue_date)}`, margin, leftY)
+  leftY += 6
+
   if (invoice.due_date) {
-    doc.setTextColor(...secondaryColor)
-    doc.text(`Date d'échéance : ${formatDate(invoice.due_date)}`, margin, yPos)
-    yPos += 6
+    doc.setTextColor(234, 88, 12) // orange-600
+    doc.text(`Date d'échéance : ${formatDate(invoice.due_date)}`, margin, leftY)
+    leftY += 6
   }
 
-  // Statut de paiement (badge coloré)
-  const statusInfo = getPaymentStatusInfo(invoice.payment_status)
-  yPos += 5
-  doc.setFillColor(...statusInfo.color)
-  doc.roundedRect(margin, yPos - 5, 35, 8, 2, 2, 'F')
+  yPos = Math.max(yPos, leftY) + 12
+
+  // ============================================
+  // INFORMATIONS CLIENT (encadré gris)
+  // ============================================
+
+  const clientBoxY = yPos
+  const clientBoxHeight = 35
+
+  doc.setFillColor(249, 250, 251) // gray-50
+  doc.setDrawColor(229, 231, 235) // gray-200
+  doc.setLineWidth(0.5)
+  doc.roundedRect(margin, clientBoxY, pageWidth - 2 * margin, clientBoxHeight, 3, 3, 'FD')
+
+  yPos = clientBoxY + 8
+
   doc.setFontSize(9)
   doc.setFont('helvetica', 'bold')
-  doc.setTextColor(255, 255, 255)
-  doc.text(statusInfo.label, margin + 17.5, yPos, { align: 'center' })
-
-  yPos += 15
-
-  // ============================================
-  // INFORMATIONS CLIENT
-  // ============================================
-
-  doc.setFontSize(10)
-  doc.setFont('helvetica', 'bold')
   doc.setTextColor(...secondaryColor)
-  doc.text('FACTURÉ À', margin, yPos)
-  yPos += 7
-
-  doc.setFont('helvetica', 'normal')
-  doc.setTextColor(60, 60, 60)
-  doc.setFontSize(11)
-  doc.text(invoice.client_name, margin, yPos)
+  doc.text('FACTURÉ À', margin + 5, yPos)
   yPos += 6
 
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(12)
+  doc.setTextColor(...darkColor)
+  doc.text(invoice.client_name, margin + 5, yPos)
+  yPos += 6
+
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(9)
+  doc.setTextColor(...secondaryColor)
+
   if (invoice.client_address) {
-    doc.setFontSize(9)
-    doc.setTextColor(...secondaryColor)
-    doc.text(invoice.client_address, margin, yPos)
-    yPos += 5
-  }
-  if (invoice.client_phone) {
-    doc.text(`Tél : ${invoice.client_phone}`, margin, yPos)
-    yPos += 5
-  }
-  if (invoice.client_email) {
-    doc.text(invoice.client_email, margin, yPos)
+    doc.text(invoice.client_address, margin + 5, yPos)
     yPos += 5
   }
 
-  yPos += 10
+  // Email et téléphone sur la même ligne
+  const clientDetails: string[] = []
+  if (invoice.client_phone) clientDetails.push(`Tél : ${invoice.client_phone}`)
+  if (invoice.client_email) clientDetails.push(invoice.client_email)
+  if (clientDetails.length > 0) {
+    doc.text(clientDetails.join('  •  '), margin + 5, yPos)
+  }
+
+  yPos = clientBoxY + clientBoxHeight + 10
 
   // ============================================
   // TABLEAU DES ARTICLES
@@ -176,26 +198,31 @@ export async function generateInvoicePDF(
 
   autoTable(doc, {
     startY: yPos,
-    head: [['Description', 'Qté', 'Prix unit. HT', 'TVA', 'Total HT']],
+    head: [['Description', 'Qté', 'Prix unitaire HT', 'TVA', 'Total HT']],
     body: tableData,
-    theme: 'grid',
+    theme: 'plain',
     headStyles: {
       fillColor: primaryColor,
       textColor: [255, 255, 255],
       fontStyle: 'bold',
-      fontSize: 10,
+      fontSize: 9,
       halign: 'left',
+      cellPadding: 4,
     },
     bodyStyles: {
       fontSize: 9,
-      textColor: [60, 60, 60],
+      textColor: darkColor,
+      cellPadding: 4,
+    },
+    alternateRowStyles: {
+      fillColor: [249, 250, 251], // gray-50
     },
     columnStyles: {
-      0: { cellWidth: 'auto' },
-      1: { cellWidth: 20, halign: 'center' },
+      0: { cellWidth: 'auto', halign: 'left' },
+      1: { cellWidth: 18, halign: 'center' },
       2: { cellWidth: 35, halign: 'right' },
       3: { cellWidth: 20, halign: 'center' },
-      4: { cellWidth: 35, halign: 'right' },
+      4: { cellWidth: 35, halign: 'right', fontStyle: 'bold' },
     },
     margin: { left: margin, right: margin },
     didParseCell: function (data) {
@@ -242,76 +269,75 @@ export async function generateInvoicePDF(
 
   // Afficher le récapitulatif si plusieurs taux de TVA
   if (vatRates.length > 1) {
-    // Cadre ambré pour le récapitulatif
+    const boxHeight = 10 + vatRates.length * 6
     doc.setFillColor(254, 243, 199) // amber-100
-    doc.roundedRect(margin, yPos, pageWidth - 2 * margin, 8 + vatRates.length * 6, 3, 3, 'F')
-
-    // Bordure ambre
     doc.setDrawColor(251, 191, 36) // amber-400
     doc.setLineWidth(0.5)
-    doc.roundedRect(margin, yPos, pageWidth - 2 * margin, 8 + vatRates.length * 6, 3, 3, 'S')
+    doc.roundedRect(margin, yPos, pageWidth / 2 - margin - 5, boxHeight, 3, 3, 'FD')
 
-    // Titre
-    doc.setFontSize(9)
+    doc.setFontSize(8)
     doc.setFont('helvetica', 'bold')
     doc.setTextColor(146, 64, 14) // amber-800
-    doc.text('📊 Détail TVA (taux multiples)', margin + 5, yPos + 5)
+    doc.text('Détail TVA (taux multiples)', margin + 4, yPos + 6)
 
-    yPos += 10
-
-    // Détail par taux
+    let vatY = yPos + 12
     doc.setFont('helvetica', 'normal')
-    doc.setFontSize(8)
     Object.entries(vatGroups).forEach(([rate, values]) => {
-      doc.setTextColor(107, 114, 128) // gray-500
-      doc.text(
-        `TVA ${rate}% (base: ${formatCurrency(values.base)})`,
-        margin + 5,
-        yPos
-      )
+      doc.setTextColor(107, 114, 128)
+      doc.text(`TVA ${rate}% (base: ${formatCurrency(values.base)})`, margin + 4, vatY)
       doc.setTextColor(60, 60, 60)
-      doc.text(
-        formatCurrency(values.tax),
-        pageWidth - margin - 5,
-        yPos,
-        { align: 'right' }
-      )
-      yPos += 6
+      doc.text(formatCurrency(values.tax), pageWidth / 2 - margin - 8, vatY, { align: 'right' })
+      vatY += 6
     })
-
-    yPos += 5
   }
 
   // ============================================
-  // TOTAUX
+  // TOTAUX (encadré à droite)
   // ============================================
 
-  const totalsX = pageWidth - margin - 70
-  const totalsLabelX = totalsX - 50
+  const totalsBoxWidth = pageWidth / 2 - margin - 5
+  const totalsBoxX = pageWidth / 2 + 5
+  const totalsBoxHeight = 48
+
+  // Cadre pour les totaux
+  doc.setFillColor(249, 250, 251) // gray-50
+  doc.setDrawColor(229, 231, 235) // gray-200
+  doc.setLineWidth(0.5)
+  doc.roundedRect(totalsBoxX, yPos, totalsBoxWidth, totalsBoxHeight, 3, 3, 'FD')
+
+  let totalsY = yPos + 10
+  const labelX = totalsBoxX + 8
+  const valueX = totalsBoxX + totalsBoxWidth - 8
 
   // Sous-total HT
   doc.setFontSize(10)
   doc.setFont('helvetica', 'normal')
   doc.setTextColor(...secondaryColor)
-  doc.text('Sous-total HT', totalsLabelX, yPos, { align: 'right' })
-  doc.setTextColor(60, 60, 60)
-  doc.text(formatCurrency(invoice.subtotal), totalsX, yPos, { align: 'right' })
-  yPos += 7
+  doc.text('Sous-total HT', labelX, totalsY)
+  doc.setTextColor(...darkColor)
+  doc.text(formatCurrency(invoice.subtotal), valueX, totalsY, { align: 'right' })
+  totalsY += 8
 
   // TVA
   doc.setTextColor(...secondaryColor)
-  doc.text(`TVA (${invoice.tax_rate}%)`, totalsLabelX, yPos, { align: 'right' })
-  doc.setTextColor(60, 60, 60)
-  doc.text(formatCurrency(invoice.tax_amount), totalsX, yPos, { align: 'right' })
-  yPos += 10
+  doc.text(`TVA (${invoice.tax_rate}%)`, labelX, totalsY)
+  doc.setTextColor(...darkColor)
+  doc.text(formatCurrency(invoice.tax_amount), valueX, totalsY, { align: 'right' })
+  totalsY += 10
+
+  // Ligne de séparation
+  doc.setDrawColor(...primaryColor)
+  doc.setLineWidth(1)
+  doc.line(labelX, totalsY - 3, valueX, totalsY - 3)
 
   // Total TTC
   doc.setFontSize(12)
   doc.setFont('helvetica', 'bold')
   doc.setTextColor(...primaryColor)
-  doc.text('Total TTC', totalsLabelX, yPos, { align: 'right' })
-  doc.text(formatCurrency(invoice.total), totalsX, yPos, { align: 'right' })
-  yPos += 12
+  doc.text('Total TTC', labelX, totalsY + 5)
+  doc.text(formatCurrency(invoice.total), valueX, totalsY + 5, { align: 'right' })
+
+  yPos = yPos + totalsBoxHeight + 10
 
   // ============================================
   // CONDITIONS DE PAIEMENT
@@ -322,7 +348,7 @@ export async function generateInvoicePDF(
     doc.setFont('helvetica', 'italic')
     doc.setTextColor(...secondaryColor)
     doc.text(`Conditions : ${invoice.payment_terms}`, margin, yPos)
-    yPos += 6
+    yPos += 8
   }
 
   // ============================================
@@ -330,13 +356,12 @@ export async function generateInvoicePDF(
   // ============================================
 
   if (invoice.notes) {
-    yPos += 5
     doc.setFontSize(9)
     doc.setFont('helvetica', 'bold')
-    doc.setTextColor(60, 60, 60)
+    doc.setTextColor(...darkColor)
     doc.text('Notes :', margin, yPos)
     yPos += 5
-    doc.setFont('helvetica', 'normal')
+    doc.setFont('helvetica', 'italic')
     doc.setTextColor(...secondaryColor)
     const splitNotes = doc.splitTextToSize(invoice.notes, pageWidth - 2 * margin)
     doc.text(splitNotes, margin, yPos)
@@ -347,12 +372,21 @@ export async function generateInvoicePDF(
   // PIED DE PAGE
   // ============================================
 
-  const footerY = pageHeight - 20
+  const footerY = pageHeight - 15
+
+  // Ligne de séparation
+  doc.setDrawColor(229, 231, 235) // gray-200
+  doc.setLineWidth(0.5)
+  doc.line(margin, footerY - 5, pageWidth - margin, footerY - 5)
+
   doc.setFontSize(8)
   doc.setTextColor(...secondaryColor)
-  doc.setFont('helvetica', 'italic')
-  const footerText = 'Merci de votre confiance - Facture générée par ChantiPay'
-  doc.text(footerText, pageWidth / 2, footerY, { align: 'center' })
+  doc.setFont('helvetica', 'normal')
+  doc.text('Merci de votre confiance', pageWidth / 2, footerY, { align: 'center' })
+
+  doc.setFontSize(7)
+  const footerInfo = `${companyInfo.name}${companyInfo.siret ? ` • SIRET: ${companyInfo.siret}` : ''}`
+  doc.text(footerInfo, pageWidth / 2, footerY + 4, { align: 'center' })
 
   // Retourner le PDF en Blob
   return doc.output('blob')
