@@ -331,7 +331,7 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
         </Card>
 
         {/* Actions */}
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {isEditing ? (
             <>
               <Button onClick={handleSave} disabled={isSaving}>
