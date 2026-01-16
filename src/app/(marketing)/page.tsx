@@ -108,13 +108,14 @@ export default function MarketingPage() {
 
       {/* Hero Section */}
       <section className="mx-auto max-w-7xl px-4 py-20 text-center md:py-32">
-        <h1 className="mb-6 text-4xl font-bold tracking-tight text-foreground md:text-6xl">
-          Créez vos devis & factures électroniques
+        <h1 className="mb-4 text-4xl font-bold tracking-tight text-foreground md:text-6xl">
+          Créez vos devis, factures électroniques
           <br />
-          <span className="text-primary">en quelques secondes.</span>
-          <br />
-          <span className="text-2xl md:text-3xl font-medium text-muted-foreground">Devis signé, acompte encaissé, chantier sécurisé.</span>
+          <span className="text-primary">en quelques secondes</span>
         </h1>
+        <p className="mb-6 text-2xl md:text-3xl font-medium text-muted-foreground">
+          Devis signé, acompte encaissé, chantier sécurisé.
+        </p>
         <p className="text-muted-foreground mx-auto mb-8 max-w-2xl text-lg md:text-xl">
           L&apos;outil simple et conforme qui vous fait gagner du temps et de l&apos;argent. Fini la paperasse, place au terrain.
         </p>
