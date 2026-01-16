@@ -116,8 +116,8 @@ export default function MarketingPage() {
           <span className="text-2xl md:text-3xl font-medium text-muted-foreground">en 2 minutes pour artisans, TPE et PME</span>
         </h1>
         <p className="text-muted-foreground mx-auto mb-8 max-w-2xl text-lg md:text-xl">
-          L&apos;application mobile-first pour les artisans qui veulent créer des devis
-          professionnels, les faire signer sur place et encaisser l&apos;acompte en quelques secondes.
+          L&apos;application mobile pensée pour les artisans, TPE et PME qui veulent créer des devis
+          et factures professionnels en quelques minutes, réduire l&apos;administratif et accélérer les encaissements.
         </p>
         <div className="flex flex-col justify-center gap-4 sm:flex-row">
           <Link href="/register">
