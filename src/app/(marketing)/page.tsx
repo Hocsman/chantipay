@@ -109,15 +109,14 @@ export default function MarketingPage() {
       {/* Hero Section */}
       <section className="mx-auto max-w-7xl px-4 py-20 text-center md:py-32">
         <h1 className="mb-6 text-4xl font-bold tracking-tight text-foreground md:text-6xl">
-          Votre application pour créer vos
+          Créez vos devis et factures
           <br />
-          <span className="text-primary">Devis & facturation électronique</span>
+          <span className="text-primary">100 % conformes à la nouvelle législation 🇫🇷</span>
           <br />
-          <span className="text-2xl md:text-3xl font-medium text-muted-foreground">en 2 minutes pour artisans, TPE et PME</span>
+          <span className="text-2xl md:text-3xl font-medium text-muted-foreground">Simplicité, rapidité et conformité garanties.</span>
         </h1>
         <p className="text-muted-foreground mx-auto mb-8 max-w-2xl text-lg md:text-xl">
-          L&apos;application mobile pensée pour les artisans, TPE et PME qui veulent créer des devis
-          et factures professionnels en quelques minutes, réduire l&apos;administratif et accélérer les encaissements.
+          Pour les artisans, TPE et PME qui veulent créer des devis et factures en quelques minutes.
         </p>
         <div className="flex flex-col justify-center gap-4 sm:flex-row">
           <Link href="/register">
