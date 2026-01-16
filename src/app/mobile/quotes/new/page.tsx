@@ -27,6 +27,8 @@ import {
 import { QuoteCreationTracker, QuoteAITracker } from '@/lib/analytics/quoteAnalytics';
 import { useAIHistory } from '@/hooks/useAIHistory';
 import { AIHistorySheet } from '@/components/ai/AIHistorySheet';
+import { TemplateSelectorSheet } from '@/components/templates/TemplateSelectorSheet';
+import type { QuoteTemplate } from '@/lib/templates/quoteTemplates';
 
 // ===========================================
 // Types
@@ -224,6 +226,14 @@ export default function NewQuotePage() {
 
     setItems(restoredItems);
     toast.success('Génération restaurée depuis l\'historique');
+  }, []);
+
+  // Use template
+  const handleSelectTemplate = useCallback((template: QuoteTemplate) => {
+    setAiDescription(template.description);
+    setSelectedTrade(template.trade);
+    setSelectedChips(new Set());
+    toast.success(`Template "${template.title}" chargé`);
   }, []);
 
   const addItem = () => {
@@ -558,7 +568,7 @@ export default function NewQuotePage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {/* Quick Examples */}
+              {/* Quick Examples + Templates */}
               <div>
                 <Label className="text-xs text-muted-foreground mb-2 block">
                   Exemples rapides
@@ -582,6 +592,10 @@ export default function NewQuotePage() {
                     <Zap className="h-3 w-3 mr-1.5" />
                     Exemple électricité
                   </Button>
+                  <TemplateSelectorSheet
+                    selectedTrade={selectedTrade}
+                    onSelectTemplate={handleSelectTemplate}
+                  />
                 </div>
               </div>
 
