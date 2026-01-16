@@ -109,9 +109,11 @@ export default function MarketingPage() {
       {/* Hero Section */}
       <section className="mx-auto max-w-7xl px-4 py-20 text-center md:py-32">
         <h1 className="mb-6 text-4xl font-bold tracking-tight text-foreground md:text-6xl">
-          Devis signé, acompte encaissé,
+          Votre application pour créer vos
           <br />
-          <span className="text-primary">chantier sécurisé.</span>
+          <span className="text-primary">Devis & facturation électronique</span>
+          <br />
+          <span className="text-2xl md:text-3xl font-medium text-muted-foreground">en 2 minutes pour artisans, TPE et PME</span>
         </h1>
         <p className="text-muted-foreground mx-auto mb-8 max-w-2xl text-lg md:text-xl">
           L&apos;application mobile-first pour les artisans qui veulent créer des devis
