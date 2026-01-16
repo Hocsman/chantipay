@@ -25,6 +25,8 @@ import {
   sanitizeQuoteItem,
 } from '@/lib/validation/quoteValidation';
 import { QuoteCreationTracker, QuoteAITracker } from '@/lib/analytics/quoteAnalytics';
+import { useAIHistory } from '@/hooks/useAIHistory';
+import { AIHistorySheet } from '@/components/ai/AIHistorySheet';
 
 // ===========================================
 // Types
@@ -153,6 +155,9 @@ export default function NewQuotePage() {
   const [quoteTracker] = useState(() => new QuoteCreationTracker())
   const [aiTracker] = useState(() => new QuoteAITracker())
 
+  // AI History
+  const { history, addToHistory, restoreFromHistory, removeFromHistory, clearHistory } = useAIHistory();
+
   // Charger les clients au montage
   useEffect(() => {
     async function loadClients() {
@@ -199,6 +204,26 @@ export default function NewQuotePage() {
     setSelectedTrade(type);
     // Reset chips
     setSelectedChips(new Set());
+  }, []);
+
+  // Restore from AI history
+  const handleRestoreFromHistory = useCallback((entry: any) => {
+    // Restore description and trade
+    setAiDescription(entry.description);
+    if (entry.trade) setSelectedTrade(entry.trade);
+    if (entry.vatRate) setVatRate(entry.vatRate.toString());
+
+    // Restore items
+    const restoredItems: QuoteItem[] = entry.items.map((item: any, index: number) => ({
+      id: `restored-${Date.now()}-${index}`,
+      description: item.description,
+      quantity: item.quantity,
+      unit_price_ht: item.unit_price_ht,
+      vat_rate: item.vat_rate,
+    }));
+
+    setItems(restoredItems);
+    toast.success('Génération restaurée depuis l\'historique');
   }, []);
 
   const addItem = () => {
@@ -312,6 +337,9 @@ export default function NewQuotePage() {
 
         // Analytics: Succès de la génération IA
         aiTracker.success();
+
+        // Ajouter à l'historique
+        addToHistory(aiDescription, newItems, selectedTrade, parseFloat(vatRate));
       }
     } catch (error) {
       console.error('Erreur génération IA:', error);
@@ -654,28 +682,41 @@ export default function NewQuotePage() {
                 </div>
               </div>
 
-              {/* Generate Button */}
-              <Button
-                onClick={generateWithAI}
-                disabled={
-                  !aiDescription.trim() ||
-                  aiDescription.trim().length < 20 ||
-                  isGeneratingAI
-                }
-                className="w-full h-12 text-base"
-              >
-                {isGeneratingAI ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Génération en cours...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="h-4 w-4 mr-2" />
-                    Générer les lignes
-                  </>
+              {/* Generate Button + History */}
+              <div className="space-y-3">
+                <Button
+                  onClick={generateWithAI}
+                  disabled={
+                    !aiDescription.trim() ||
+                    aiDescription.trim().length < 20 ||
+                    isGeneratingAI
+                  }
+                  className="w-full h-12 text-base"
+                >
+                  {isGeneratingAI ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Génération en cours...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-4 w-4 mr-2" />
+                      Générer les lignes
+                    </>
+                  )}
+                </Button>
+
+                {history.length > 0 && (
+                  <div className="flex justify-center">
+                    <AIHistorySheet
+                      history={history}
+                      onRestore={handleRestoreFromHistory}
+                      onRemove={removeFromHistory}
+                      onClear={clearHistory}
+                    />
+                  </div>
                 )}
-              </Button>
+              </div>
 
               {aiDescription.trim().length > 0 && aiDescription.trim().length < 20 && (
                 <p className="text-xs text-muted-foreground text-center">
