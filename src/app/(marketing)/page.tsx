@@ -114,7 +114,7 @@ export default function MarketingPage() {
           <span className="text-primary">en quelques secondes</span>
         </h1>
         <p className="mb-6 text-2xl md:text-3xl font-medium text-muted-foreground">
-          Devis signé, acompte encaissé, chantier sécurisé.
+          Devis signé - Acompte encaissé - Chantier sécurisé
         </p>
         <p className="text-muted-foreground mx-auto mb-8 max-w-2xl text-lg md:text-xl">
           L&apos;outil simple et conforme qui vous fait gagner du temps et de l&apos;argent. Fini la paperasse, place au terrain.
