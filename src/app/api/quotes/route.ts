@@ -124,27 +124,45 @@ export async function POST(request: NextRequest) {
     const totalTTC = totalHT + totalVAT
     const depositAmount = totalTTC * ((deposit_percent || 30) / 100)
 
-    // Le quote_number sera généré automatiquement par le trigger
-    // On n'a plus besoin de l'appeler manuellement
+    // Créer le devis avec retry en cas de collision de numéro
+    let quote = null
+    let quoteError = null
+    const maxRetries = 3
 
-    // Créer le devis
-    const { data: quote, error: quoteError } = await supabase
-      .from('quotes')
-      .insert({
-        user_id: user.id,
-        client_id,
-        // quote_number sera auto-généré par le trigger
-        status: 'draft',
-        total_ht: totalHT,
-        total_ttc: totalTTC,
-        vat_rate: vat_rate || 20,
-        deposit_percent: deposit_percent || 30,
-        deposit_amount: depositAmount,
-        deposit_status: 'pending',
-        expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 jours
-      })
-      .select()
-      .single()
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      const result = await supabase
+        .from('quotes')
+        .insert({
+          user_id: user.id,
+          client_id,
+          // quote_number sera auto-généré par le trigger
+          // En cas de collision, le retry utilisera un numéro de fallback
+          ...(attempt > 0 && {
+            quote_number: `DEV-${new Date().getFullYear()}-${Date.now().toString().slice(-8)}`
+          }),
+          status: 'draft',
+          total_ht: totalHT,
+          total_ttc: totalTTC,
+          vat_rate: vat_rate || 20,
+          deposit_percent: deposit_percent || 30,
+          deposit_amount: depositAmount,
+          deposit_status: 'pending',
+          expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 jours
+        })
+        .select()
+        .single()
+
+      quote = result.data
+      quoteError = result.error
+
+      // Si succès ou erreur autre que duplication, sortir de la boucle
+      if (!quoteError || !quoteError.message?.includes('duplicate key')) {
+        break
+      }
+
+      // Attendre un peu avant de réessayer (éviter race condition)
+      await new Promise(resolve => setTimeout(resolve, 100 * (attempt + 1)))
+    }
 
     if (quoteError || !quote) {
       console.error('Erreur création devis:', quoteError)
