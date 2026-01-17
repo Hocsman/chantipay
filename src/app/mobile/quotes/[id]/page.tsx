@@ -6,6 +6,7 @@ import { MobileLayout } from '@/components/mobile/MobileLayout';
 import { Button } from '@/components/ui/button';
 import { createClient } from '@/lib/supabase/client';
 import { SignaturePad } from '@/components/SignaturePad';
+import { SmartEditSheet } from '@/components/quotes/SmartEditSheet';
 import {
   Dialog,
   DialogContent,
@@ -152,6 +153,42 @@ export default function QuoteDetailPage() {
       0
     ) || 0;
   const totalTTC = totalHT + totalVAT;
+
+  // Appliquer les modifications intelligentes
+  const handleSmartEdit = useCallback(async (newItems: QuoteItem[]) => {
+    if (!quote) return;
+
+    try {
+      const supabase = createClient();
+
+      // Supprimer les anciennes lignes
+      await supabase
+        .from('quote_items')
+        .delete()
+        .eq('quote_id', quote.id);
+
+      // Insérer les nouvelles lignes
+      const itemsToInsert = newItems.map((item) => ({
+        quote_id: quote.id,
+        description: item.description,
+        quantity: item.quantity,
+        unit_price_ht: item.unit_price_ht,
+        vat_rate: item.vat_rate,
+      }));
+
+      const { error: insertError } = await supabase
+        .from('quote_items')
+        .insert(itemsToInsert);
+
+      if (insertError) throw insertError;
+
+      // Recharger le devis
+      await loadQuote();
+    } catch (error) {
+      console.error('Erreur mise à jour devis:', error);
+      toast.error('Erreur lors de la mise à jour du devis');
+    }
+  }, [quote, loadQuote]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('fr-FR', {
@@ -426,7 +463,15 @@ export default function QuoteDetailPage() {
         {/* Lignes du devis */}
         {quote.items && quote.items.length > 0 && (
           <div className="rounded-2xl bg-card p-6 shadow-sm space-y-4">
-            <h3 className="font-semibold text-foreground">Détail des prestations</h3>
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold text-foreground">Détail des prestations</h3>
+            </div>
+            {quote.status === 'draft' && (
+              <SmartEditSheet
+                items={quote.items}
+                onApplyChanges={handleSmartEdit}
+              />
+            )}
             <div className="space-y-3">
               {quote.items.map((item, index) => (
                 <div key={item.id} className="p-3 bg-muted/30 rounded-lg space-y-2">

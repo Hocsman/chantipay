@@ -7,6 +7,7 @@ import { PageHeader } from '@/components/PageHeader'
 import { LayoutContainer } from '@/components/LayoutContainer'
 import { QuoteStatusBadge } from '@/components/QuoteStatusBadge'
 import { SignaturePad } from '@/components/SignaturePad'
+import { SmartEditDialog } from '@/components/quotes/SmartEditDialog'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -196,6 +197,42 @@ export default function QuoteDetailPage() {
     0
   ) || 0
   const totalTTC = totalHT + totalVAT
+
+  // Appliquer les modifications intelligentes
+  const handleSmartEdit = useCallback(async (newItems: QuoteItem[]) => {
+    if (!quote) return
+
+    try {
+      const supabase = createClient()
+
+      // Supprimer les anciennes lignes
+      await supabase
+        .from('quote_items')
+        .delete()
+        .eq('quote_id', quote.id)
+
+      // Insérer les nouvelles lignes
+      const itemsToInsert = newItems.map((item) => ({
+        quote_id: quote.id,
+        description: item.description,
+        quantity: item.quantity,
+        unit_price_ht: item.unit_price_ht,
+        vat_rate: item.vat_rate,
+      }))
+
+      const { error: insertError } = await supabase
+        .from('quote_items')
+        .insert(itemsToInsert)
+
+      if (insertError) throw insertError
+
+      // Recharger le devis
+      await loadQuote()
+    } catch (error) {
+      console.error('Erreur mise à jour devis:', error)
+      toast.error('Erreur lors de la mise à jour du devis')
+    }
+  }, [quote, loadQuote])
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('fr-FR', {
@@ -445,8 +482,14 @@ export default function QuoteDetailPage() {
 
         {/* Lignes du devis */}
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-lg">Détail du devis</CardTitle>
+            {quote.status === 'draft' && (
+              <SmartEditDialog
+                items={quote.items}
+                onApplyChanges={handleSmartEdit}
+              />
+            )}
           </CardHeader>
           <CardContent>
             {/* Vue mobile */}
