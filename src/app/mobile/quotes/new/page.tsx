@@ -29,6 +29,7 @@ import { useAIHistory } from '@/hooks/useAIHistory';
 import { AIHistorySheet } from '@/components/ai/AIHistorySheet';
 import { TemplateSelectorSheet } from '@/components/templates/TemplateSelectorSheet';
 import type { QuoteTemplate } from '@/lib/templates/quoteTemplates';
+import { PriceAdjustmentSheet } from '@/components/quotes/PriceAdjustmentSheet';
 
 // ===========================================
 // Types
@@ -754,14 +755,22 @@ export default function NewQuotePage() {
                   <CardContent className="p-4 space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium">Ligne {index + 1}</span>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => removeItem(item.id)}
-                        disabled={items.length === 1}
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
+                      <div className="flex gap-1">
+                        <PriceAdjustmentSheet
+                          description={item.description}
+                          quantity={item.quantity}
+                          currentPrice={item.unit_price_ht}
+                          onApplyPrice={(newPrice) => updateItem(item.id, 'unit_price_ht', newPrice)}
+                        />
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removeItem(item.id)}
+                          disabled={items.length === 1}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
                     </div>
                     <div>
                       <Label>Description</Label>

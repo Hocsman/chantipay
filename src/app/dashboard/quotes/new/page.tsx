@@ -39,6 +39,7 @@ import { useAIHistory } from '@/hooks/useAIHistory'
 import { AIHistoryDropdown } from '@/components/ai/AIHistoryDropdown'
 import { TemplateSelector } from '@/components/templates/TemplateSelector'
 import type { QuoteTemplate } from '@/lib/templates/quoteTemplates'
+import { PriceAdjustmentDialog } from '@/components/quotes/PriceAdjustmentDialog'
 
 // ===========================================
 // Types
@@ -560,14 +561,22 @@ export default function NewQuotePage() {
                   <CardContent className="p-4 space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium">Ligne {index + 1}</span>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => removeItem(item.id)}
-                        disabled={items.length === 1}
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
+                      <div className="flex gap-1">
+                        <PriceAdjustmentDialog
+                          description={item.description}
+                          quantity={item.quantity}
+                          currentPrice={item.unit_price_ht}
+                          onApplyPrice={(newPrice) => updateItem(item.id, 'unit_price_ht', newPrice)}
+                        />
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removeItem(item.id)}
+                          disabled={items.length === 1}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
                     </div>
                     <div>
                       <Label>Description</Label>
@@ -627,6 +636,7 @@ export default function NewQuotePage() {
                     <TableHead className="w-20">TVA %</TableHead>
                     <TableHead className="w-28 text-right">Total HT</TableHead>
                     <TableHead className="w-12"></TableHead>
+                    <TableHead className="w-12"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -667,6 +677,14 @@ export default function NewQuotePage() {
                       </TableCell>
                       <TableCell className="text-right font-medium">
                         {formatCurrency(item.quantity * item.unit_price_ht)}
+                      </TableCell>
+                      <TableCell>
+                        <PriceAdjustmentDialog
+                          description={item.description}
+                          quantity={item.quantity}
+                          currentPrice={item.unit_price_ht}
+                          onApplyPrice={(newPrice) => updateItem(item.id, 'unit_price_ht', newPrice)}
+                        />
                       </TableCell>
                       <TableCell>
                         <Button
