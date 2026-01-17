@@ -40,6 +40,9 @@ import { AIHistoryDropdown } from '@/components/ai/AIHistoryDropdown'
 import { TemplateSelector } from '@/components/templates/TemplateSelector'
 import type { QuoteTemplate } from '@/lib/templates/quoteTemplates'
 import { PriceAdjustmentDialog } from '@/components/quotes/PriceAdjustmentDialog'
+import { LibraryImportDialog } from '@/components/library/LibraryImportDialog'
+import { useQuoteLibrary } from '@/hooks/useQuoteLibrary'
+import type { LibraryItem } from '@/types/quote-library'
 
 // ===========================================
 // Types
@@ -245,6 +248,19 @@ export default function NewQuotePage() {
     setSelectedTrade(template.trade)
     setSelectedChips(new Set())
     toast.success(`Template "${template.title}" chargé`)
+  }, [])
+
+  // Import from library
+  const handleImportFromLibrary = useCallback((libraryItems: LibraryItem[]) => {
+    const newItems: QuoteItem[] = libraryItems.map((libItem, index) => ({
+      id: `lib-import-${Date.now()}-${index}`,
+      description: libItem.description,
+      quantity: 1,
+      unit_price_ht: libItem.unit_price_ht,
+      vat_rate: libItem.vat_rate,
+    }))
+    setItems((prev) => [...prev, ...newItems])
+    toast.success(`${libraryItems.length} ligne(s) importée(s) depuis la bibliothèque`)
   }, [])
 
   const addItem = () => {
@@ -702,10 +718,16 @@ export default function NewQuotePage() {
               </Table>
             </div>
 
-            <Button variant="outline" className="mt-4" onClick={addItem}>
-              <Plus className="h-4 w-4 mr-2" />
-              Ajouter une ligne
-            </Button>
+            <div className="flex flex-wrap gap-3 mt-4">
+              <Button variant="outline" onClick={addItem}>
+                <Plus className="h-4 w-4 mr-2" />
+                Ajouter une ligne
+              </Button>
+              <LibraryImportDialog
+                onImportItems={handleImportFromLibrary}
+                currentTrade={selectedTrade}
+              />
+            </div>
           </CardContent>
         </Card>
 

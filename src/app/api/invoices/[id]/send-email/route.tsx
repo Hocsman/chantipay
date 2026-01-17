@@ -130,7 +130,8 @@ export async function POST(
 
     try {
       const result = await resendClient.emails.send({
-        from: 'ChantiPay <onboarding@resend.dev>', // À remplacer par votre domaine vérifié
+        from: 'ChantiPay Factures <factures@chantipay.com>',
+        replyTo: 'contact@chantipay.com',
         to: [toEmail],
         subject: `Facture ${invoice.invoice_number} - ${companyInfo.name}`,
         html: `

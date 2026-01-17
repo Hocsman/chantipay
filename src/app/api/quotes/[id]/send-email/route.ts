@@ -69,7 +69,8 @@ export async function POST(
 
     // Envoi de l'email
     const { error: sendError } = await resend.emails.send({
-      from: 'ChantiPay <noreply@chantipay.com>',
+      from: 'ChantiPay Devis <devis@chantipay.com>',
+      replyTo: 'contact@chantipay.com',
       to: quote.clients.email,
       subject: `Devis ${quote.quote_number} - ChantiPay`,
       html: `

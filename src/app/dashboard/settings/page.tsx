@@ -18,7 +18,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
-import { Loader2, Save, Upload, Building2, CreditCard, X, Image as ImageIcon, Palette } from 'lucide-react'
+import { Loader2, Save, Upload, Building2, CreditCard, X, Image as ImageIcon, Palette, BookOpen } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { uploadCompanyLogo, deleteCompanyLogo } from '@/lib/uploadLogo'
@@ -361,6 +361,32 @@ export default function SettingsPage() {
               <ThemeToggle />
             </div>
             <ThemePreview />
+          </CardContent>
+        </Card>
+
+        {/* Ma bibliothèque */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BookOpen className="h-5 w-5" />
+              Ma bibliothèque
+            </CardTitle>
+            <CardDescription>
+              Gérez vos lignes de devis favorites pour les réutiliser rapidement
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium">Lignes de devis favorites</p>
+                <p className="text-sm text-muted-foreground">Catégorisées par métier • Export/Import JSON</p>
+              </div>
+              <Link href="/dashboard/settings/library">
+                <Button variant="outline">
+                  Gérer ma bibliothèque
+                </Button>
+              </Link>
+            </div>
           </CardContent>
         </Card>
 

@@ -13,8 +13,11 @@ import {
   CheckCircle2,
   AlertCircle,
   Smartphone,
+  BookOpen,
+  ChevronRight,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import Link from 'next/link';
 
 export default function MobileSettingsPage() {
   const { biometricInfo, isEnabled: biometricEnabled, enableBiometric, disableBiometric } = useBiometric();
@@ -175,11 +178,31 @@ export default function MobileSettingsPage() {
           </div>
         </div>
 
+        {/* Ma bibliothèque */}
+        <Link href="/mobile/settings/library">
+          <div className="rounded-2xl bg-card p-6 shadow-sm active:scale-[0.98] transition-transform">
+            <div className="flex items-center gap-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-green-500/10">
+                <BookOpen className="h-6 w-6 text-green-600" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold text-foreground">
+                  Ma bibliothèque
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  Lignes de devis favorites
+                </p>
+              </div>
+              <ChevronRight className="h-5 w-5 text-muted-foreground" />
+            </div>
+          </div>
+        </Link>
+
         {/* Info */}
         <div className="rounded-lg bg-blue-50 dark:bg-blue-950/30 p-4 text-sm text-blue-800 dark:text-blue-200">
           <p className="font-medium mb-1">💡 Bon à savoir</p>
           <p>
-            Ces fonctionnalités nécessitent l'application mobile native pour fonctionner correctement.
+            Ces fonctionnalités nécessitent l&apos;application mobile native pour fonctionner correctement.
           </p>
         </div>
       </div>
