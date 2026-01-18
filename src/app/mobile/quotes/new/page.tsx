@@ -35,6 +35,7 @@ import { ComparativeQuotesSheet } from '@/components/quotes/ComparativeQuotesShe
 import { LibraryImportSheet } from '@/components/library/LibraryImportSheet';
 import type { LibraryItem } from '@/types/quote-library';
 import { SuggestionsSheet } from '@/components/quotes/SuggestionsSheet';
+import { VoiceMicButton } from '@/components/ai/VoiceMicButton';
 
 // ===========================================
 // Types
@@ -678,11 +679,22 @@ export default function NewQuotePage() {
               {/* Description Textarea */}
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <Label htmlFor="aiDescription">Décrivez les travaux</Label>
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor="aiDescription">Décrivez les travaux</Label>
+                    <VoiceMicButton
+                      onTranscript={(text) => {
+                        setAiDescription((prev) => {
+                          const newText = prev ? `${prev} ${text}` : text;
+                          return newText.length <= 2000 ? newText : prev;
+                        });
+                      }}
+                      disabled={isGeneratingAI}
+                    />
+                  </div>
                   <span
                     className={`text-xs ${aiDescription.length > 1800
-                        ? 'text-destructive'
-                        : 'text-muted-foreground'
+                      ? 'text-destructive'
+                      : 'text-muted-foreground'
                       }`}
                   >
                     {aiDescription.length}/2000
@@ -696,7 +708,7 @@ export default function NewQuotePage() {
                       setAiDescription(e.target.value);
                     }
                   }}
-                  placeholder="Ex: Installation d'un ballon d'eau chaude de 200L en remplacement d'un ancien cumulus, avec dépose de l'ancien équipement..."
+                  placeholder="Ex: Installation d'un ballon d'eau chaude de 200L... Ou dictez avec le micro 🎙️"
                   rows={5}
                   className="resize-none"
                 />
@@ -713,8 +725,8 @@ export default function NewQuotePage() {
                       key={chip.id}
                       variant={selectedChips.has(chip.id) ? 'default' : 'outline'}
                       className={`cursor-pointer transition-colors py-1.5 px-3 ${selectedChips.has(chip.id)
-                          ? 'bg-primary hover:bg-primary/90'
-                          : 'hover:bg-muted'
+                        ? 'bg-primary hover:bg-primary/90'
+                        : 'hover:bg-muted'
                         }`}
                       onClick={() => toggleChip(chip)}
                     >

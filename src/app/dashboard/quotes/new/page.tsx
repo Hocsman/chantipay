@@ -46,6 +46,7 @@ import { LibraryImportDialog } from '@/components/library/LibraryImportDialog'
 import { useQuoteLibrary } from '@/hooks/useQuoteLibrary'
 import type { LibraryItem } from '@/types/quote-library'
 import { SuggestionsAlert } from '@/components/quotes/SuggestionsAlert'
+import { VoiceMicButton } from '@/components/ai/VoiceMicButton'
 
 // ===========================================
 // Types
@@ -203,7 +204,7 @@ export default function NewQuotePage() {
       if (next.has(chip.id)) {
         next.delete(chip.id)
         // Remove the append text from description
-        setAiDescription(desc => 
+        setAiDescription(desc =>
           desc.replace(chip.appendText, '').replace(/\n{3,}/g, '\n\n').trim()
         )
       } else {
@@ -387,7 +388,7 @@ export default function NewQuotePage() {
       if (!response.ok) {
         throw new Error(data.error || 'Erreur lors de la génération')
       }
-      
+
       if (data.items && Array.isArray(data.items)) {
         const newItems: QuoteItem[] = data.items.map((item: Omit<QuoteItem, 'id'>, index: number) => ({
           id: `ai-${Date.now()}-${index}`,
@@ -836,7 +837,18 @@ export default function NewQuotePage() {
               {/* Description Textarea */}
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <Label htmlFor="aiDescription">Décrivez les travaux</Label>
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor="aiDescription">Décrivez les travaux</Label>
+                    <VoiceMicButton
+                      onTranscript={(text) => {
+                        setAiDescription((prev) => {
+                          const newText = prev ? `${prev} ${text}` : text
+                          return newText.length <= 2000 ? newText : prev
+                        })
+                      }}
+                      disabled={isGeneratingAI}
+                    />
+                  </div>
                   <span className={`text-xs ${aiDescription.length > 1800 ? 'text-destructive' : 'text-muted-foreground'}`}>
                     {aiDescription.length}/2000
                   </span>
@@ -849,7 +861,7 @@ export default function NewQuotePage() {
                       setAiDescription(e.target.value)
                     }
                   }}
-                  placeholder="Ex: Installation d'un ballon d'eau chaude de 200L en remplacement d'un ancien cumulus, avec dépose de l'ancien équipement..."
+                  placeholder="Ex: Installation d'un ballon d'eau chaude de 200L en remplacement d'un ancien cumulus, avec dépose de l'ancien équipement... Ou cliquez sur le micro pour dicter 🎙️"
                   rows={5}
                   className="resize-none"
                 />
@@ -865,11 +877,10 @@ export default function NewQuotePage() {
                     <Badge
                       key={chip.id}
                       variant={selectedChips.has(chip.id) ? 'default' : 'outline'}
-                      className={`cursor-pointer transition-colors py-1.5 px-3 ${
-                        selectedChips.has(chip.id)
+                      className={`cursor-pointer transition-colors py-1.5 px-3 ${selectedChips.has(chip.id)
                           ? 'bg-primary hover:bg-primary/90'
                           : 'hover:bg-muted'
-                      }`}
+                        }`}
                       onClick={() => toggleChip(chip)}
                     >
                       {chip.icon}
