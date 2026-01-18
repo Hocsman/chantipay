@@ -40,6 +40,7 @@ import { AIHistoryDropdown } from '@/components/ai/AIHistoryDropdown'
 import { TemplateSelector } from '@/components/templates/TemplateSelector'
 import type { QuoteTemplate } from '@/lib/templates/quoteTemplates'
 import { PriceAdjustmentDialog } from '@/components/quotes/PriceAdjustmentDialog'
+import { PhotoAnalysisDialog } from '@/components/quotes/PhotoAnalysisDialog'
 import { LibraryImportDialog } from '@/components/library/LibraryImportDialog'
 import { useQuoteLibrary } from '@/hooks/useQuoteLibrary'
 import type { LibraryItem } from '@/types/quote-library'
@@ -261,6 +262,18 @@ export default function NewQuotePage() {
     }))
     setItems((prev) => [...prev, ...newItems])
     toast.success(`${libraryItems.length} ligne(s) importée(s) depuis la bibliothèque`)
+  }, [])
+
+  // Import from photo analysis
+  const handlePhotoAnalysisItems = useCallback((photoItems: Omit<QuoteItem, 'id'>[]) => {
+    const newItems: QuoteItem[] = photoItems.map((item, index) => ({
+      id: `photo-${Date.now()}-${index}`,
+      description: item.description,
+      quantity: item.quantity,
+      unit_price_ht: item.unit_price_ht,
+      vat_rate: item.vat_rate,
+    }))
+    setItems((prev) => [...prev, ...newItems])
   }, [])
 
   const addItem = () => {
@@ -866,7 +879,7 @@ export default function NewQuotePage() {
                 </div>
               </div>
 
-              {/* Generate Button + History */}
+              {/* Generate Button + Photo + History */}
               <div className="flex flex-col sm:flex-row gap-3">
                 <Button
                   onClick={generateWithAI}
@@ -885,6 +898,11 @@ export default function NewQuotePage() {
                     </>
                   )}
                 </Button>
+
+                <PhotoAnalysisDialog
+                  onAddItems={handlePhotoAnalysisItems}
+                  currentTrade={selectedTrade}
+                />
 
                 {history.length > 0 && (
                   <AIHistoryDropdown

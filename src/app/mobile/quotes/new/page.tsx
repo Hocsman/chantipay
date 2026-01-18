@@ -30,6 +30,7 @@ import { AIHistorySheet } from '@/components/ai/AIHistorySheet';
 import { TemplateSelectorSheet } from '@/components/templates/TemplateSelectorSheet';
 import type { QuoteTemplate } from '@/lib/templates/quoteTemplates';
 import { PriceAdjustmentSheet } from '@/components/quotes/PriceAdjustmentSheet';
+import { PhotoAnalysisSheet } from '@/components/quotes/PhotoAnalysisSheet';
 import { LibraryImportSheet } from '@/components/library/LibraryImportSheet';
 import type { LibraryItem } from '@/types/quote-library';
 
@@ -250,6 +251,18 @@ export default function NewQuotePage() {
     }));
     setItems((prev) => [...prev, ...newItems]);
     toast.success(`${libraryItems.length} ligne(s) importée(s)`);
+  }, []);
+
+  // Import from photo analysis
+  const handlePhotoAnalysisItems = useCallback((photoItems: Omit<QuoteItem, 'id'>[]) => {
+    const newItems: QuoteItem[] = photoItems.map((item, index) => ({
+      id: `photo-${Date.now()}-${index}`,
+      description: item.description,
+      quantity: item.quantity,
+      unit_price_ht: item.unit_price_ht,
+      vat_rate: item.vat_rate,
+    }));
+    setItems((prev) => [...prev, ...newItems]);
   }, []);
 
   const addItem = () => {
@@ -712,7 +725,7 @@ export default function NewQuotePage() {
                 </div>
               </div>
 
-              {/* Generate Button + History */}
+              {/* Generate Button + Photo + History */}
               <div className="space-y-3">
                 <Button
                   onClick={generateWithAI}
@@ -735,6 +748,11 @@ export default function NewQuotePage() {
                     </>
                   )}
                 </Button>
+
+                <PhotoAnalysisSheet
+                  onAddItems={handlePhotoAnalysisItems}
+                  currentTrade={selectedTrade}
+                />
 
                 {history.length > 0 && (
                   <div className="flex justify-center">
