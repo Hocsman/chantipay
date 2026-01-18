@@ -111,6 +111,57 @@ export async function PATCH(
       );
     }
 
+    // Construire l'adresse complète pour les factures/devis
+    const addressParts = [
+      address_line1?.trim(),
+      [postal_code?.trim(), city?.trim()].filter(Boolean).join(' ')
+    ].filter(Boolean);
+    const fullAddress = addressParts.join(', ') || null;
+
+    // Synchroniser les informations client sur toutes les factures existantes
+    const { error: invoicesUpdateError } = await supabase
+      .from('invoices')
+      .update({
+        client_name: name.trim(),
+        client_email: email?.trim() || null,
+        client_address: fullAddress,
+      })
+      .eq('client_id', id)
+      .eq('user_id', user.id);
+
+    if (invoicesUpdateError) {
+      console.warn('Avertissement: Impossible de mettre à jour les factures existantes:', invoicesUpdateError);
+      // On ne bloque pas, c'est un avertissement
+    }
+
+    // Synchroniser les informations client sur tous les avoirs existants
+    const { error: creditNotesUpdateError } = await supabase
+      .from('credit_notes')
+      .update({
+        client_name: name.trim(),
+        client_email: email?.trim() || null,
+        client_address: fullAddress,
+      })
+      .eq('client_id', id)
+      .eq('user_id', user.id);
+
+    if (creditNotesUpdateError) {
+      console.warn('Avertissement: Impossible de mettre à jour les avoirs existants:', creditNotesUpdateError);
+    }
+
+    // Synchroniser les informations client sur toutes les interventions existantes
+    const { error: interventionsUpdateError } = await supabase
+      .from('interventions')
+      .update({
+        client_name: name.trim(),
+      })
+      .eq('client_id', id)
+      .eq('user_id', user.id);
+
+    if (interventionsUpdateError) {
+      console.warn('Avertissement: Impossible de mettre à jour les interventions existantes:', interventionsUpdateError);
+    }
+
     return NextResponse.json({ client, message: 'Client mis à jour avec succès' });
   } catch (error) {
     console.error('Erreur API client:', error);
