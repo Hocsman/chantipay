@@ -83,7 +83,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#3B82F6',
+    color: '#1F2937',
     marginBottom: 20,
   },
   invoiceDetails: {
@@ -152,7 +152,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
     paddingTop: 10,
     borderTopWidth: 2,
-    borderTopColor: '#3B82F6',
+    borderTopColor: '#F97316',
   },
   totalFinalLabel: {
     width: 100,
@@ -166,7 +166,7 @@ const styles = StyleSheet.create({
     textAlign: 'right',
     fontSize: 12,
     fontWeight: 'bold',
-    color: '#3B82F6',
+    color: '#F97316',
   },
   paymentInfo: {
     marginTop: 30,

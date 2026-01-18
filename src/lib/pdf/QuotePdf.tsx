@@ -49,7 +49,7 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     paddingBottom: 12,
     borderBottomWidth: 2,
-    borderBottomColor: '#2563EB',
+    borderBottomColor: '#F97316',
   },
   headerLeft: {
     flex: 1,
@@ -61,7 +61,7 @@ const styles = StyleSheet.create({
   companyName: {
     fontSize: 14,
     fontFamily: 'Helvetica-Bold',
-    color: '#1E3A8A',
+    color: '#1F2937',
     marginBottom: 3,
   },
   companyInfo: {
@@ -78,7 +78,7 @@ const styles = StyleSheet.create({
   documentTitle: {
     fontSize: 20,
     fontFamily: 'Helvetica-Bold',
-    color: '#1E3A8A',
+    color: '#1F2937',
     marginBottom: 6,
   },
   documentInfo: {
@@ -111,7 +111,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 10,
     fontFamily: 'Helvetica-Bold',
-    color: '#1E3A8A',
+    color: '#F97316',
     marginBottom: 6,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -134,7 +134,7 @@ const styles = StyleSheet.create({
   },
   tableHeader: {
     flexDirection: 'row',
-    backgroundColor: '#1E3A8A',
+    backgroundColor: '#1F2937',
     paddingVertical: 6,
     paddingHorizontal: 6,
     borderTopLeftRadius: 3,
@@ -200,17 +200,17 @@ const styles = StyleSheet.create({
     paddingTop: 6,
     marginTop: 4,
     borderTopWidth: 2,
-    borderTopColor: '#2563EB',
+    borderTopColor: '#F97316',
   },
   totalTTCLabel: {
     fontSize: 11,
     fontFamily: 'Helvetica-Bold',
-    color: '#1E3A8A',
+    color: '#1F2937',
   },
   totalTTCValue: {
     fontSize: 12,
     fontFamily: 'Helvetica-Bold',
-    color: '#1E3A8A',
+    color: '#F97316',
   },
   depositRow: {
     flexDirection: 'row',
@@ -258,7 +258,7 @@ const styles = StyleSheet.create({
   signatureTitle: {
     fontSize: 9,
     fontFamily: 'Helvetica-Bold',
-    color: '#1E3A8A',
+    color: '#1F2937',
     marginBottom: 4,
   },
   signatureSubtitle: {

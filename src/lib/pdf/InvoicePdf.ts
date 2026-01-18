@@ -49,18 +49,19 @@ export async function generateInvoicePDF(
   const margin = 20
   const rightCol = pageWidth - margin
 
-  // Couleurs du thème
-  const primaryColor: [number, number, number] = [37, 99, 235] // blue-600
+  // Couleurs du thème - Noir, Blanc, Orange (ChantiPay)
+  const primaryColor: [number, number, number] = [31, 41, 55] // gray-800 (noir)
+  const accentColor: [number, number, number] = [249, 115, 22] // orange-500
   const secondaryColor: [number, number, number] = [107, 114, 128] // gray-500
   const darkColor: [number, number, number] = [31, 41, 55] // gray-800
 
   let yPos = margin
 
   // ============================================
-  // EN-TÊTE - Bandeau bleu professionnel
+  // EN-TÊTE - Bandeau noir professionnel
   // ============================================
 
-  // Bandeau de couleur en haut
+  // Bandeau de couleur en haut (noir)
   doc.setFillColor(...primaryColor)
   doc.rect(0, 0, pageWidth, 45, 'F')
 
@@ -73,12 +74,12 @@ export async function generateInvoicePDF(
   // Sous-titre (type d'activité)
   doc.setFontSize(10)
   doc.setFont('helvetica', 'normal')
-  doc.setTextColor(191, 219, 254) // blue-200
+  doc.setTextColor(209, 213, 219) // gray-300
   doc.text('Artisan professionnel', margin, 28)
 
   // Numéro de facture (à droite dans le bandeau)
   doc.setFontSize(10)
-  doc.setTextColor(191, 219, 254)
+  doc.setTextColor(209, 213, 219) // gray-300
   doc.text('FACTURE', rightCol, 15, { align: 'right' })
   doc.setFontSize(16)
   doc.setFont('helvetica', 'bold')
@@ -325,15 +326,15 @@ export async function generateInvoicePDF(
   doc.text(formatCurrency(invoice.tax_amount), valueX, totalsY, { align: 'right' })
   totalsY += 10
 
-  // Ligne de séparation
-  doc.setDrawColor(...primaryColor)
+  // Ligne de séparation (orange)
+  doc.setDrawColor(...accentColor)
   doc.setLineWidth(1)
   doc.line(labelX, totalsY - 3, valueX, totalsY - 3)
 
-  // Total TTC
+  // Total TTC (orange)
   doc.setFontSize(12)
   doc.setFont('helvetica', 'bold')
-  doc.setTextColor(...primaryColor)
+  doc.setTextColor(...accentColor)
   doc.text('Total TTC', labelX, totalsY + 5)
   doc.text(formatCurrency(invoice.total), valueX, totalsY + 5, { align: 'right' })
 
