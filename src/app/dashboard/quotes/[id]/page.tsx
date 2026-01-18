@@ -117,12 +117,13 @@ export default function QuoteDetailPage() {
   const [isCreatingPaymentLink, setIsCreatingPaymentLink] = useState(false)
   const [isDownloadingPDF, setIsDownloadingPDF] = useState(false)
   const [isSavingSignature, setIsSavingSignature] = useState(false)
+  const [isSendingEmail, setIsSendingEmail] = useState(false)
   const [isSigned, setIsSigned] = useState(false)
 
   // Charger le devis directement depuis Supabase (côté client)
   const loadQuote = useCallback(async () => {
     if (!quoteId) return
-    
+
     // Valider le format UUID
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (!uuidRegex.test(quoteId)) {
@@ -135,13 +136,13 @@ export default function QuoteDetailPage() {
       setTimeout(() => router.push('/dashboard/quotes'), 2000);
       return;
     }
-    
+
     try {
       setIsLoading(true)
       setError(null)
-      
+
       const supabase = createClient()
-      
+
       // Récupérer le devis avec les infos client (utiliser * pour éviter les erreurs de colonnes manquantes)
       const { data: quoteData, error: quoteError } = await supabase
         .from('quotes')
@@ -151,28 +152,28 @@ export default function QuoteDetailPage() {
         `)
         .eq('id', quoteId)
         .single()
-      
+
       if (quoteError) {
         console.error('Erreur Supabase:', quoteError)
         throw new Error(quoteError.message || 'Devis non trouvé')
       }
-      
+
       // Récupérer les lignes du devis
       const { data: items, error: itemsError } = await supabase
         .from('quote_items')
         .select('*')
         .eq('quote_id', quoteId)
         .order('created_at', { ascending: true })
-      
+
       if (itemsError) {
         console.error('Erreur items:', itemsError)
       }
-      
+
       const fullQuote = {
         ...quoteData,
         items: items || []
       }
-      
+
       console.log('Quote loaded:', fullQuote)
       setQuote(fullQuote)
     } catch (err) {
@@ -253,7 +254,7 @@ export default function QuoteDetailPage() {
   // Gestion de la signature
   const handleSignature = async (signatureDataUrl: string) => {
     if (!quote) return
-    
+
     setIsSavingSignature(true)
     try {
       const response = await fetch(`/api/quotes/${quote.id}/sign`, {
@@ -263,16 +264,16 @@ export default function QuoteDetailPage() {
       })
 
       const data = await response.json()
-      
+
       if (!response.ok) throw new Error(data.error || 'Erreur lors de la sauvegarde')
 
       // Fermer le dialog et marquer comme signé
       setIsSignatureDialogOpen(false)
       setIsSigned(true)
-      
+
       // Recharger le devis pour avoir les données à jour
       await loadQuote()
-      
+
       // Afficher une alerte de succès
       alert('✅ ' + data.message)
     } catch (error) {
@@ -286,7 +287,7 @@ export default function QuoteDetailPage() {
   // Marquer l'acompte comme payé
   const handleMarkDepositPaid = async () => {
     if (!quote || !depositMethod) return
-    
+
     setIsMarkingDeposit(true)
     try {
       const response = await fetch(`/api/quotes/${quote.id}/deposit`, {
@@ -296,16 +297,16 @@ export default function QuoteDetailPage() {
       })
 
       const data = await response.json()
-      
+
       if (!response.ok) throw new Error(data.error || 'Erreur lors de la mise à jour')
 
       // Fermer le dialog et recharger
       setIsDepositDialogOpen(false)
       setDepositMethod('')
-      
+
       // Recharger le devis
       await loadQuote()
-      
+
       // Afficher une alerte de succès
       alert('✅ Acompte marqué comme payé')
     } catch (error) {
@@ -319,7 +320,7 @@ export default function QuoteDetailPage() {
   // Création du lien de paiement
   const handleCreatePaymentLink = async () => {
     if (!quote) return
-    
+
     setIsCreatingPaymentLink(true)
     try {
       const response = await fetch('/api/payments/create-link', {
@@ -331,7 +332,7 @@ export default function QuoteDetailPage() {
       if (!response.ok) throw new Error('Erreur lors de la création du lien')
 
       const data = await response.json()
-      
+
       // Ouvrir le lien dans un nouvel onglet
       if (data.paymentUrl) {
         window.open(data.paymentUrl, '_blank')
@@ -346,11 +347,11 @@ export default function QuoteDetailPage() {
   // Téléchargement du PDF
   const handleDownloadPDF = async () => {
     if (!quote) return
-    
+
     setIsDownloadingPDF(true)
     try {
       const response = await fetch(`/api/quotes/${quote.id}/pdf`)
-      
+
       if (!response.ok) throw new Error('Erreur lors de la génération du PDF')
 
       const blob = await response.blob()
@@ -361,13 +362,13 @@ export default function QuoteDetailPage() {
       a.style.display = 'none'
       document.body.appendChild(a)
       a.click()
-      
+
       // Nettoyer après un délai pour assurer la compatibilité mobile
       setTimeout(() => {
         window.URL.revokeObjectURL(url)
         document.body.removeChild(a)
       }, 100)
-      
+
       toast.success('PDF téléchargé', {
         description: `Le devis ${quote.quote_number} a été téléchargé`
       })
@@ -378,6 +379,39 @@ export default function QuoteDetailPage() {
       })
     } finally {
       setIsDownloadingPDF(false)
+    }
+  }
+
+  // Envoyer par email
+  const handleSendEmail = async () => {
+    if (!quote) return
+    if (!quote.clients?.email) {
+      toast.error('Le client n\'a pas d\'adresse email')
+      return
+    }
+
+    setIsSendingEmail(true)
+    try {
+      const response = await fetch(`/api/quotes/${quote.id}/send-email`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) throw new Error(data.error || 'Erreur lors de l\'envoi')
+
+      // Recharger le devis pour avoir le nouveau statut
+      await loadQuote()
+
+      toast.success('Email envoyé avec succès', {
+        description: `Devis envoyé à ${quote.clients.email}`,
+      })
+    } catch (error) {
+      console.error('Erreur envoi email:', error)
+      toast.error(error instanceof Error ? error.message : 'Erreur lors de l\'envoi de l\'email')
+    } finally {
+      setIsSendingEmail(false)
     }
   }
 
@@ -588,7 +622,7 @@ export default function QuoteDetailPage() {
                   </p>
                 </div>
               </div>
-              
+
               {/* Si acompte payé: afficher les détails */}
               {quote.deposit_status === 'paid' && (
                 <div className="bg-green-50 border border-green-200 rounded-lg p-4">
@@ -618,11 +652,11 @@ export default function QuoteDetailPage() {
                   </div>
                 </div>
               )}
-              
+
               {/* Si acompte en attente: bouton pour marquer comme payé */}
               {quote.deposit_status === 'pending' && (
-                <Button 
-                  className="w-full h-12 text-base font-semibold" 
+                <Button
+                  className="w-full h-12 text-base font-semibold"
                   onClick={() => setIsDepositDialogOpen(true)}
                 >
                   <Wallet className="h-5 w-5 mr-2" />
@@ -641,7 +675,7 @@ export default function QuoteDetailPage() {
               Signature du devis
             </CardTitle>
             <CardDescription>
-              {isQuoteSigned 
+              {isQuoteSigned
                 ? 'Le client a accepté et signé ce devis'
                 : 'Faites signer le client pour valider le devis'
               }
@@ -656,7 +690,7 @@ export default function QuoteDetailPage() {
                 <div>
                   <p className="font-semibold text-green-800 text-lg">Devis signé ✓</p>
                   <p className="text-sm text-green-700">
-                    {quote.signed_at 
+                    {quote.signed_at
                       ? `Signé le ${formatDate(quote.signed_at)}`
                       : `Signé le ${formatDate(new Date().toISOString())}`
                     }
@@ -750,6 +784,24 @@ export default function QuoteDetailPage() {
           <Button
             variant="outline"
             className="flex-1"
+            onClick={handleSendEmail}
+            disabled={isSendingEmail || !client.email}
+          >
+            {isSendingEmail ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Envoi en cours...
+              </>
+            ) : (
+              <>
+                <Mail className="h-4 w-4 mr-2" />
+                Envoyer par email
+              </>
+            )}
+          </Button>
+          <Button
+            variant="outline"
+            className="flex-1"
             onClick={handleDownloadPDF}
             disabled={isDownloadingPDF}
           >
@@ -794,7 +846,7 @@ export default function QuoteDetailPage() {
               Montant : <strong>{formatCurrency(quote.deposit_amount)}</strong>
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="deposit-method">Méthode de paiement</Label>

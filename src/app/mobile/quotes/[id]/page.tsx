@@ -68,7 +68,7 @@ export default function QuoteDetailPage() {
   const params = useParams();
   const [quote, setQuote] = useState<Quote | null>(null);
   const [loading, setLoading] = useState(true);
-  
+
   // États UI pour signature et acompte
   const [isSignatureDialogOpen, setIsSignatureDialogOpen] = useState(false);
   const [isDepositDialogOpen, setIsDepositDialogOpen] = useState(false);
@@ -76,6 +76,7 @@ export default function QuoteDetailPage() {
   const [isSavingSignature, setIsSavingSignature] = useState(false);
   const [isMarkingDeposit, setIsMarkingDeposit] = useState(false);
   const [isDownloadingPDF, setIsDownloadingPDF] = useState(false);
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
 
   // Charger le devis avec toutes les données
   const loadQuote = useCallback(async () => {
@@ -241,11 +242,11 @@ export default function QuoteDetailPage() {
   // Téléchargement du PDF (compatible Chrome mobile)
   const handleDownloadPDF = async () => {
     if (!quote) return;
-    
+
     setIsDownloadingPDF(true);
     try {
       const response = await fetch(`/api/quotes/${quote.id}/pdf`);
-      
+
       if (!response.ok) throw new Error('Erreur lors de la génération du PDF');
 
       const blob = await response.blob();
@@ -256,13 +257,13 @@ export default function QuoteDetailPage() {
       a.style.display = 'none';
       document.body.appendChild(a);
       a.click();
-      
+
       // Nettoyer après un délai pour assurer la compatibilité mobile
       setTimeout(() => {
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
       }, 100);
-      
+
       toast.success('PDF téléchargé', {
         description: `Le devis ${quote.quote_number} a été téléchargé`
       });
@@ -306,6 +307,39 @@ export default function QuoteDetailPage() {
       toast.error('❌ Erreur lors du marquage de l\'acompte');
     } finally {
       setIsMarkingDeposit(false);
+    }
+  };
+
+  // Envoyer par email
+  const handleSendEmail = async () => {
+    if (!quote) return;
+    if (!quote.clients?.email) {
+      toast.error('Le client n\'a pas d\'adresse email');
+      return;
+    }
+
+    setIsSendingEmail(true);
+    try {
+      const response = await fetch(`/api/quotes/${quote.id}/send-email`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) throw new Error(data.error || 'Erreur lors de l\'envoi');
+
+      // Recharger le devis pour avoir le nouveau statut
+      await loadQuote();
+
+      toast.success('Email envoyé avec succès', {
+        description: `Devis envoyé à ${quote.clients.email}`,
+      });
+    } catch (error) {
+      console.error('Erreur envoi email:', error);
+      toast.error(error instanceof Error ? error.message : 'Erreur lors de l\'envoi de l\'email');
+    } finally {
+      setIsSendingEmail(false);
     }
   };
 
@@ -570,14 +604,28 @@ export default function QuoteDetailPage() {
           )}
 
           {/* Autres actions */}
-          <Button className="w-full h-12 text-base" variant="outline">
-            <Mail className="mr-2 h-5 w-5" />
-            Envoyer par email
+          <Button
+            className="w-full h-12 text-base"
+            variant="outline"
+            onClick={handleSendEmail}
+            disabled={isSendingEmail || !quote.clients?.email}
+          >
+            {isSendingEmail ? (
+              <>
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                Envoi en cours...
+              </>
+            ) : (
+              <>
+                <Mail className="mr-2 h-5 w-5" />
+                Envoyer par email
+              </>
+            )}
           </Button>
 
           <div className="grid grid-cols-2 gap-3">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               className="w-full h-12"
               onClick={handleDownloadPDF}
               disabled={isDownloadingPDF}
