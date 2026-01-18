@@ -41,6 +41,7 @@ import { TemplateSelector } from '@/components/templates/TemplateSelector'
 import type { QuoteTemplate } from '@/lib/templates/quoteTemplates'
 import { PriceAdjustmentDialog } from '@/components/quotes/PriceAdjustmentDialog'
 import { PhotoAnalysisDialog } from '@/components/quotes/PhotoAnalysisDialog'
+import { ComparativeQuotesDialog } from '@/components/quotes/ComparativeQuotesDialog'
 import { LibraryImportDialog } from '@/components/library/LibraryImportDialog'
 import { useQuoteLibrary } from '@/hooks/useQuoteLibrary'
 import type { LibraryItem } from '@/types/quote-library'
@@ -274,6 +275,18 @@ export default function NewQuotePage() {
       vat_rate: item.vat_rate,
     }))
     setItems((prev) => [...prev, ...newItems])
+  }, [])
+
+  // Apply variant from comparative quotes
+  const handleSelectVariant = useCallback((variantItems: QuoteItem[]) => {
+    const newItems: QuoteItem[] = variantItems.map((item, index) => ({
+      id: `variant-${Date.now()}-${index}`,
+      description: item.description,
+      quantity: item.quantity,
+      unit_price_ht: item.unit_price_ht,
+      vat_rate: item.vat_rate,
+    }))
+    setItems(newItems)
   }, [])
 
   const addItem = () => {
@@ -901,6 +914,12 @@ export default function NewQuotePage() {
 
                 <PhotoAnalysisDialog
                   onAddItems={handlePhotoAnalysisItems}
+                  currentTrade={selectedTrade}
+                />
+
+                <ComparativeQuotesDialog
+                  items={items.filter(item => item.description.trim())}
+                  onSelectVariant={handleSelectVariant}
                   currentTrade={selectedTrade}
                 />
 
