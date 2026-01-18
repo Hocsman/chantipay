@@ -242,17 +242,19 @@ export default function ClientDetailMobilePage() {
                   <div>
                     <p className="text-sm text-muted-foreground">Notes</p>
                     <p className="text-foreground whitespace-pre-wrap">{client.notes}</p>
-                  </div>
+                </div>
                 )}
 
                 <div>
                   <p className="text-sm text-muted-foreground">Créé le</p>
                   <p className="text-foreground">
-                    {new Date(client.created_at).toLocaleDateString('fr-FR', {
-                      day: '2-digit',
-                      month: 'long',
-                      year: 'numeric',
-                    })}
+                    {client.created_at && !isNaN(new Date(client.created_at).getTime())
+                      ? new Date(client.created_at).toLocaleDateString('fr-FR', {
+                          day: '2-digit',
+                          month: 'long',
+                          year: 'numeric',
+                        })
+                      : 'Date inconnue'}
                   </p>
                 </div>
               </CardContent>

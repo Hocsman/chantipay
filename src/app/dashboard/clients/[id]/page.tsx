@@ -6,6 +6,9 @@ import Link from 'next/link'
 import { LayoutContainer } from '@/components/LayoutContainer'
 import { PageHeader } from '@/components/PageHeader'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
@@ -26,6 +29,9 @@ import {
   FileText,
   Trash2,
   Loader2,
+  Pencil,
+  X,
+  Save,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -70,6 +76,19 @@ export default function ClientDetailPage() {
   const [loading, setLoading] = useState(true)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  
+  // États pour l'édition
+  const [isEditing, setIsEditing] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    address_line1: '',
+    postal_code: '',
+    city: '',
+    notes: '',
+  })
 
   useEffect(() => {
     loadClientData()
@@ -90,7 +109,19 @@ export default function ClientDetailPage() {
         throw new Error('Erreur lors du chargement du client')
       }
       const clientData = await clientRes.json()
-      setClient(clientData)
+      const clientInfo = clientData.client || clientData
+      setClient(clientInfo)
+      
+      // Initialiser le formulaire avec les données du client
+      setFormData({
+        name: clientInfo.name || '',
+        email: clientInfo.email || '',
+        phone: clientInfo.phone || '',
+        address_line1: clientInfo.address_line1 || '',
+        postal_code: clientInfo.postal_code || '',
+        city: clientInfo.city || '',
+        notes: clientInfo.notes || '',
+      })
 
       // Charger les devis du client
       const quotesRes = await fetch(`/api/quotes?client_id=${clientId}`)
@@ -103,6 +134,63 @@ export default function ClientDetailPage() {
       toast.error('Erreur lors du chargement des données')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleFormChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value } = e.target
+    setFormData((prev) => ({ ...prev, [name]: value }))
+  }
+
+  const handleSave = async () => {
+    if (!client) return
+
+    if (!formData.name.trim()) {
+      toast.error('Le nom du client est requis')
+      return
+    }
+
+    setIsSaving(true)
+    try {
+      const response = await fetch(`/api/clients/${client.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        toast.error(data.error || 'Erreur lors de la mise à jour')
+        return
+      }
+
+      toast.success('✅ Client mis à jour avec succès')
+      setIsEditing(false)
+      await loadClientData()
+    } catch (error) {
+      console.error('Erreur:', error)
+      toast.error('Une erreur est survenue')
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const handleCancelEdit = () => {
+    setIsEditing(false)
+    // Réinitialiser le formulaire avec les données du client
+    if (client) {
+      setFormData({
+        name: client.name || '',
+        email: client.email || '',
+        phone: client.phone || '',
+        address_line1: client.address_line1 || '',
+        postal_code: client.postal_code || '',
+        city: client.city || '',
+        notes: client.notes || '',
+      })
     }
   }
 
@@ -161,6 +249,18 @@ export default function ClientDetailPage() {
     )
   }
 
+  // Formater la date de création
+  const formatCreatedAt = (dateString: string) => {
+    if (!dateString) return 'Date inconnue'
+    const date = new Date(dateString)
+    if (isNaN(date.getTime())) return 'Date inconnue'
+    return date.toLocaleDateString('fr-FR', {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric',
+    })
+  }
+
   return (
     <LayoutContainer>
       <div className="mb-4">
@@ -175,7 +275,7 @@ export default function ClientDetailPage() {
 
       <PageHeader
         title={client.name}
-        description={`Client depuis le ${new Date(client.created_at).toLocaleDateString('fr-FR')}`}
+        description={`Client depuis le ${formatCreatedAt(client.created_at)}`}
       >
         <Link href={`/dashboard/quotes/new?clientId=${client.id}`}>
           <Button>
@@ -189,67 +289,204 @@ export default function ClientDetailPage() {
         {/* Client Info */}
         <div className="lg:col-span-1 space-y-6">
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-lg">Coordonnées</CardTitle>
+              {!isEditing && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsEditing(true)}
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
+              )}
             </CardHeader>
             <CardContent className="space-y-4">
-              {client.email && (
-                <div className="flex items-start gap-3">
-                  <Mail className="text-muted-foreground mt-0.5 h-4 w-4" />
-                  <div>
-                    <p className="text-sm font-medium">Email</p>
-                    <a
-                      href={`mailto:${client.email}`}
-                      className="text-primary text-sm hover:underline"
-                    >
-                      {client.email}
-                    </a>
-                  </div>
-                </div>
-              )}
-              {client.phone && (
-                <div className="flex items-start gap-3">
-                  <Phone className="text-muted-foreground mt-0.5 h-4 w-4" />
-                  <div>
-                    <p className="text-sm font-medium">Téléphone</p>
-                    <a
-                      href={`tel:${client.phone}`}
-                      className="text-primary text-sm hover:underline"
-                    >
-                      {client.phone}
-                    </a>
-                  </div>
-                </div>
-              )}
-              {(client.address_line1 || client.city) && (
-                <div className="flex items-start gap-3">
-                  <MapPin className="text-muted-foreground mt-0.5 h-4 w-4" />
-                  <div>
-                    <p className="text-sm font-medium">Adresse</p>
-                    <p className="text-muted-foreground text-sm">
-                      {client.address_line1}
-                      {client.address_line1 && <br />}
-                      {client.address_line2}
-                      {client.address_line2 && <br />}
-                      {client.postal_code} {client.city}
-                      {client.country && (
-                        <>
-                          <br />
-                          {client.country}
-                        </>
-                      )}
-                    </p>
-                  </div>
-                </div>
-              )}
-              {client.notes && (
+              {/* Mode lecture */}
+              {!isEditing && (
                 <>
-                  <Separator />
-                  <div>
-                    <p className="mb-1 text-sm font-medium">Notes</p>
-                    <p className="text-muted-foreground text-sm">{client.notes}</p>
-                  </div>
+                  {client.email && (
+                    <div className="flex items-start gap-3">
+                      <Mail className="text-muted-foreground mt-0.5 h-4 w-4" />
+                      <div>
+                        <p className="text-sm font-medium">Email</p>
+                        <a
+                          href={`mailto:${client.email}`}
+                          className="text-primary text-sm hover:underline"
+                        >
+                          {client.email}
+                        </a>
+                      </div>
+                    </div>
+                  )}
+                  {client.phone && (
+                    <div className="flex items-start gap-3">
+                      <Phone className="text-muted-foreground mt-0.5 h-4 w-4" />
+                      <div>
+                        <p className="text-sm font-medium">Téléphone</p>
+                        <a
+                          href={`tel:${client.phone}`}
+                          className="text-primary text-sm hover:underline"
+                        >
+                          {client.phone}
+                        </a>
+                      </div>
+                    </div>
+                  )}
+                  {(client.address_line1 || client.city) && (
+                    <div className="flex items-start gap-3">
+                      <MapPin className="text-muted-foreground mt-0.5 h-4 w-4" />
+                      <div>
+                        <p className="text-sm font-medium">Adresse</p>
+                        <p className="text-muted-foreground text-sm">
+                          {client.address_line1}
+                          {client.address_line1 && <br />}
+                          {client.address_line2}
+                          {client.address_line2 && <br />}
+                          {client.postal_code} {client.city}
+                          {client.country && (
+                            <>
+                              <br />
+                              {client.country}
+                            </>
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  {!client.email && !client.phone && !client.address_line1 && !client.city && (
+                    <p className="text-muted-foreground text-sm italic">
+                      Aucune coordonnée renseignée
+                    </p>
+                  )}
+                  {client.notes && (
+                    <>
+                      <Separator />
+                      <div>
+                        <p className="mb-1 text-sm font-medium">Notes</p>
+                        <p className="text-muted-foreground text-sm whitespace-pre-wrap">{client.notes}</p>
+                      </div>
+                    </>
+                  )}
                 </>
+              )}
+
+              {/* Mode édition */}
+              {isEditing && (
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault()
+                    handleSave()
+                  }}
+                  className="space-y-4"
+                >
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Nom *</Label>
+                    <Input
+                      id="name"
+                      name="name"
+                      placeholder="Nom du client"
+                      value={formData.name}
+                      onChange={handleFormChange}
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      name="email"
+                      type="email"
+                      placeholder="client@email.com"
+                      value={formData.email}
+                      onChange={handleFormChange}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">Téléphone</Label>
+                    <Input
+                      id="phone"
+                      name="phone"
+                      type="tel"
+                      placeholder="06 12 34 56 78"
+                      value={formData.phone}
+                      onChange={handleFormChange}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="address_line1">Adresse</Label>
+                    <Input
+                      id="address_line1"
+                      name="address_line1"
+                      placeholder="123 rue de la République"
+                      value={formData.address_line1}
+                      onChange={handleFormChange}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="postal_code">Code postal</Label>
+                      <Input
+                        id="postal_code"
+                        name="postal_code"
+                        placeholder="75001"
+                        value={formData.postal_code}
+                        onChange={handleFormChange}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="city">Ville</Label>
+                      <Input
+                        id="city"
+                        name="city"
+                        placeholder="Paris"
+                        value={formData.city}
+                        onChange={handleFormChange}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="notes">Notes</Label>
+                    <Textarea
+                      id="notes"
+                      name="notes"
+                      placeholder="Notes ou informations complémentaires..."
+                      value={formData.notes}
+                      onChange={handleFormChange}
+                      rows={3}
+                    />
+                  </div>
+
+                  <div className="flex gap-2 pt-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleCancelEdit}
+                      disabled={isSaving}
+                      className="flex-1"
+                    >
+                      <X className="mr-2 h-4 w-4" />
+                      Annuler
+                    </Button>
+                    <Button
+                      type="submit"
+                      disabled={isSaving}
+                      className="flex-1"
+                    >
+                      {isSaving ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <Save className="mr-2 h-4 w-4" />
+                      )}
+                      Enregistrer
+                    </Button>
+                  </div>
+                </form>
               )}
             </CardContent>
           </Card>
