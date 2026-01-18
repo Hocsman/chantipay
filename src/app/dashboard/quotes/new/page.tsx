@@ -45,6 +45,7 @@ import { ComparativeQuotesDialog } from '@/components/quotes/ComparativeQuotesDi
 import { LibraryImportDialog } from '@/components/library/LibraryImportDialog'
 import { useQuoteLibrary } from '@/hooks/useQuoteLibrary'
 import type { LibraryItem } from '@/types/quote-library'
+import { SuggestionsAlert } from '@/components/quotes/SuggestionsAlert'
 
 // ===========================================
 // Types
@@ -154,6 +155,7 @@ export default function NewQuotePage() {
   const [selectedTrade, setSelectedTrade] = useState('')
   const [selectedChips, setSelectedChips] = useState<Set<string>>(new Set())
   const [replaceMode, setReplaceMode] = useState(true) // true = replace, false = append
+  const [showSuggestions, setShowSuggestions] = useState(false)
   const [items, setItems] = useState<QuoteItem[]>([
     { id: '1', description: '', quantity: 1, unit_price_ht: 0, vat_rate: 20 },
   ])
@@ -250,6 +252,18 @@ export default function NewQuotePage() {
     setSelectedTrade(template.trade)
     setSelectedChips(new Set())
     toast.success(`Template "${template.title}" chargé`)
+  }, [])
+
+  // Add suggested items
+  const handleAddSuggestedItems = useCallback((suggestedItems: Omit<QuoteItem, 'id'>[]) => {
+    const newItems: QuoteItem[] = suggestedItems.map((item, index) => ({
+      id: `suggested-${Date.now()}-${index}`,
+      description: item.description,
+      quantity: item.quantity,
+      unit_price_ht: item.unit_price_ht,
+      vat_rate: item.vat_rate,
+    }))
+    setItems((prev) => [...prev, ...newItems])
   }, [])
 
   // Import from library
@@ -403,6 +417,9 @@ export default function NewQuotePage() {
 
         // Ajouter à l'historique
         addToHistory(aiDescription, newItems, selectedTrade, parseFloat(vatRate))
+
+        // Afficher les suggestions de compléments
+        setShowSuggestions(true)
       }
     } catch (error) {
       console.error('Erreur génération IA:', error)
@@ -941,6 +958,15 @@ export default function NewQuotePage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Suggestions de compléments */}
+        <SuggestionsAlert
+          items={items}
+          trade={selectedTrade}
+          onAddItems={handleAddSuggestedItems}
+          show={showSuggestions}
+          onDismiss={() => setShowSuggestions(false)}
+        />
 
         {/* Récapitulatif */}
         <Card>

@@ -1,0 +1,532 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
+
+// ===========================================
+// Rate Limiting (Best-effort in-memory)
+// ===========================================
+const rateLimitMap = new Map<string, { count: number; resetTime: number }>()
+const RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000 // 10 minutes
+const RATE_LIMIT_MAX_REQUESTS = 20 // 20 requests per window
+
+function checkRateLimit(ip: string): { allowed: boolean; remaining: number } {
+  const now = Date.now()
+  const record = rateLimitMap.get(ip)
+
+  if (!record || now > record.resetTime) {
+    rateLimitMap.set(ip, { count: 1, resetTime: now + RATE_LIMIT_WINDOW_MS })
+    return { allowed: true, remaining: RATE_LIMIT_MAX_REQUESTS - 1 }
+  }
+
+  if (record.count >= RATE_LIMIT_MAX_REQUESTS) {
+    return { allowed: false, remaining: 0 }
+  }
+
+  record.count++
+  return { allowed: true, remaining: RATE_LIMIT_MAX_REQUESTS - record.count }
+}
+
+// Cleanup old entries periodically
+setInterval(() => {
+  const now = Date.now()
+  for (const [ip, record] of rateLimitMap.entries()) {
+    if (now > record.resetTime) {
+      rateLimitMap.delete(ip)
+    }
+  }
+}, 60 * 1000)
+
+// ===========================================
+// Input Validation Schema
+// ===========================================
+const quoteItemSchema = z.object({
+  description: z.string(),
+  quantity: z.number(),
+  unit_price_ht: z.number(),
+  vat_rate: z.number(),
+})
+
+const suggestComplementsInputSchema = z.object({
+  items: z.array(quoteItemSchema).min(1, 'Au moins une ligne de devis requise'),
+  trade: z.string().optional(),
+})
+
+// ===========================================
+// Output Schema
+// ===========================================
+interface ComplementSuggestion {
+  id: string
+  description: string
+  reason: string
+  priority: 'high' | 'medium' | 'low'
+  category: 'obligatoire' | 'recommandé' | 'optionnel'
+  estimated_price_ht: number
+  vat_rate: number
+}
+
+interface SuggestComplementsResult {
+  suggestions: ComplementSuggestion[]
+  message?: string
+}
+
+// ===========================================
+// Pre-defined Suggestions by Trade
+// ===========================================
+const TRADE_SUGGESTIONS: Record<string, ComplementSuggestion[]> = {
+  electricite: [
+    {
+      id: 'elec-detecteur-fumee',
+      description: 'Détecteur de fumée (DAAF) - Obligatoire',
+      reason: 'Obligatoire dans tous les logements depuis 2015',
+      priority: 'high',
+      category: 'obligatoire',
+      estimated_price_ht: 25,
+      vat_rate: 10,
+    },
+    {
+      id: 'elec-diff-30ma',
+      description: 'Protection différentielle 30mA type A',
+      reason: 'Sécurité électrique obligatoire NF C 15-100',
+      priority: 'high',
+      category: 'obligatoire',
+      estimated_price_ht: 85,
+      vat_rate: 10,
+    },
+    {
+      id: 'elec-mise-terre',
+      description: 'Vérification et mise à la terre',
+      reason: 'Indispensable pour la sécurité des personnes',
+      priority: 'high',
+      category: 'recommandé',
+      estimated_price_ht: 150,
+      vat_rate: 10,
+    },
+    {
+      id: 'elec-parafoudre',
+      description: 'Parafoudre de tableau',
+      reason: 'Protection contre les surtensions (zones exposées)',
+      priority: 'medium',
+      category: 'recommandé',
+      estimated_price_ht: 120,
+      vat_rate: 10,
+    },
+    {
+      id: 'elec-consuel',
+      description: 'Attestation CONSUEL',
+      reason: 'Nécessaire pour mise en service installation neuve',
+      priority: 'medium',
+      category: 'optionnel',
+      estimated_price_ht: 180,
+      vat_rate: 20,
+    },
+  ],
+  plomberie: [
+    {
+      id: 'plomb-groupe-secu',
+      description: 'Groupe de sécurité neuf',
+      reason: 'Obligatoire sur ballon eau chaude, à remplacer si usé',
+      priority: 'high',
+      category: 'recommandé',
+      estimated_price_ht: 45,
+      vat_rate: 10,
+    },
+    {
+      id: 'plomb-vase-expansion',
+      description: 'Vase d\'expansion sanitaire',
+      reason: 'Prolonge la durée de vie du groupe de sécurité',
+      priority: 'medium',
+      category: 'recommandé',
+      estimated_price_ht: 75,
+      vat_rate: 10,
+    },
+    {
+      id: 'plomb-reducteur-pression',
+      description: 'Réducteur de pression',
+      reason: 'Protège l\'installation si pression > 3 bars',
+      priority: 'medium',
+      category: 'recommandé',
+      estimated_price_ht: 85,
+      vat_rate: 10,
+    },
+    {
+      id: 'plomb-anti-calcaire',
+      description: 'Filtre anti-calcaire ou adoucisseur',
+      reason: 'Prolonge la durée de vie des équipements (eau dure)',
+      priority: 'low',
+      category: 'optionnel',
+      estimated_price_ht: 250,
+      vat_rate: 10,
+    },
+    {
+      id: 'plomb-contrat-entretien',
+      description: 'Contrat d\'entretien annuel chaudière/ballon',
+      reason: 'Obligatoire pour chaudière gaz, recommandé pour ballon',
+      priority: 'medium',
+      category: 'recommandé',
+      estimated_price_ht: 120,
+      vat_rate: 20,
+    },
+  ],
+  renovation: [
+    {
+      id: 'reno-protection-chantier',
+      description: 'Protection du chantier (bâches, cartons)',
+      reason: 'Évite les dégradations accidentelles',
+      priority: 'high',
+      category: 'recommandé',
+      estimated_price_ht: 80,
+      vat_rate: 20,
+    },
+    {
+      id: 'reno-evacuation-gravats',
+      description: 'Évacuation des gravats et déchets',
+      reason: 'Obligatoire pour laisser le chantier propre',
+      priority: 'high',
+      category: 'recommandé',
+      estimated_price_ht: 200,
+      vat_rate: 20,
+    },
+    {
+      id: 'reno-nettoyage-fin',
+      description: 'Nettoyage de fin de chantier',
+      reason: 'Service apprécié par les clients',
+      priority: 'medium',
+      category: 'optionnel',
+      estimated_price_ht: 150,
+      vat_rate: 20,
+    },
+    {
+      id: 'reno-diagnostic-amiante',
+      description: 'Diagnostic amiante avant travaux',
+      reason: 'Obligatoire pour bâtiments avant 1997',
+      priority: 'high',
+      category: 'obligatoire',
+      estimated_price_ht: 250,
+      vat_rate: 20,
+    },
+  ],
+  peinture: [
+    {
+      id: 'peint-protection-sols',
+      description: 'Protection des sols et meubles',
+      reason: 'Évite les taches et projections',
+      priority: 'high',
+      category: 'recommandé',
+      estimated_price_ht: 60,
+      vat_rate: 20,
+    },
+    {
+      id: 'peint-preparation-support',
+      description: 'Préparation complète du support (rebouchage, ponçage)',
+      reason: 'Garantit un résultat durable et esthétique',
+      priority: 'high',
+      category: 'recommandé',
+      estimated_price_ht: 15,
+      vat_rate: 10,
+    },
+    {
+      id: 'peint-sous-couche',
+      description: 'Sous-couche d\'accrochage',
+      reason: 'Améliore l\'adhérence et le rendu final',
+      priority: 'medium',
+      category: 'recommandé',
+      estimated_price_ht: 8,
+      vat_rate: 10,
+    },
+    {
+      id: 'peint-peinture-plafond',
+      description: 'Peinture plafond (si non incluse)',
+      reason: 'Souvent oubliée, améliore le rendu global',
+      priority: 'medium',
+      category: 'optionnel',
+      estimated_price_ht: 12,
+      vat_rate: 10,
+    },
+  ],
+  menuiserie: [
+    {
+      id: 'menu-quincaillerie',
+      description: 'Quincaillerie de qualité (poignées, charnières)',
+      reason: 'Améliore la durabilité et l\'esthétique',
+      priority: 'medium',
+      category: 'recommandé',
+      estimated_price_ht: 45,
+      vat_rate: 20,
+    },
+    {
+      id: 'menu-joints-etancheite',
+      description: 'Joints d\'étanchéité neufs',
+      reason: 'Améliore l\'isolation thermique et phonique',
+      priority: 'high',
+      category: 'recommandé',
+      estimated_price_ht: 35,
+      vat_rate: 10,
+    },
+    {
+      id: 'menu-traitement-bois',
+      description: 'Traitement du bois (insecticide, fongicide)',
+      reason: 'Prolonge la durée de vie des menuiseries',
+      priority: 'medium',
+      category: 'optionnel',
+      estimated_price_ht: 80,
+      vat_rate: 10,
+    },
+    {
+      id: 'menu-evacuation-anciennes',
+      description: 'Dépose et évacuation anciennes menuiseries',
+      reason: 'Service complet, évite au client de s\'en occuper',
+      priority: 'medium',
+      category: 'recommandé',
+      estimated_price_ht: 50,
+      vat_rate: 20,
+    },
+  ],
+}
+
+// Generic suggestions for all trades
+const GENERIC_SUGGESTIONS: ComplementSuggestion[] = [
+  {
+    id: 'gen-deplacement',
+    description: 'Frais de déplacement',
+    reason: 'Couvre les trajets et le temps de transport',
+    priority: 'medium',
+    category: 'recommandé',
+    estimated_price_ht: 35,
+    vat_rate: 20,
+  },
+  {
+    id: 'gen-garantie-decennale',
+    description: 'Attestation garantie décennale',
+    reason: 'Document obligatoire pour travaux structurels',
+    priority: 'low',
+    category: 'optionnel',
+    estimated_price_ht: 0,
+    vat_rate: 0,
+  },
+]
+
+// ===========================================
+// System Prompt for AI Suggestions
+// ===========================================
+const SYSTEM_PROMPT = `Tu es un expert en estimation de travaux pour artisans français.
+Tu analyses un devis existant pour suggérer des éléments complémentaires souvent oubliés.
+
+RÈGLES STRICTES:
+1. Réponds UNIQUEMENT en JSON valide, sans markdown, sans texte additionnel
+2. Suggère des éléments pertinents par rapport au contenu du devis
+3. Priorise les éléments obligatoires (normes, sécurité)
+4. Les prix doivent être réalistes pour le marché français
+5. Maximum 5 suggestions pertinentes
+
+CATÉGORIES:
+- "obligatoire": Requis par la loi ou les normes
+- "recommandé": Fortement conseillé pour la qualité/sécurité
+- "optionnel": Améliore le service mais pas indispensable
+
+FORMAT DE RÉPONSE:
+{
+  "suggestions": [
+    {
+      "id": "unique-id",
+      "description": "Description courte du complément",
+      "reason": "Explication pourquoi c'est important",
+      "priority": "high|medium|low",
+      "category": "obligatoire|recommandé|optionnel",
+      "estimated_price_ht": 100,
+      "vat_rate": 10
+    }
+  ],
+  "message": "Message optionnel pour le client"
+}`
+
+// ===========================================
+// OpenAI API Call
+// ===========================================
+async function callOpenAI(
+  items: z.infer<typeof quoteItemSchema>[],
+  trade?: string
+): Promise<SuggestComplementsResult> {
+  const apiKey = process.env.OPENAI_API_KEY
+  if (!apiKey) {
+    throw new Error('OPENAI_API_KEY not configured')
+  }
+
+  const model = process.env.OPENAI_MODEL || 'gpt-4o-mini'
+
+  const itemDescriptions = items.map((item, i) =>
+    `${i + 1}. ${item.description} (Qté: ${item.quantity}, Prix: ${item.unit_price_ht}€ HT)`
+  ).join('\n')
+
+  const userPrompt = [
+    trade ? `Métier: ${trade}` : '',
+    '',
+    'Lignes du devis actuel:',
+    itemDescriptions,
+    '',
+    'Suggère des compléments pertinents qui pourraient être oubliés.',
+  ].filter(Boolean).join('\n')
+
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model,
+      messages: [
+        { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'user', content: userPrompt },
+      ],
+      temperature: 0.5,
+      max_tokens: 1500,
+      response_format: { type: 'json_object' },
+    }),
+  })
+
+  if (!response.ok) {
+    const error = await response.text()
+    console.error('OpenAI API error:', error)
+    throw new Error(`OpenAI API error: ${response.status}`)
+  }
+
+  const data = await response.json()
+  const content = data.choices?.[0]?.message?.content
+
+  if (!content) {
+    throw new Error('No content in OpenAI response')
+  }
+
+  const parsed = JSON.parse(content)
+
+  if (!Array.isArray(parsed.suggestions)) {
+    throw new Error('Invalid response: expected suggestions array')
+  }
+
+  return parsed as SuggestComplementsResult
+}
+
+// ===========================================
+// Fallback Generation (without API)
+// ===========================================
+function generateFallback(
+  items: z.infer<typeof quoteItemSchema>[],
+  trade?: string
+): SuggestComplementsResult {
+  const itemDescriptions = items.map(i => i.description.toLowerCase()).join(' ')
+
+  let suggestions: ComplementSuggestion[] = []
+
+  // Get trade-specific suggestions
+  if (trade && TRADE_SUGGESTIONS[trade]) {
+    suggestions = [...TRADE_SUGGESTIONS[trade]]
+  } else {
+    // Try to detect trade from item descriptions
+    if (itemDescriptions.includes('électri') || itemDescriptions.includes('tableau') || itemDescriptions.includes('prise') || itemDescriptions.includes('disjoncteur')) {
+      suggestions = [...TRADE_SUGGESTIONS.electricite]
+    } else if (itemDescriptions.includes('plomb') || itemDescriptions.includes('chauffe-eau') || itemDescriptions.includes('ballon') || itemDescriptions.includes('robinet') || itemDescriptions.includes('chaudière')) {
+      suggestions = [...TRADE_SUGGESTIONS.plomberie]
+    } else if (itemDescriptions.includes('peinture') || itemDescriptions.includes('peindre') || itemDescriptions.includes('mur') || itemDescriptions.includes('plafond')) {
+      suggestions = [...TRADE_SUGGESTIONS.peinture]
+    } else if (itemDescriptions.includes('menuiserie') || itemDescriptions.includes('fenêtre') || itemDescriptions.includes('porte') || itemDescriptions.includes('volet')) {
+      suggestions = [...TRADE_SUGGESTIONS.menuiserie]
+    } else if (itemDescriptions.includes('rénovation') || itemDescriptions.includes('travaux') || itemDescriptions.includes('démolition')) {
+      suggestions = [...TRADE_SUGGESTIONS.renovation]
+    }
+  }
+
+  // Filter out suggestions that might already be in the quote
+  suggestions = suggestions.filter(suggestion => {
+    const suggestionKeywords = suggestion.description.toLowerCase().split(' ')
+    // Check if any keyword from the suggestion is NOT in any item description
+    return !suggestionKeywords.some(keyword =>
+      keyword.length > 4 && itemDescriptions.includes(keyword)
+    )
+  })
+
+  // Add generic suggestions if not already covered
+  const hasDeplacementInItems = itemDescriptions.includes('déplacement') || itemDescriptions.includes('transport')
+  if (!hasDeplacementInItems) {
+    suggestions.push(GENERIC_SUGGESTIONS[0])
+  }
+
+  // Limit to 5 most relevant suggestions (prioritize by category and priority)
+  suggestions.sort((a, b) => {
+    const categoryOrder = { obligatoire: 0, recommandé: 1, optionnel: 2 }
+    const priorityOrder = { high: 0, medium: 1, low: 2 }
+
+    const catDiff = categoryOrder[a.category] - categoryOrder[b.category]
+    if (catDiff !== 0) return catDiff
+
+    return priorityOrder[a.priority] - priorityOrder[b.priority]
+  })
+
+  suggestions = suggestions.slice(0, 5)
+
+  return {
+    suggestions,
+    message: suggestions.length > 0
+      ? `${suggestions.filter(s => s.category === 'obligatoire').length > 0 ? 'Attention: certains éléments peuvent être obligatoires.' : 'Voici quelques compléments recommandés pour votre devis.'}`
+      : undefined,
+  }
+}
+
+// ===========================================
+// API Route Handler
+// ===========================================
+export async function POST(request: NextRequest) {
+  try {
+    // Get client IP for rate limiting
+    const forwarded = request.headers.get('x-forwarded-for')
+    const ip = forwarded?.split(',')[0]?.trim() ||
+               request.headers.get('x-real-ip') ||
+               'unknown'
+
+    // Check rate limit
+    const { allowed, remaining } = checkRateLimit(ip)
+    if (!allowed) {
+      return NextResponse.json(
+        { error: 'Trop de requêtes. Veuillez réessayer dans quelques minutes.' },
+        {
+          status: 429,
+          headers: { 'X-RateLimit-Remaining': '0' }
+        }
+      )
+    }
+
+    // Parse and validate input
+    const body = await request.json()
+    const validationResult = suggestComplementsInputSchema.safeParse(body)
+
+    if (!validationResult.success) {
+      const errors = validationResult.error.issues.map(e => e.message).join(', ')
+      return NextResponse.json(
+        { error: errors },
+        { status: 400 }
+      )
+    }
+
+    const { items, trade } = validationResult.data
+
+    let result: SuggestComplementsResult
+
+    try {
+      // Try OpenAI API first
+      result = await callOpenAI(items, trade)
+    } catch (error) {
+      console.warn('OpenAI call failed, using fallback:', error)
+      // Fallback to pre-defined suggestions
+      result = generateFallback(items, trade)
+    }
+
+    return NextResponse.json(result, {
+      headers: { 'X-RateLimit-Remaining': remaining.toString() }
+    })
+
+  } catch (error) {
+    console.error('❌ Erreur suggestions compléments:', error)
+    return NextResponse.json(
+      { error: 'Erreur lors de la génération des suggestions' },
+      { status: 500 }
+    )
+  }
+}

@@ -34,6 +34,7 @@ import { PhotoAnalysisSheet } from '@/components/quotes/PhotoAnalysisSheet';
 import { ComparativeQuotesSheet } from '@/components/quotes/ComparativeQuotesSheet';
 import { LibraryImportSheet } from '@/components/library/LibraryImportSheet';
 import type { LibraryItem } from '@/types/quote-library';
+import { SuggestionsSheet } from '@/components/quotes/SuggestionsSheet';
 
 // ===========================================
 // Types
@@ -143,6 +144,7 @@ export default function NewQuotePage() {
   const [selectedTrade, setSelectedTrade] = useState('');
   const [selectedChips, setSelectedChips] = useState<Set<string>>(new Set());
   const [replaceMode, setReplaceMode] = useState(true); // true = replace, false = append
+  const [showSuggestionsSheet, setShowSuggestionsSheet] = useState(false);
   const [items, setItems] = useState<QuoteItem[]>([
     { id: '1', description: '', quantity: 1, unit_price_ht: 0, vat_rate: 20 },
   ]);
@@ -252,6 +254,18 @@ export default function NewQuotePage() {
     }));
     setItems((prev) => [...prev, ...newItems]);
     toast.success(`${libraryItems.length} ligne(s) importée(s)`);
+  }, []);
+
+  // Add suggested items
+  const handleAddSuggestedItems = useCallback((suggestedItems: Omit<QuoteItem, 'id'>[]) => {
+    const newItems: QuoteItem[] = suggestedItems.map((item, index) => ({
+      id: `suggested-${Date.now()}-${index}`,
+      description: item.description,
+      quantity: item.quantity,
+      unit_price_ht: item.unit_price_ht,
+      vat_rate: item.vat_rate,
+    }));
+    setItems((prev) => [...prev, ...newItems]);
   }, []);
 
   // Import from photo analysis
@@ -392,6 +406,9 @@ export default function NewQuotePage() {
 
         // Ajouter à l'historique
         addToHistory(aiDescription, newItems, selectedTrade, parseFloat(vatRate));
+
+        // Afficher les suggestions de compléments
+        setShowSuggestionsSheet(true);
       }
     } catch (error) {
       console.error('Erreur génération IA:', error);
@@ -533,8 +550,8 @@ export default function NewQuotePage() {
                       isLoadingClients
                         ? 'Chargement...'
                         : clients.length === 0
-                        ? 'Aucun client - créez-en un'
-                        : 'Sélectionner un client'
+                          ? 'Aucun client - créez-en un'
+                          : 'Sélectionner un client'
                     }
                   />
                 </SelectTrigger>
@@ -663,11 +680,10 @@ export default function NewQuotePage() {
                 <div className="flex items-center justify-between mb-1">
                   <Label htmlFor="aiDescription">Décrivez les travaux</Label>
                   <span
-                    className={`text-xs ${
-                      aiDescription.length > 1800
+                    className={`text-xs ${aiDescription.length > 1800
                         ? 'text-destructive'
                         : 'text-muted-foreground'
-                    }`}
+                      }`}
                   >
                     {aiDescription.length}/2000
                   </span>
@@ -696,11 +712,10 @@ export default function NewQuotePage() {
                     <Badge
                       key={chip.id}
                       variant={selectedChips.has(chip.id) ? 'default' : 'outline'}
-                      className={`cursor-pointer transition-colors py-1.5 px-3 ${
-                        selectedChips.has(chip.id)
+                      className={`cursor-pointer transition-colors py-1.5 px-3 ${selectedChips.has(chip.id)
                           ? 'bg-primary hover:bg-primary/90'
                           : 'hover:bg-muted'
-                      }`}
+                        }`}
                       onClick={() => toggleChip(chip)}
                     >
                       {chip.icon}
@@ -950,6 +965,15 @@ export default function NewQuotePage() {
             )}
           </Button>
         </div>
+
+        {/* Suggestions de compléments Sheet */}
+        <SuggestionsSheet
+          items={items}
+          trade={selectedTrade}
+          onAddItems={handleAddSuggestedItems}
+          open={showSuggestionsSheet}
+          onOpenChange={setShowSuggestionsSheet}
+        />
       </div>
     </MobileLayout>
   );
