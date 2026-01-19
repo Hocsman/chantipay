@@ -36,6 +36,7 @@ interface Invoice {
   tax_rate: number
   tax_amount: number
   total: number
+  paid_amount?: number // Acompte déjà payé
   payment_status: string
   payment_terms?: string | null
   notes?: string | null
@@ -167,6 +168,47 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: 'bold',
     color: '#F97316',
+  },
+  depositRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 8,
+  },
+  depositLabel: {
+    width: 100,
+    textAlign: 'right',
+    marginRight: 20,
+    fontSize: 10,
+    color: '#16A34A', // green-600
+  },
+  depositValue: {
+    width: 80,
+    textAlign: 'right',
+    fontSize: 10,
+    color: '#16A34A',
+  },
+  remainingRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#EA580C', // orange-600
+  },
+  remainingLabel: {
+    width: 100,
+    textAlign: 'right',
+    marginRight: 20,
+    fontSize: 11,
+    fontWeight: 'bold',
+    color: '#EA580C',
+  },
+  remainingValue: {
+    width: 80,
+    textAlign: 'right',
+    fontSize: 11,
+    fontWeight: 'bold',
+    color: '#EA580C',
   },
   paymentInfo: {
     marginTop: 30,
@@ -394,6 +436,25 @@ export const InvoicePdfDocument: React.FC<InvoicePdfProps> = ({
               {formatCurrency(invoice.total)}
             </Text>
           </View>
+
+          {/* Acompte déjà versé */}
+          {invoice.paid_amount && invoice.paid_amount > 0 && (
+            <>
+              <View style={styles.depositRow}>
+                <Text style={styles.depositLabel}>Acompte versé :</Text>
+                <Text style={styles.depositValue}>
+                  - {formatCurrency(invoice.paid_amount)}
+                </Text>
+              </View>
+
+              <View style={styles.remainingRow}>
+                <Text style={styles.remainingLabel}>RESTE À PAYER :</Text>
+                <Text style={styles.remainingValue}>
+                  {formatCurrency(invoice.total - invoice.paid_amount)}
+                </Text>
+              </View>
+            </>
+          )}
         </View>
 
         {/* Conditions de paiement */}

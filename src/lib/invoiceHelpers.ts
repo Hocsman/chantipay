@@ -29,6 +29,11 @@ interface Quote {
   id: string
   quote_number: string
   items: QuoteItem[]
+  // Champs acompte
+  deposit_amount?: number | null
+  deposit_status?: 'pending' | 'paid' | null
+  deposit_paid_at?: string | null
+  deposit_method?: string | null
 }
 
 interface InvoiceData {
@@ -43,6 +48,7 @@ interface InvoiceData {
   tax_rate: number
   tax_amount: number
   total: number
+  paid_amount: number // Acompte déjà versé
   payment_status: string
   issue_date: string
   due_date: string
@@ -128,6 +134,7 @@ export function formatClientAddress(client: Client): string {
  * Prépare les données pour créer une facture à partir d'un devis
  * Avec toutes les validations et calculs nécessaires
  * Supporte les TVA mixtes (calcul par ligne)
+ * Prend en compte l'acompte déjà payé
  */
 export function prepareInvoiceDataFromQuote(
   quote: Quote,
@@ -152,6 +159,29 @@ export function prepareInvoiceDataFromQuote(
     .toISOString()
     .split('T')[0]
 
+  // Gestion de l'acompte déjà payé
+  const depositPaid = quote.deposit_status === 'paid' && quote.deposit_amount
+    ? quote.deposit_amount
+    : 0
+  
+  // Notes incluant l'acompte si payé
+  let notes = `Facture générée depuis le devis ${quote.quote_number}`
+  if (depositPaid > 0) {
+    const depositDate = quote.deposit_paid_at 
+      ? new Date(quote.deposit_paid_at).toLocaleDateString('fr-FR')
+      : 'date inconnue'
+    notes += `\nAcompte de ${depositPaid.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })} déjà versé le ${depositDate}`
+    if (quote.deposit_method) {
+      const methodLabels: Record<string, string> = {
+        virement: 'par virement',
+        cash: 'en espèces',
+        cheque: 'par chèque',
+        autre: ''
+      }
+      notes += ` ${methodLabels[quote.deposit_method] || ''}`
+    }
+  }
+
   return {
     quote_id: quote.id,
     client_id: client.id,
@@ -164,11 +194,12 @@ export function prepareInvoiceDataFromQuote(
     tax_rate: taxRate,
     tax_amount: calculated.taxAmount,
     total: calculated.total,
-    payment_status: 'draft',
+    paid_amount: depositPaid, // ✅ Acompte déjà payé
+    payment_status: depositPaid > 0 ? 'partial' : 'draft', // ✅ Statut partiel si acompte payé
     issue_date: issueDate,
     due_date: dueDate,
     payment_terms: 'Paiement à 30 jours',
-    notes: `Facture générée depuis le devis ${quote.quote_number}`,
+    notes: notes.trim(),
     items: quote.items.map((item, idx) => ({
       description: item.description,
       quantity: item.quantity,

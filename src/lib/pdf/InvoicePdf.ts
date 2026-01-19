@@ -21,6 +21,7 @@ interface Invoice {
   tax_rate: number
   tax_amount: number
   total: number
+  paid_amount?: number // Acompte déjà payé
   payment_status: string
   payment_terms?: string | null
   notes?: string | null
@@ -298,7 +299,10 @@ export async function generateInvoicePDF(
 
   const totalsBoxWidth = pageWidth / 2 - margin - 5
   const totalsBoxX = pageWidth / 2 + 5
-  const totalsBoxHeight = 48
+  
+  // Calculer la hauteur en fonction de si on a un acompte ou non
+  const hasDeposit = invoice.paid_amount && invoice.paid_amount > 0
+  const totalsBoxHeight = hasDeposit ? 72 : 48
 
   // Cadre pour les totaux
   doc.setFillColor(249, 250, 251) // gray-50
@@ -337,6 +341,26 @@ export async function generateInvoicePDF(
   doc.setTextColor(...accentColor)
   doc.text('Total TTC', labelX, totalsY + 5)
   doc.text(formatCurrency(invoice.total), valueX, totalsY + 5, { align: 'right' })
+  totalsY += 12
+
+  // Acompte déjà versé (si applicable)
+  if (hasDeposit) {
+    totalsY += 3
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'normal')
+    doc.setTextColor(22, 163, 74) // green-600
+    doc.text('Acompte versé', labelX, totalsY)
+    doc.text(`- ${formatCurrency(invoice.paid_amount!)}`, valueX, totalsY, { align: 'right' })
+    totalsY += 8
+
+    // Reste à payer (en gras, orange)
+    doc.setFontSize(11)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(234, 88, 12) // orange-600
+    doc.text('RESTE À PAYER', labelX, totalsY)
+    const remainingAmount = invoice.total - invoice.paid_amount!
+    doc.text(formatCurrency(remainingAmount), valueX, totalsY, { align: 'right' })
+  }
 
   yPos = yPos + totalsBoxHeight + 10
 
