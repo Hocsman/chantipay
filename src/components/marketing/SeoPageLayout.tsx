@@ -1,10 +1,10 @@
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { FileText } from 'lucide-react'
 import { UsefulLinks } from './UsefulLinks'
 import { CtaBlock } from './CtaBlock'
 import { FaqSection } from './FaqSection'
 import { ThemeToggle } from '@/components/theme/ThemeToggle'
+import Image from 'next/image'
 
 interface FaqItem {
   question: string
@@ -34,9 +34,13 @@ export function SeoPageLayout({
       <header className="sticky top-0 z-50 border-b bg-background/80 backdrop-blur-sm">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
           <Link href="/" className="flex items-center gap-2">
-            <div className="bg-black flex h-8 w-8 items-center justify-center rounded-lg">
-              <FileText className="h-5 w-5 text-white" />
-            </div>
+            <Image
+              src="/favicon.svg"
+              alt="ChantiPay"
+              width={32}
+              height={32}
+              className="rounded-lg"
+            />
             <span className="text-xl font-bold">ChantiPay</span>
           </Link>
           <div className="flex items-center gap-2">
@@ -68,9 +72,13 @@ export function SeoPageLayout({
         <div className="mx-auto max-w-7xl px-4">
           <div className="flex flex-col items-center justify-between gap-4 md:flex-row">
             <Link href="/" className="flex items-center gap-2">
-              <div className="bg-black flex h-6 w-6 items-center justify-center rounded-lg">
-                <FileText className="h-4 w-4 text-white" />
-              </div>
+              <Image
+                src="/favicon.svg"
+                alt="ChantiPay"
+                width={24}
+                height={24}
+                className="rounded"
+              />
               <span className="font-bold">ChantiPay</span>
             </Link>
             <nav className="flex flex-wrap items-center justify-center gap-4 text-sm">

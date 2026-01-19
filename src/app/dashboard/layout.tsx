@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { FileText, LogOut, Settings, User, Home, Users, Receipt, Calendar, BarChart3 } from 'lucide-react';
+import Image from 'next/image';
 
 export default function DashboardLayout({
   children,
@@ -38,9 +39,13 @@ export default function DashboardLayout({
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
           <div className="flex items-center gap-8">
             <Link href="/dashboard" className="flex items-center gap-2">
-              <div className="bg-primary flex h-8 w-8 items-center justify-center rounded-lg">
-                <FileText className="h-5 w-5 text-white" />
-              </div>
+              <Image
+                src="/favicon.svg"
+                alt="ChantiPay"
+                width={32}
+                height={32}
+                className="rounded-lg"
+              />
               <span className="text-xl font-bold">ChantiPay</span>
             </Link>
             <nav className="flex items-center gap-6">
@@ -148,9 +153,13 @@ export default function DashboardLayout({
       <header className="bg-background/95 supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50 border-b backdrop-blur md:hidden">
         <div className="flex h-14 items-center justify-between px-4">
           <Link href="/dashboard" className="flex items-center gap-2">
-            <div className="bg-primary flex h-8 w-8 items-center justify-center rounded-lg">
-              <FileText className="h-5 w-5 text-white" />
-            </div>
+            <Image
+              src="/favicon.svg"
+              alt="ChantiPay"
+              width={32}
+              height={32}
+              className="rounded-lg"
+            />
             <span className="text-lg font-bold">ChantiPay</span>
           </Link>
           <DropdownMenu>
