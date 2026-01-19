@@ -7,6 +7,15 @@ import { LayoutContainer } from '@/components/LayoutContainer'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import { Badge } from '@/components/ui/badge'
 import { FloatingActionButton } from '@/components/FloatingActionButton'
 import { Loader2, Plus, FileText, TrendingDown, Search } from 'lucide-react'
 import { toast } from 'sonner'
@@ -31,9 +40,18 @@ interface CreditNote {
 }
 
 const statusConfig = {
-  draft: { label: 'Brouillon', color: 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400' },
-  sent: { label: 'Envoyé', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' },
-  finalized: { label: 'Finalisé', color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' },
+  draft: {
+    label: 'Brouillon',
+    className: 'bg-gray-100 text-gray-700 border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700'
+  },
+  sent: {
+    label: 'Envoyé',
+    className: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/50 dark:text-blue-300 dark:border-blue-800'
+  },
+  finalized: {
+    label: 'Finalisé',
+    className: 'bg-green-500 text-white border-green-500 shadow-sm shadow-green-500/25'
+  },
 }
 
 type FilterStatus = 'all' | 'draft' | 'sent' | 'finalized'
@@ -64,40 +82,55 @@ export default function CreditNotesPage() {
   }
 
   const filteredCreditNotes = creditNotes.filter(creditNote => {
-    // Filtrage par statut
     const matchesStatus = filter === 'all' || creditNote.status === filter
-    
-    // Recherche étendue
+
     if (!searchQuery) return matchesStatus
-    
+
     const searchLower = searchQuery.toLowerCase()
     const totalAmount = Math.abs(creditNote.total)?.toString() || '0'
     const itemsDescriptions = creditNote.items?.map(item => item.description.toLowerCase()).join(' ') || ''
-    
+
     const matchesSearch =
       creditNote.credit_note_number.toLowerCase().includes(searchLower) ||
       creditNote.client_name.toLowerCase().includes(searchLower) ||
       totalAmount.includes(searchQuery) ||
       itemsDescriptions.includes(searchLower) ||
       (creditNote.reason && creditNote.reason.toLowerCase().includes(searchLower))
-    
+
     return matchesStatus && matchesSearch
   })
 
-  const totalCreditAmount = creditNotes
-    .filter(cn => cn.status === 'finalized')
-    .reduce((sum, cn) => sum + Math.abs(cn.total), 0)
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('fr-FR', {
+      style: 'currency',
+      currency: 'EUR',
+    }).format(Math.abs(amount))
+  }
 
-  const pendingAmount = creditNotes
-    .filter(cn => cn.status === 'sent')
-    .reduce((sum, cn) => sum + Math.abs(cn.total), 0)
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('fr-FR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    })
+  }
+
+  // Calculer les statistiques
+  const stats = {
+    total: creditNotes.length,
+    finalized: creditNotes.filter(cn => cn.status === 'finalized').length,
+    pending: creditNotes.filter(cn => cn.status === 'sent').length,
+    draft: creditNotes.filter(cn => cn.status === 'draft').length,
+    totalFinalized: creditNotes.filter(cn => cn.status === 'finalized').reduce((sum, cn) => sum + Math.abs(cn.total), 0),
+  }
 
   if (isLoading) {
     return (
       <LayoutContainer>
         <PageHeader title="Avoirs" description="Gérez vos avoirs clients" />
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <div className="flex flex-col items-center justify-center py-16">
+          <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
+          <p className="text-muted-foreground">Chargement des avoirs...</p>
         </div>
       </LayoutContainer>
     )
@@ -105,153 +138,105 @@ export default function CreditNotesPage() {
 
   return (
     <LayoutContainer>
-      <PageHeader title="Avoirs" description="Gérez vos avoirs clients" />
-
-      {/* Bouton création desktop */}
-      <div className="hidden md:flex justify-end mb-6">
-        <Button onClick={() => router.push('/dashboard/avoirs/new')}>
-          <Plus className="mr-2 h-4 w-4" />
-          Nouvel avoir
-        </Button>
-      </div>
+      <PageHeader
+        title="Avoirs"
+        description="Gérez vos avoirs clients"
+        action={
+          <Button
+            onClick={() => router.push('/dashboard/avoirs/new')}
+            className="hidden sm:flex gap-2 shadow-md hover:shadow-lg"
+          >
+            <Plus className="h-4 w-4" />
+            Nouvel avoir
+          </Button>
+        }
+      />
 
       {/* Stats rapides */}
-      <div className="grid grid-cols-2 gap-4 mb-6">
-        <Card className="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950/20 dark:to-red-900/20 border-red-200 dark:border-red-800">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-red-500 rounded-lg">
-                <TrendingDown className="h-5 w-5 text-white" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Finalisés</p>
-                <p className="text-2xl font-bold">-{totalCreditAmount.toFixed(2)} €</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-950/20 dark:to-orange-900/20 border-orange-200 dark:border-orange-800">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-orange-500 rounded-lg">
-                <FileText className="h-5 w-5 text-white" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">En attente</p>
-                <p className="text-2xl font-bold">-{pendingAmount.toFixed(2)} €</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Barre de recherche */}
-      <div className="mb-4">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Rechercher par numéro, client, montant, prestation ou raison..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
-          />
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-gradient-to-br from-primary/5 to-primary/10 rounded-xl p-4 border border-primary/10">
+          <p className="text-sm text-muted-foreground">Total avoirs</p>
+          <p className="text-2xl font-bold">{stats.total}</p>
+        </div>
+        <div className="bg-gradient-to-br from-green-500/5 to-green-500/10 rounded-xl p-4 border border-green-500/10">
+          <p className="text-sm text-muted-foreground">Finalisés</p>
+          <p className="text-2xl font-bold text-green-600">{stats.finalized}</p>
+        </div>
+        <div className="bg-gradient-to-br from-blue-500/5 to-blue-500/10 rounded-xl p-4 border border-blue-500/10">
+          <p className="text-sm text-muted-foreground">Envoyés</p>
+          <p className="text-2xl font-bold text-blue-600">{stats.pending}</p>
+        </div>
+        <div className="bg-gradient-to-br from-red-500/5 to-red-500/10 rounded-xl p-4 border border-red-500/10">
+          <div className="flex items-center gap-2">
+            <p className="text-sm text-muted-foreground">Montant total</p>
+            <TrendingDown className="h-3 w-3 text-red-500" />
+          </div>
+          <p className="text-2xl font-bold text-red-600">-{formatCurrency(stats.totalFinalized)}</p>
         </div>
       </div>
 
-      {/* Filtres */}
-      <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
-        <Button
-          variant={filter === 'all' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setFilter('all')}
-        >
-          Tous ({creditNotes.length})
-        </Button>
-        <Button
-          variant={filter === 'draft' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setFilter('draft')}
-        >
-          Brouillons ({creditNotes.filter(cn => cn.status === 'draft').length})
-        </Button>
-        <Button
-          variant={filter === 'sent' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setFilter('sent')}
-        >
-          Envoyés ({creditNotes.filter(cn => cn.status === 'sent').length})
-        </Button>
-        <Button
-          variant={filter === 'finalized' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setFilter('finalized')}
-        >
-          Finalisés ({creditNotes.filter(cn => cn.status === 'finalized').length})
-        </Button>
+      {/* Barre de recherche */}
+      <div className="relative">
+        <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Rechercher par numéro, client, montant ou raison..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-11 h-12"
+        />
       </div>
 
-      {/* Liste des avoirs */}
-      {filteredCreditNotes.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <FileText className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">Aucun avoir</h3>
-            <p className="text-sm text-muted-foreground text-center mb-4">
-              {filter === 'all'
-                ? "Créez votre premier avoir pour créditer vos clients."
-                : `Aucun avoir avec le statut "${statusConfig[filter as keyof typeof statusConfig]?.label}"`
-              }
-            </p>
-            <Button onClick={() => router.push('/dashboard/avoirs/new')}>
-              <Plus className="mr-2 h-4 w-4" />
-              Créer un avoir
-            </Button>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="space-y-3">
+      {/* Filtres par statut */}
+      <div className="flex flex-wrap gap-2">
+        {[
+          { label: 'Tous', value: 'all' as const },
+          { label: 'Brouillons', value: 'draft' as const },
+          { label: 'Envoyés', value: 'sent' as const },
+          { label: 'Finalisés', value: 'finalized' as const },
+        ].map((f) => (
+          <Button
+            key={f.value}
+            variant={filter === f.value ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setFilter(f.value)}
+            className={cn(
+              "transition-all duration-200",
+              filter === f.value && "shadow-md"
+            )}
+          >
+            {f.label}
+          </Button>
+        ))}
+      </div>
+
+      {/* Liste mobile */}
+      {filteredCreditNotes.length > 0 && (
+        <div className="space-y-3 md:hidden">
           {filteredCreditNotes.map((creditNote) => (
             <Card
               key={creditNote.id}
-              className="cursor-pointer hover:shadow-md transition-shadow"
+              className="cursor-pointer active:scale-[0.98] transition-all duration-200"
               onClick={() => router.push(`/dashboard/avoirs/${creditNote.id}`)}
             >
               <CardContent className="p-4">
                 <div className="flex items-start justify-between mb-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <FileText className="h-4 w-4 text-red-500 flex-shrink-0" />
-                      <h3 className="font-semibold text-base">{creditNote.credit_note_number}</h3>
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center">
+                      <FileText className="h-4 w-4 text-red-500" />
                     </div>
-                    <p className="text-sm text-muted-foreground">{creditNote.client_name}</p>
-                    {creditNote.reason && (
-                      <p className="text-xs text-muted-foreground italic mt-1">
-                        Raison : {creditNote.reason}
-                      </p>
-                    )}
+                    <span className="font-semibold">{creditNote.credit_note_number}</span>
                   </div>
-                  <span className={cn(
-                    'text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap',
-                    statusConfig[creditNote.status].color
-                  )}>
+                  <Badge className={statusConfig[creditNote.status].className}>
                     {statusConfig[creditNote.status].label}
-                  </span>
+                  </Badge>
                 </div>
-
-                <div className="flex items-center justify-between text-sm">
-                  <div className="flex items-center gap-4 text-muted-foreground">
-                    <span>
-                      Émis le {new Date(creditNote.issue_date).toLocaleDateString('fr-FR', {
-                        day: '2-digit',
-                        month: 'short',
-                        year: 'numeric',
-                      })}
-                    </span>
-                  </div>
-                  <div className="font-bold text-lg text-red-600">
-                    -{Math.abs(creditNote.total).toFixed(2)} €
-                  </div>
+                <p className="text-sm text-muted-foreground mb-1">{creditNote.client_name}</p>
+                {creditNote.reason && (
+                  <p className="text-xs text-muted-foreground italic mb-3">Raison : {creditNote.reason}</p>
+                )}
+                <div className="flex items-center justify-between">
+                  <span className="text-xl font-bold text-red-600">-{formatCurrency(creditNote.total)}</span>
+                  <span className="text-xs text-muted-foreground">{formatDate(creditNote.issue_date)}</span>
                 </div>
               </CardContent>
             </Card>
@@ -259,7 +244,73 @@ export default function CreditNotesPage() {
         </div>
       )}
 
-      {/* FAB pour mobile */}
+      {/* Tableau desktop */}
+      {filteredCreditNotes.length > 0 && (
+        <Card className="hidden md:block overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
+                <TableHead>Numéro</TableHead>
+                <TableHead>Client</TableHead>
+                <TableHead>Raison</TableHead>
+                <TableHead>Statut</TableHead>
+                <TableHead className="text-right">Montant</TableHead>
+                <TableHead>Date émission</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredCreditNotes.map((creditNote) => (
+                <TableRow
+                  key={creditNote.id}
+                  className="cursor-pointer group"
+                  onClick={() => router.push(`/dashboard/avoirs/${creditNote.id}`)}
+                >
+                  <TableCell className="font-semibold">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-red-500/5 group-hover:bg-red-500/10 flex items-center justify-center transition-colors">
+                        <FileText className="h-4 w-4 text-red-500" />
+                      </div>
+                      {creditNote.credit_note_number}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">{creditNote.client_name}</TableCell>
+                  <TableCell className="text-muted-foreground max-w-[200px] truncate">
+                    {creditNote.reason || '-'}
+                  </TableCell>
+                  <TableCell>
+                    <Badge className={cn("transition-all duration-200 hover:scale-105", statusConfig[creditNote.status].className)}>
+                      {statusConfig[creditNote.status].label}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right font-semibold text-red-600">
+                    -{formatCurrency(creditNote.total)}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">{formatDate(creditNote.issue_date)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Card>
+      )}
+
+      {filteredCreditNotes.length === 0 && (
+        <div className="text-center py-16">
+          <div className="w-16 h-16 rounded-2xl bg-muted/50 flex items-center justify-center mx-auto mb-4">
+            <FileText className="h-8 w-8 text-muted-foreground" />
+          </div>
+          <h3 className="text-lg font-semibold mb-2">Aucun avoir trouvé</h3>
+          <p className="text-muted-foreground mb-6 max-w-sm mx-auto">
+            {searchQuery || filter !== 'all'
+              ? 'Essayez de modifier vos filtres de recherche'
+              : 'Commencez par créer votre premier avoir pour un client'}
+          </p>
+          <Button onClick={() => router.push('/dashboard/avoirs/new')} className="gap-2">
+            <Plus className="h-4 w-4" />
+            Nouvel avoir
+          </Button>
+        </div>
+      )}
+
       <FloatingActionButton href="/dashboard/avoirs/new" label="Nouvel avoir" />
     </LayoutContainer>
   )
