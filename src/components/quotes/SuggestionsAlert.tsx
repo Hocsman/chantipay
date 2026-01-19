@@ -232,33 +232,42 @@ export function SuggestionsAlert({
                 return (
                   <div
                     key={suggestion.id}
-                    className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
-                      selectedIds.has(suggestion.id)
+                    className={`p-3 rounded-lg border cursor-pointer transition-colors ${selectedIds.has(suggestion.id)
                         ? 'border-primary bg-primary/5'
                         : 'hover:bg-muted/50'
-                    }`}
+                      }`}
                     onClick={() => toggleSelection(suggestion.id)}
                   >
-                    <Checkbox
-                      checked={selectedIds.has(suggestion.id)}
-                      onCheckedChange={() => toggleSelection(suggestion.id)}
-                      className="mt-1"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-medium text-sm">{suggestion.description}</span>
-                        <Badge variant={config.badgeVariant} className="text-xs">
-                          <Icon className="h-3 w-3 mr-1" />
-                          {suggestion.category}
-                        </Badge>
+                    <div className="flex items-start gap-3">
+                      <Checkbox
+                        checked={selectedIds.has(suggestion.id)}
+                        onCheckedChange={() => toggleSelection(suggestion.id)}
+                        className="mt-1 flex-shrink-0"
+                      />
+                      <div className="flex-1 min-w-0 space-y-2">
+                        {/* Description + Badge */}
+                        <div>
+                          <div className="flex flex-wrap items-start gap-2 mb-1">
+                            <span className="font-medium text-sm break-words">
+                              {suggestion.description}
+                            </span>
+                            <Badge variant={config.badgeVariant} className="text-xs flex-shrink-0">
+                              <Icon className="h-3 w-3 mr-1" />
+                              {suggestion.category}
+                            </Badge>
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            {suggestion.reason}
+                          </p>
+                        </div>
+                        {/* Prix - toujours visible */}
+                        <div className="text-right">
+                          <span className="font-semibold text-primary">
+                            {formatCurrency(suggestion.estimated_price_ht)}
+                          </span>
+                        </div>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {suggestion.reason}
-                      </p>
                     </div>
-                    <span className="font-medium text-sm whitespace-nowrap">
-                      {formatCurrency(suggestion.estimated_price_ht)}
-                    </span>
                   </div>
                 )
               })}
