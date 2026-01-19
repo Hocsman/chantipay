@@ -26,6 +26,11 @@ export default function MobileMenuPage() {
       href: '/mobile/factures',
     },
     {
+      label: 'Avoirs',
+      icon: Receipt,
+      href: '/mobile/avoirs',
+    },
+    {
       label: 'Fournisseurs',
       icon: Building,
       href: '/mobile/suppliers',

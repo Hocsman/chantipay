@@ -29,7 +29,7 @@ const navItems: NavItem[] = [
     label: 'Devis',
     icon: FileText,
     href: '/mobile/quotes',
-    match: ['/mobile/quotes', '/mobile/factures', '/mobile/avoirs'],
+    match: ['/mobile/quotes'],
   },
   {
     label: 'Menu',
