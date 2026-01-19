@@ -6,6 +6,7 @@
  */
 
 import { useEffect, useRef, useCallback } from 'react'
+import type { QuoteAgentType } from '@/lib/ai/quoteAgents'
 
 export interface QuoteItem {
   id: string
@@ -22,6 +23,7 @@ export interface QuoteDraft {
   items: QuoteItem[]
   aiDescription: string
   selectedTrade: string
+  selectedAgent?: QuoteAgentType
   savedAt: number
 }
 
@@ -38,6 +40,7 @@ export function useQuoteAutoSave(
   items: QuoteItem[],
   aiDescription: string,
   selectedTrade: string,
+  selectedAgent: QuoteAgentType | undefined,
   enabled = true
 ) {
   const timeoutRef = useRef<NodeJS.Timeout | undefined>(undefined)
@@ -56,6 +59,7 @@ export function useQuoteAutoSave(
       items,
       aiDescription,
       selectedTrade,
+      selectedAgent,
       savedAt: Date.now(),
     }
 
@@ -73,7 +77,7 @@ export function useQuoteAutoSave(
     } catch (error) {
       console.error('❌ Error saving draft:', error)
     }
-  }, [enabled, clientId, vatRate, depositPercent, items, aiDescription, selectedTrade])
+  }, [enabled, clientId, vatRate, depositPercent, items, aiDescription, selectedTrade, selectedAgent])
 
   /**
    * Auto-save avec debounce
@@ -82,11 +86,13 @@ export function useQuoteAutoSave(
     if (!enabled) return
 
     // Ignorer si le brouillon est vide
+    const isAgentEmpty = !selectedAgent || selectedAgent === 'auto'
     const isEmpty =
       !clientId &&
       items.length === 0 &&
       !aiDescription.trim() &&
-      !selectedTrade
+      !selectedTrade &&
+      isAgentEmpty
 
     if (isEmpty) {
       return
@@ -106,7 +112,7 @@ export function useQuoteAutoSave(
         clearTimeout(timeoutRef.current)
       }
     }
-  }, [enabled, clientId, vatRate, depositPercent, items, aiDescription, selectedTrade, saveDraft])
+  }, [enabled, clientId, vatRate, depositPercent, items, aiDescription, selectedTrade, selectedAgent, saveDraft])
 
   /**
    * Charge le brouillon depuis le local storage

@@ -11,6 +11,7 @@
  */
 
 import { createClient } from '@/lib/supabase/client'
+import type { QuoteAgentType } from '@/lib/ai/quoteAgents'
 
 // ===========================================
 // Types
@@ -80,6 +81,7 @@ interface QuoteAbandonedMetadata {
 interface QuoteAIMetadata {
   duration_ms?: number
   trade?: string
+  agent?: QuoteAgentType
   error_type?: string
   error_message?: string
   platform?: Platform
@@ -276,28 +278,32 @@ export class QuoteCreationTracker {
 export class QuoteAITracker {
   private startTime: number | null = null
   private trade: string = ''
+  private agent?: QuoteAgentType
 
   /**
    * Démarre le tracking de génération IA
    */
-  start(trade: string = ''): void {
+  start(trade: string = '', agent?: QuoteAgentType): void {
     this.startTime = Date.now()
     this.trade = trade
+    this.agent = agent
 
     trackQuoteEvent('quote_ai_generation_started', {
       trade,
+      agent,
     })
   }
 
   /**
    * Enregistre un succès de génération
    */
-  async success(): Promise<void> {
+  async success(agent?: QuoteAgentType): Promise<void> {
     const duration = this.startTime ? Date.now() - this.startTime : 0
 
     await trackQuoteEvent('quote_ai_generation_success', {
       duration_ms: duration,
       trade: this.trade,
+      agent: agent || this.agent,
     })
 
     this.reset()
@@ -306,7 +312,7 @@ export class QuoteAITracker {
   /**
    * Enregistre une erreur de génération
    */
-  async error(errorType: string, errorMessage: string): Promise<void> {
+  async error(errorType: string, errorMessage: string, agent?: QuoteAgentType): Promise<void> {
     const duration = this.startTime ? Date.now() - this.startTime : 0
 
     await trackQuoteEvent('quote_ai_generation_error', {
@@ -314,6 +320,7 @@ export class QuoteAITracker {
       error_type: errorType,
       error_message: errorMessage,
       trade: this.trade,
+      agent: agent || this.agent,
     })
 
     this.reset()
@@ -325,6 +332,7 @@ export class QuoteAITracker {
   private reset(): void {
     this.startTime = null
     this.trade = ''
+    this.agent = undefined
   }
 }
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { QuoteItemInput } from '@/types/quote'
+import type { QuoteAgentType } from '@/lib/ai/quoteAgents'
 
 // ===========================================
 // Rate Limiting (Best-effort in-memory)
@@ -38,6 +39,96 @@ setInterval(() => {
 }, 60 * 1000) // Every minute
 
 // ===========================================
+// Agent Definitions
+// ===========================================
+const quoteAgentValues = ['auto', 'quick', 'advice', 'compliance', 'upsell'] as const
+type ResolvedQuoteAgent = Exclude<QuoteAgentType, 'auto'>
+const QUOTE_AGENT_VALUE_SET = new Set<QuoteAgentType>(quoteAgentValues)
+
+function isQuoteAgent(value: unknown): value is QuoteAgentType {
+  return typeof value === 'string' && QUOTE_AGENT_VALUE_SET.has(value as QuoteAgentType)
+}
+
+function normalizeText(value: string): string {
+  return value
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+}
+
+const COMPLIANCE_KEYWORDS = [
+  'conformite',
+  'norme',
+  'mise aux normes',
+  'nf c 15-100',
+  'dtu',
+  'reglement',
+  'securite',
+  'consuel',
+  'attestation',
+  'controle',
+]
+
+const ADVICE_KEYWORDS = [
+  'conseil',
+  'recommand',
+  'optimisation',
+  'diagnostic',
+  'audit',
+  'preconisation',
+  'etude',
+  'dimensionnement',
+]
+
+const UPSELL_KEYWORDS = [
+  'option',
+  'optionnel',
+  'supplement',
+  'upgrade',
+  'entretien',
+  'maintenance',
+  'contrat',
+  'garantie',
+  'premium',
+  'service additionnel',
+  'pack',
+]
+
+const QUICK_KEYWORDS = [
+  'rapide',
+  'express',
+  'urgent',
+  'depannage',
+  'simple',
+]
+
+function includesKeyword(text: string, keywords: string[]): boolean {
+  return keywords.some((keyword) => text.includes(keyword))
+}
+
+function detectAgentFromDescription(description: string): ResolvedQuoteAgent {
+  const normalized = normalizeText(description)
+
+  if (includesKeyword(normalized, COMPLIANCE_KEYWORDS)) return 'compliance'
+  if (includesKeyword(normalized, ADVICE_KEYWORDS)) return 'advice'
+  if (includesKeyword(normalized, UPSELL_KEYWORDS)) return 'upsell'
+  if (includesKeyword(normalized, QUICK_KEYWORDS)) return 'quick'
+
+  return 'quick'
+}
+
+function resolveAgent(
+  requestedAgent: QuoteAgentType | undefined,
+  description: string
+): ResolvedQuoteAgent {
+  if (!requestedAgent || requestedAgent === 'auto') {
+    return detectAgentFromDescription(description)
+  }
+
+  return requestedAgent
+}
+
+// ===========================================
 // Input Validation Schema
 // ===========================================
 const generateQuoteInputSchema = z.object({
@@ -46,6 +137,7 @@ const generateQuoteInputSchema = z.object({
     .max(2000, 'La description ne peut pas dépasser 2000 caractères'),
   trade: z.string().optional(),
   vat_rate: z.number().min(0).max(30).optional(),
+  agent: z.enum(quoteAgentValues).optional(),
 })
 
 // ===========================================
@@ -65,7 +157,7 @@ const aiOutputSchema = z.object({
 // ===========================================
 // System Prompt for OpenAI
 // ===========================================
-const SYSTEM_PROMPT = `Tu es un assistant spécialisé pour les artisans français (plombiers, électriciens, maçons, peintres, menuisiers, etc.).
+const BASE_SYSTEM_PROMPT = `Tu es un assistant spécialisé pour les artisans français (plombiers, électriciens, maçons, peintres, menuisiers, etc.).
 Ta tâche est de générer des lignes de devis professionnelles à partir d'une description de travaux.
 
 RÈGLES STRICTES:
@@ -100,10 +192,35 @@ EXEMPLE de réponse valide:
   ]
 }`
 
+const AGENT_PROMPTS: Record<ResolvedQuoteAgent, string> = {
+  quick: `MODE "Devis rapide":
+- Priorise les postes essentiels uniquement
+- 3 à 6 lignes maximum si possible
+- Pas de recommandations optionnelles`,
+  advice: `MODE "Conseil technique":
+- Ajoute 1 à 2 lignes d'étude/diagnostic ou d'optimisation technique si pertinent
+- Reste concis et professionnel`,
+  compliance: `MODE "Conformité & réglementation":
+- Ajoute 1 à 2 lignes dédiées aux contrôles/tests de conformité
+- Mentionne la norme pertinente si possible (NF C 15-100, DTU)`,
+  upsell: `MODE "Upsell":
+- Ajoute 1 à 3 lignes optionnelles préfixées par "Option:"
+- Propose des services additionnels (entretien, garantie, finitions)`,
+}
+
+function buildSystemPrompt(agent: ResolvedQuoteAgent): string {
+  return `${BASE_SYSTEM_PROMPT}\n\n${AGENT_PROMPTS[agent]}`.trim()
+}
+
 // ===========================================
 // Fallback Generator
 // ===========================================
-function generateFallbackItems(description: string, trade?: string, defaultVatRate = 20): QuoteItemInput[] {
+function generateFallbackItems(
+  description: string,
+  trade?: string,
+  defaultVatRate = 20,
+  agent: ResolvedQuoteAgent = 'quick'
+): QuoteItemInput[] {
   const vatRate = defaultVatRate
   const lowerDesc = description.toLowerCase()
   const lowerTrade = trade?.toLowerCase() || ''
@@ -164,13 +281,165 @@ function generateFallbackItems(description: string, trade?: string, defaultVatRa
     items.push({ description: 'Majoration intervention urgente', quantity: 1, unit_price_ht: 50, vat_rate: 20 })
   }
 
+  return applyAgentFallbackAdjustments(items, agent, trade, vatRate)
+}
+
+function applyAgentFallbackAdjustments(
+  items: QuoteItemInput[],
+  agent: ResolvedQuoteAgent,
+  trade?: string,
+  defaultVatRate = 20
+): QuoteItemInput[] {
+  if (agent === 'quick') {
+    return items
+  }
+
+  const normalizedDescriptions = items.map((item) => normalizeText(item.description))
+  const addItem = (item: QuoteItemInput, keywords: string[]) => {
+    if (items.length >= 10) return
+    if (keywords.some((keyword) => normalizedDescriptions.some((desc) => desc.includes(keyword)))) return
+    items.push(item)
+    normalizedDescriptions.push(normalizeText(item.description))
+  }
+
+  const tradeKey = trade ? normalizeText(trade) : ''
+
+  if (agent === 'advice') {
+    addItem(
+      {
+        description: 'Conseil technique et préconisations',
+        quantity: 1,
+        unit_price_ht: 45,
+        vat_rate: 10,
+      },
+      ['conseil', 'diagnostic', 'etude', 'preconisation']
+    )
+  }
+
+  if (agent === 'compliance') {
+    const complianceItem: QuoteItemInput = (() => {
+      if (tradeKey.includes('electric')) {
+        return {
+          description: 'Contrôle conformité NF C 15-100',
+          quantity: 1,
+          unit_price_ht: 75,
+          vat_rate: 10,
+        }
+      }
+      if (tradeKey.includes('plomb')) {
+        return {
+          description: 'Essais d\'étanchéité et conformité DTU',
+          quantity: 1,
+          unit_price_ht: 60,
+          vat_rate: 10,
+        }
+      }
+      if (tradeKey.includes('menuis')) {
+        return {
+          description: 'Vérification conformité DTU menuiseries',
+          quantity: 1,
+          unit_price_ht: 70,
+          vat_rate: 10,
+        }
+      }
+      if (tradeKey.includes('peint')) {
+        return {
+          description: 'Contrôle préparation support (DTU)',
+          quantity: 1,
+          unit_price_ht: 50,
+          vat_rate: 10,
+        }
+      }
+      if (tradeKey.includes('renov')) {
+        return {
+          description: 'Vérification conformité DTU',
+          quantity: 1,
+          unit_price_ht: 60,
+          vat_rate: 10,
+        }
+      }
+      return {
+        description: 'Vérification conformité et tests',
+        quantity: 1,
+        unit_price_ht: 60,
+        vat_rate: 10,
+      }
+    })()
+
+    addItem(
+      complianceItem,
+      ['conformite', 'norme', 'test', 'controle', 'dtu', 'nf c 15-100']
+    )
+  }
+
+  if (agent === 'upsell') {
+    const upsellItem: QuoteItemInput = (() => {
+      if (tradeKey.includes('electric')) {
+        return {
+          description: 'Option: Parafoudre de tableau',
+          quantity: 1,
+          unit_price_ht: 120,
+          vat_rate: 10,
+        }
+      }
+      if (tradeKey.includes('plomb')) {
+        return {
+          description: 'Option: Contrat d\'entretien annuel',
+          quantity: 1,
+          unit_price_ht: 120,
+          vat_rate: 20,
+        }
+      }
+      if (tradeKey.includes('peint')) {
+        return {
+          description: 'Option: Peinture plafond (forfait)',
+          quantity: 1,
+          unit_price_ht: 150,
+          vat_rate: 10,
+        }
+      }
+      if (tradeKey.includes('menuis')) {
+        return {
+          description: 'Option: Traitement du bois',
+          quantity: 1,
+          unit_price_ht: 80,
+          vat_rate: 10,
+        }
+      }
+      if (tradeKey.includes('renov')) {
+        return {
+          description: 'Option: Nettoyage de fin de chantier',
+          quantity: 1,
+          unit_price_ht: 150,
+          vat_rate: 20,
+        }
+      }
+      return {
+        description: 'Option: Nettoyage de fin de chantier',
+        quantity: 1,
+        unit_price_ht: 150,
+        vat_rate: defaultVatRate,
+      }
+    })()
+
+    addItem(
+      upsellItem,
+      ['option', 'entretien', 'garantie', 'parafoudre', 'nettoyage', 'traitement']
+    )
+  }
+
   return items
 }
 
 // ===========================================
 // OpenAI API Call
 // ===========================================
-async function callOpenAI(description: string, trade?: string, vatRate?: number): Promise<QuoteItemInput[]> {
+async function callOpenAI(
+  description: string,
+  trade: string | undefined,
+  vatRate: number | undefined,
+  agent: ResolvedQuoteAgent
+): Promise<QuoteItemInput[]> {
   const apiKey = process.env.OPENAI_API_KEY
   if (!apiKey) {
     throw new Error('OPENAI_API_KEY not configured')
@@ -195,7 +464,7 @@ async function callOpenAI(description: string, trade?: string, vatRate?: number)
     body: JSON.stringify({
       model,
       messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'system', content: buildSystemPrompt(agent) },
         { role: 'user', content: userPrompt },
       ],
       temperature: 0.7,
@@ -266,21 +535,22 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { description, trade, vat_rate } = validationResult.data
+    const { description, trade, vat_rate, agent } = validationResult.data
+    const resolvedAgent = resolveAgent(agent, description)
 
     let items: QuoteItemInput[]
 
     try {
       // Try OpenAI first
-      items = await callOpenAI(description, trade, vat_rate)
+      items = await callOpenAI(description, trade, vat_rate, resolvedAgent)
     } catch (error) {
       console.warn('OpenAI call failed, using fallback:', error)
       // Fallback to heuristic generation
-      items = generateFallbackItems(description, trade, vat_rate ?? 20)
+      items = generateFallbackItems(description, trade, vat_rate ?? 20, resolvedAgent)
     }
 
     return NextResponse.json(
-      { items },
+      { items, agent: resolvedAgent },
       { 
         headers: { 'X-RateLimit-Remaining': remaining.toString() }
       }
@@ -292,12 +562,16 @@ export async function POST(request: NextRequest) {
     // Try to return fallback even on unexpected errors
     try {
       const body = await request.clone().json().catch(() => ({}))
+      const requestedAgent = isQuoteAgent(body.agent) ? body.agent : undefined
+      const description = body.description || 'Travaux généraux'
+      const resolvedAgent = resolveAgent(requestedAgent, description)
       const fallbackItems = generateFallbackItems(
-        body.description || 'Travaux généraux',
+        description,
         body.trade,
-        body.vat_rate ?? 20
+        body.vat_rate ?? 20,
+        resolvedAgent
       )
-      return NextResponse.json({ items: fallbackItems })
+      return NextResponse.json({ items: fallbackItems, agent: resolvedAgent })
     } catch {
       return NextResponse.json(
         { error: 'Erreur lors de la génération du devis' },

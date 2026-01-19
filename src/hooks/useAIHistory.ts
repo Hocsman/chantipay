@@ -38,13 +38,20 @@ export function useAIHistory() {
    * Garde seulement les 5 dernières entrées
    */
   const addToHistory = useCallback(
-    (description: string, items: QuoteItemInput[], trade?: string, vatRate?: number) => {
+    (
+      description: string,
+      items: QuoteItemInput[],
+      trade?: string,
+      vatRate?: number,
+      agent?: AIHistoryEntry['agent']
+    ) => {
       const newEntry: AIHistoryEntry = {
         id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         timestamp: Date.now(),
         description,
         trade,
         vatRate,
+        agent,
         items,
       }
 

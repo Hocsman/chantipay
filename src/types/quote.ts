@@ -2,6 +2,7 @@
  * Shared types for quote items
  * Used by both API routes and frontend components
  */
+import type { QuoteAgentType } from '@/lib/ai/quoteAgents'
 
 /**
  * Input type for quote line items
@@ -21,6 +22,7 @@ export type GenerateQuoteRequest = {
   description: string    // Required: min 20 chars, max 2000
   trade?: string         // Optional: type of trade
   vat_rate?: number      // Optional: default VAT rate (0-30)
+  agent?: QuoteAgentType
 }
 
 /**

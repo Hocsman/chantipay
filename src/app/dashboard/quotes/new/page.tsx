@@ -48,6 +48,8 @@ import type { LibraryItem } from '@/types/quote-library'
 import { SuggestionsAlert } from '@/components/quotes/SuggestionsAlert'
 import { VoiceMicButton } from '@/components/ai/VoiceMicButton'
 import { PricePreferenceHint } from '@/components/quotes/PricePreferenceHint'
+import { QUOTE_AGENT_OPTIONS } from '@/lib/ai/quoteAgents'
+import type { QuoteAgentType } from '@/lib/ai/quoteAgents'
 
 // ===========================================
 // Types
@@ -155,6 +157,7 @@ export default function NewQuotePage() {
   const [depositPercent, setDepositPercent] = useState('30')
   const [aiDescription, setAiDescription] = useState('')
   const [selectedTrade, setSelectedTrade] = useState('')
+  const [selectedAgent, setSelectedAgent] = useState<QuoteAgentType>('auto')
   const [selectedChips, setSelectedChips] = useState<Set<string>>(new Set())
   const [replaceMode, setReplaceMode] = useState(true) // true = replace, false = append
   const [showSuggestions, setShowSuggestions] = useState(false)
@@ -170,6 +173,7 @@ export default function NewQuotePage() {
     items,
     aiDescription,
     selectedTrade,
+    selectedAgent,
     true // enabled
   )
 
@@ -234,6 +238,7 @@ export default function NewQuotePage() {
     setAiDescription(entry.description)
     if (entry.trade) setSelectedTrade(entry.trade)
     if (entry.vatRate) setVatRate(entry.vatRate.toString())
+    if (entry.agent) setSelectedAgent(entry.agent)
 
     // Restore items
     const restoredItems: QuoteItem[] = entry.items.map((item: any, index: number) => ({
@@ -357,6 +362,8 @@ export default function NewQuotePage() {
     }).format(amount)
   }
 
+  const selectedAgentInfo = QUOTE_AGENT_OPTIONS.find((option) => option.value === selectedAgent)
+
   // Génération IA des lignes de devis
   const generateWithAI = async () => {
     if (!aiDescription.trim()) {
@@ -370,7 +377,7 @@ export default function NewQuotePage() {
     }
 
     // Analytics: Démarrer le tracking de génération IA
-    aiTracker.start(selectedTrade)
+    aiTracker.start(selectedTrade, selectedAgent)
 
     setIsGeneratingAI(true)
     try {
@@ -381,6 +388,7 @@ export default function NewQuotePage() {
           description: aiDescription,
           trade: selectedTrade || undefined,
           vat_rate: parseFloat(vatRate),
+          agent: selectedAgent,
         }),
       })
 
@@ -414,11 +422,13 @@ export default function NewQuotePage() {
 
         toast.success('Lignes générées ! Vous pouvez ajuster les prix.')
 
+        const agentUsed = (data.agent as QuoteAgentType | undefined) || selectedAgent
+
         // Analytics: Succès de la génération IA
-        aiTracker.success()
+        aiTracker.success(agentUsed)
 
         // Ajouter à l'historique
-        addToHistory(aiDescription, newItems, selectedTrade, parseFloat(vatRate))
+        addToHistory(aiDescription, newItems, selectedTrade, parseFloat(vatRate), agentUsed)
 
         // Afficher les suggestions de compléments
         setShowSuggestions(true)
@@ -852,6 +862,31 @@ export default function NewQuotePage() {
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+
+              {/* Agent Selection */}
+              <div>
+                <Label htmlFor="aiAgent">Agent IA</Label>
+                <Select
+                  value={selectedAgent}
+                  onValueChange={(value) => setSelectedAgent(value as QuoteAgentType)}
+                >
+                  <SelectTrigger id="aiAgent" className="mt-1">
+                    <SelectValue placeholder="Choisir un agent" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {QUOTE_AGENT_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {selectedAgentInfo?.description && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {selectedAgentInfo.description}
+                  </p>
+                )}
               </div>
 
               {/* Description Textarea */}

@@ -13,6 +13,7 @@ import { Clock, RotateCcw, Trash2, History } from 'lucide-react'
 import { AIHistoryEntry } from '@/types/ai-history'
 import { formatDistanceToNow } from 'date-fns'
 import { fr } from 'date-fns/locale'
+import { getAgentLabel } from '@/lib/ai/quoteAgents'
 
 interface AIHistoryDropdownProps {
   history: AIHistoryEntry[]
@@ -93,6 +94,11 @@ export function AIHistoryDropdown({
                     {entry.trade && (
                       <Badge variant="outline" className="text-xs">
                         {entry.trade}
+                      </Badge>
+                    )}
+                    {entry.agent && (
+                      <Badge variant="secondary" className="text-xs">
+                        {getAgentLabel(entry.agent)}
                       </Badge>
                     )}
                   </div>

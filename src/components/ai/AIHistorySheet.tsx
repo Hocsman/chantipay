@@ -7,6 +7,7 @@ import { Clock, RotateCcw, Trash2, History } from 'lucide-react'
 import { AIHistoryEntry } from '@/types/ai-history'
 import { formatDistanceToNow } from 'date-fns'
 import { fr } from 'date-fns/locale'
+import { getAgentLabel } from '@/lib/ai/quoteAgents'
 
 interface AIHistorySheetProps {
   history: AIHistoryEntry[]
@@ -85,6 +86,11 @@ export function AIHistorySheet({
                         {entry.trade && (
                           <Badge variant="outline" className="text-xs">
                             {entry.trade}
+                          </Badge>
+                        )}
+                        {entry.agent && (
+                          <Badge variant="secondary" className="text-xs">
+                            {getAgentLabel(entry.agent)}
                           </Badge>
                         )}
                         <span className="text-xs text-muted-foreground">

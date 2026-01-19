@@ -1,4 +1,5 @@
 import { QuoteItemInput } from './quote'
+import type { QuoteAgentType } from '@/lib/ai/quoteAgents'
 
 /**
  * Structure d'une entrée dans l'historique des générations IA
@@ -9,6 +10,7 @@ export interface AIHistoryEntry {
   description: string
   trade?: string
   vatRate?: number
+  agent?: QuoteAgentType
   items: QuoteItemInput[]
 }
 
