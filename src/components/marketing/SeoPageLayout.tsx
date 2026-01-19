@@ -34,7 +34,7 @@ export function SeoPageLayout({
       <header className="sticky top-0 z-50 border-b bg-background/80 backdrop-blur-sm">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
           <Link href="/" className="flex items-center gap-2">
-            <div className="bg-primary flex h-8 w-8 items-center justify-center rounded-lg">
+            <div className="bg-black flex h-8 w-8 items-center justify-center rounded-lg">
               <FileText className="h-5 w-5 text-white" />
             </div>
             <span className="text-xl font-bold">ChantiPay</span>
@@ -68,7 +68,7 @@ export function SeoPageLayout({
         <div className="mx-auto max-w-7xl px-4">
           <div className="flex flex-col items-center justify-between gap-4 md:flex-row">
             <Link href="/" className="flex items-center gap-2">
-              <div className="bg-primary flex h-6 w-6 items-center justify-center rounded-lg">
+              <div className="bg-black flex h-6 w-6 items-center justify-center rounded-lg">
                 <FileText className="h-4 w-4 text-white" />
               </div>
               <span className="font-bold">ChantiPay</span>

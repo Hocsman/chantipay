@@ -27,7 +27,7 @@ export function MobileHeader({ title, subtitle, user, className }: MobileHeaderP
   return (
     <header
       className={cn(
-        'sticky top-0 z-40 bg-primary text-white shadow-sm',
+        'sticky top-0 z-40 bg-black text-white shadow-sm',
         className
       )}
       style={{
@@ -50,9 +50,9 @@ export function MobileHeader({ title, subtitle, user, className }: MobileHeaderP
             aria-label="Chronomètre"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <circle cx="12" cy="13" r="8" strokeWidth="2"/>
-              <path d="M12 9v4l2 2" strokeWidth="2" strokeLinecap="round"/>
-              <path d="M9 2h6" strokeWidth="2" strokeLinecap="round"/>
+              <circle cx="12" cy="13" r="8" strokeWidth="2" />
+              <path d="M12 9v4l2 2" strokeWidth="2" strokeLinecap="round" />
+              <path d="M9 2h6" strokeWidth="2" strokeLinecap="round" />
             </svg>
           </button>
 
@@ -61,10 +61,10 @@ export function MobileHeader({ title, subtitle, user, className }: MobileHeaderP
             aria-label="QR Code"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <rect x="3" y="3" width="7" height="7" strokeWidth="2"/>
-              <rect x="14" y="3" width="7" height="7" strokeWidth="2"/>
-              <rect x="3" y="14" width="7" height="7" strokeWidth="2"/>
-              <rect x="14" y="14" width="7" height="7" strokeWidth="2"/>
+              <rect x="3" y="3" width="7" height="7" strokeWidth="2" />
+              <rect x="14" y="3" width="7" height="7" strokeWidth="2" />
+              <rect x="3" y="14" width="7" height="7" strokeWidth="2" />
+              <rect x="14" y="14" width="7" height="7" strokeWidth="2" />
             </svg>
           </button>
 
