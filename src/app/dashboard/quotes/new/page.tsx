@@ -47,6 +47,7 @@ import { useQuoteLibrary } from '@/hooks/useQuoteLibrary'
 import type { LibraryItem } from '@/types/quote-library'
 import { SuggestionsAlert } from '@/components/quotes/SuggestionsAlert'
 import { VoiceMicButton } from '@/components/ai/VoiceMicButton'
+import { PricePreferenceHint } from '@/components/quotes/PricePreferenceHint'
 
 // ===========================================
 // Types
@@ -680,6 +681,15 @@ export default function NewQuotePage() {
                     <div className="text-right text-sm">
                       Total: <strong>{formatCurrency(item.quantity * item.unit_price_ht)}</strong> HT
                     </div>
+                    {/* Suggestion de prix basée sur l'historique */}
+                    {item.description.length >= 10 && (
+                      <PricePreferenceHint
+                        description={item.description}
+                        currentPrice={item.unit_price_ht}
+                        onApplyPrice={(price) => updateItem(item.id, 'unit_price_ht', price)}
+                        compact
+                      />
+                    )}
                   </CardContent>
                 </Card>
               ))}
@@ -718,13 +728,23 @@ export default function NewQuotePage() {
                         />
                       </TableCell>
                       <TableCell>
-                        <Input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value={item.unit_price_ht}
-                          onChange={(e) => updateItem(item.id, 'unit_price_ht', parseFloat(e.target.value) || 0)}
-                        />
+                        <div className="space-y-1">
+                          <Input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={item.unit_price_ht}
+                            onChange={(e) => updateItem(item.id, 'unit_price_ht', parseFloat(e.target.value) || 0)}
+                          />
+                          {item.description.length >= 10 && (
+                            <PricePreferenceHint
+                              description={item.description}
+                              currentPrice={item.unit_price_ht}
+                              onApplyPrice={(price) => updateItem(item.id, 'unit_price_ht', price)}
+                              compact
+                            />
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell>
                         <Input

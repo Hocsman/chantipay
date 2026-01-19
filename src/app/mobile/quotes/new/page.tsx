@@ -36,6 +36,7 @@ import { LibraryImportSheet } from '@/components/library/LibraryImportSheet';
 import type { LibraryItem } from '@/types/quote-library';
 import { SuggestionsSheet } from '@/components/quotes/SuggestionsSheet';
 import { VoiceMicButton } from '@/components/ai/VoiceMicButton';
+import { PricePreferenceHint } from '@/components/quotes/PricePreferenceHint';
 
 // ===========================================
 // Types
@@ -904,6 +905,15 @@ export default function NewQuotePage() {
                       Total:{' '}
                       <strong>{formatCurrency(item.quantity * item.unit_price_ht)}</strong> HT
                     </div>
+                    {/* Suggestion de prix basée sur l'historique */}
+                    {item.description.length >= 10 && (
+                      <PricePreferenceHint
+                        description={item.description}
+                        currentPrice={item.unit_price_ht}
+                        onApplyPrice={(price) => updateItem(item.id, 'unit_price_ht', price)}
+                        compact
+                      />
+                    )}
                   </CardContent>
                 </Card>
               ))}

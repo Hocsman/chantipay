@@ -17,7 +17,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Plus, Search, FileText, Loader2 } from 'lucide-react'
+import { Plus, Search, FileText, Loader2, TrendingUp } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 type QuoteStatus = 'draft' | 'sent' | 'signed' | 'deposit_paid' | 'completed' | 'canceled'
 
@@ -107,40 +108,76 @@ export default function QuotesPage() {
     })
   }
 
+  // Calculer les statistiques rapides
+  const stats = {
+    total: quotes.length,
+    signed: quotes.filter(q => q.status === 'signed').length,
+    pending: quotes.filter(q => q.status === 'sent').length,
+    totalAmount: quotes.reduce((sum, q) => sum + (q.total_ttc || 0), 0),
+  }
+
   return (
     <LayoutContainer>
       <PageHeader
         title="Devis"
-        description="Gérez tous vos devis"
+        description="Gérez tous vos devis clients"
         action={
-          <Button onClick={() => router.push('/dashboard/quotes/new')} className="hidden sm:flex">
-            <Plus className="h-4 w-4 mr-2" />
+          <Button
+            onClick={() => router.push('/dashboard/quotes/new')}
+            className="hidden sm:flex gap-2 shadow-md hover:shadow-lg"
+          >
+            <Plus className="h-4 w-4" />
             Nouveau devis
           </Button>
         }
       />
 
-      {/* Barre de recherche */}
-      <div className="mb-4">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Rechercher par numéro, client, montant ou prestation..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
-          />
+      {/* Stats rapides */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-gradient-to-br from-primary/5 to-primary/10 rounded-xl p-4 border border-primary/10">
+          <p className="text-sm text-muted-foreground">Total devis</p>
+          <p className="text-2xl font-bold">{stats.total}</p>
+        </div>
+        <div className="bg-gradient-to-br from-green-500/5 to-green-500/10 rounded-xl p-4 border border-green-500/10">
+          <p className="text-sm text-muted-foreground">Signés</p>
+          <p className="text-2xl font-bold text-green-600">{stats.signed}</p>
+        </div>
+        <div className="bg-gradient-to-br from-blue-500/5 to-blue-500/10 rounded-xl p-4 border border-blue-500/10">
+          <p className="text-sm text-muted-foreground">En attente</p>
+          <p className="text-2xl font-bold text-blue-600">{stats.pending}</p>
+        </div>
+        <div className="bg-gradient-to-br from-violet-500/5 to-violet-500/10 rounded-xl p-4 border border-violet-500/10">
+          <div className="flex items-center gap-2">
+            <p className="text-sm text-muted-foreground">Montant total</p>
+            <TrendingUp className="h-3 w-3 text-violet-500" />
+          </div>
+          <p className="text-2xl font-bold text-violet-600">{formatCurrency(stats.totalAmount)}</p>
         </div>
       </div>
 
+      {/* Barre de recherche */}
+      <div className="relative">
+        <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Rechercher par numéro, client, montant ou prestation..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-11 h-12"
+        />
+      </div>
+
       {/* Filtres par statut */}
-      <div className="flex flex-wrap gap-2 mb-6">
+      <div className="flex flex-wrap gap-2">
         {statusFilters.map((filter) => (
           <Button
             key={filter.value}
             variant={statusFilter === filter.value ? 'default' : 'outline'}
             size="sm"
             onClick={() => setStatusFilter(filter.value)}
+            className={cn(
+              "transition-all duration-200",
+              statusFilter === filter.value && "shadow-md"
+            )}
           >
             {filter.label}
           </Button>
@@ -149,31 +186,35 @@ export default function QuotesPage() {
 
       {/* Loading state */}
       {isLoading && (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <div className="flex flex-col items-center justify-center py-16">
+          <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
+          <p className="text-muted-foreground">Chargement des devis...</p>
         </div>
       )}
 
       {/* Liste des devis - Vue mobile */}
       {!isLoading && filteredQuotes.length > 0 && (
         <div className="space-y-3 md:hidden">
-          {filteredQuotes.map((quote) => (
+          {filteredQuotes.map((quote, index) => (
             <Card
               key={quote.id}
-              className="cursor-pointer hover:shadow-md transition-shadow"
+              className="cursor-pointer active:scale-[0.98] transition-all duration-200"
               onClick={() => router.push(`/dashboard/quotes/${quote.id}`)}
+              style={{ animationDelay: `${index * 50}ms` }}
             >
               <CardContent className="p-4">
-                <div className="flex items-start justify-between mb-2">
+                <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-2">
-                    <FileText className="h-4 w-4 text-muted-foreground" />
-                    <span className="font-medium">{quote.quote_number}</span>
+                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <FileText className="h-4 w-4 text-primary" />
+                    </div>
+                    <span className="font-semibold">{quote.quote_number}</span>
                   </div>
                   <QuoteStatusBadge status={quote.status} />
                 </div>
-                <p className="text-sm text-muted-foreground mb-2">{quote.clients?.name || 'Client'}</p>
+                <p className="text-sm text-muted-foreground mb-3">{quote.clients?.name || 'Client'}</p>
                 <div className="flex items-center justify-between">
-                  <span className="text-lg font-bold">{formatCurrency(quote.total_ttc || 0)}</span>
+                  <span className="text-xl font-bold">{formatCurrency(quote.total_ttc || 0)}</span>
                   <span className="text-xs text-muted-foreground">{formatDate(quote.created_at)}</span>
                 </div>
               </CardContent>
@@ -184,10 +225,10 @@ export default function QuotesPage() {
 
       {/* Liste des devis - Vue desktop */}
       {!isLoading && filteredQuotes.length > 0 && (
-        <Card className="hidden md:block">
+        <Card className="hidden md:block overflow-hidden">
           <Table>
             <TableHeader>
-              <TableRow>
+              <TableRow className="hover:bg-transparent">
                 <TableHead>Numéro</TableHead>
                 <TableHead>Client</TableHead>
                 <TableHead>Statut</TableHead>
@@ -196,19 +237,27 @@ export default function QuotesPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredQuotes.map((quote) => (
+              {filteredQuotes.map((quote, index) => (
                 <TableRow
                   key={quote.id}
-                  className="cursor-pointer"
+                  className="cursor-pointer group"
                   onClick={() => router.push(`/dashboard/quotes/${quote.id}`)}
+                  style={{ animationDelay: `${index * 30}ms` }}
                 >
-                  <TableCell className="font-medium">{quote.quote_number}</TableCell>
-                  <TableCell>{quote.clients?.name || 'Client'}</TableCell>
+                  <TableCell className="font-semibold">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-primary/5 group-hover:bg-primary/10 flex items-center justify-center transition-colors">
+                        <FileText className="h-4 w-4 text-primary" />
+                      </div>
+                      {quote.quote_number}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">{quote.clients?.name || 'Client'}</TableCell>
                   <TableCell>
                     <QuoteStatusBadge status={quote.status} />
                   </TableCell>
-                  <TableCell className="text-right">{formatCurrency(quote.total_ttc || 0)}</TableCell>
-                  <TableCell>{formatDate(quote.created_at)}</TableCell>
+                  <TableCell className="text-right font-semibold">{formatCurrency(quote.total_ttc || 0)}</TableCell>
+                  <TableCell className="text-muted-foreground">{formatDate(quote.created_at)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -217,16 +266,18 @@ export default function QuotesPage() {
       )}
 
       {!isLoading && filteredQuotes.length === 0 && (
-        <div className="text-center py-12">
-          <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-medium mb-2">Aucun devis trouvé</h3>
-          <p className="text-muted-foreground mb-4">
+        <div className="text-center py-16">
+          <div className="w-16 h-16 rounded-2xl bg-muted/50 flex items-center justify-center mx-auto mb-4">
+            <FileText className="h-8 w-8 text-muted-foreground" />
+          </div>
+          <h3 className="text-lg font-semibold mb-2">Aucun devis trouvé</h3>
+          <p className="text-muted-foreground mb-6 max-w-sm mx-auto">
             {searchQuery || statusFilter !== 'all'
               ? 'Essayez de modifier vos filtres de recherche'
-              : 'Commencez par créer votre premier devis'}
+              : 'Commencez par créer votre premier devis pour un client'}
           </p>
-          <Button onClick={() => router.push('/dashboard/quotes/new')}>
-            <Plus className="h-4 w-4 mr-2" />
+          <Button onClick={() => router.push('/dashboard/quotes/new')} className="gap-2">
+            <Plus className="h-4 w-4" />
             Nouveau devis
           </Button>
         </div>
@@ -236,4 +287,3 @@ export default function QuotesPage() {
     </LayoutContainer>
   )
 }
-
