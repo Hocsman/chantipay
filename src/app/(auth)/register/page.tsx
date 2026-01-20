@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -23,7 +24,7 @@ export default function RegisterPage() {
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
   const [siret, setSiret] = useState('');
-  
+
   // UI state
   const [isLoading, setIsLoading] = useState(false);
   const [isOAuthLoading, setIsOAuthLoading] = useState(false);
@@ -69,25 +70,25 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Anti-bot: honeypot check
     if (honeypot) {
       // Silently fail for bots
       return;
     }
-    
+
     // Anti-bot: time check (submitted too fast = bot)
     if (Date.now() - formLoadedAt < 3000) {
       setError('Veuillez patienter quelques secondes.');
       return;
     }
-    
+
     setIsLoading(true);
     setError(null);
 
     try {
       const supabase = createClient();
-      
+
       // 1. Create the auth user
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
@@ -144,11 +145,16 @@ export default function RegisterPage() {
     <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <Link href="/" className="mx-auto mb-4 flex items-center gap-2">
-            <div className="bg-primary flex h-10 w-10 items-center justify-center rounded-lg">
-              <FileText className="h-6 w-6 text-white" />
-            </div>
-            <span className="text-2xl font-bold">ChantiPay</span>
+          <Link href="/" className="mx-auto mb-4 flex items-center gap-2.5">
+            <Image
+              src="/favicon.svg"
+              alt="ChantiPay"
+              width={44}
+              height={44}
+              unoptimized
+              className="rounded-xl"
+            />
+            <span className="text-2xl font-bold tracking-tight">ChantiPay</span>
           </Link>
           <CardTitle>Créer un compte</CardTitle>
           <CardDescription>
@@ -218,13 +224,13 @@ export default function RegisterPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Honeypot anti-bot field */}
             <HoneypotField value={honeypot} onChange={setHoneypot} name="company_website" />
-            
+
             {error && (
               <div className="rounded-md bg-red-50 p-3 text-sm text-red-600">
                 {error}
               </div>
             )}
-            
+
             {/* Personal Info */}
             <div className="space-y-2">
               <Label htmlFor="fullName" className="flex items-center gap-2">
@@ -241,7 +247,7 @@ export default function RegisterPage() {
                 autoComplete="name"
               />
             </div>
-            
+
             {/* Company Info */}
             <div className="space-y-2">
               <Label htmlFor="companyName" className="flex items-center gap-2">
@@ -258,7 +264,7 @@ export default function RegisterPage() {
                 autoComplete="organization"
               />
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="phone" className="flex items-center gap-2">
                 <Phone className="h-4 w-4 text-muted-foreground" />
@@ -274,7 +280,7 @@ export default function RegisterPage() {
                 autoComplete="tel"
               />
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="address" className="flex items-center gap-2">
                 <MapPin className="h-4 w-4 text-muted-foreground" />
@@ -289,7 +295,7 @@ export default function RegisterPage() {
                 autoComplete="street-address"
               />
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="siret" className="flex items-center gap-2">
                 <Hash className="h-4 w-4 text-muted-foreground" />
@@ -322,7 +328,7 @@ export default function RegisterPage() {
                 autoComplete="email"
               />
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="password">Mot de passe *</Label>
               <div className="relative">
@@ -354,7 +360,7 @@ export default function RegisterPage() {
                 Minimum 8 caractères
               </p>
             </div>
-            
+
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Créer mon compte

@@ -93,6 +93,7 @@ export default function DashboardLayout({
                   alt="ChantiPay"
                   width={36}
                   height={36}
+                  unoptimized
                   className="rounded-xl transition-transform duration-300 group-hover:scale-105"
                 />
                 <div className="absolute inset-0 rounded-xl bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
@@ -228,6 +229,7 @@ export default function DashboardLayout({
               alt="ChantiPay"
               width={32}
               height={32}
+              unoptimized
               className="rounded-lg"
             />
             <span className="text-lg font-bold">ChantiPay</span>
