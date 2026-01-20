@@ -15,7 +15,24 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { FileText, LogOut, Settings, User, Home, Users, Receipt, Calendar, BarChart3, Plus } from 'lucide-react';
+import {
+  FileText,
+  LogOut,
+  Settings,
+  User,
+  Home,
+  Users,
+  Receipt,
+  Calendar,
+  BarChart3,
+  Plus,
+  Wrench,
+  ClipboardList,
+  CheckSquare,
+  ClipboardCheck,
+  CreditCard,
+  ChevronDown,
+} from 'lucide-react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 
@@ -44,12 +61,23 @@ export default function DashboardLayout({
     { href: '/dashboard/stats', label: 'Statistiques', icon: BarChart3 },
   ];
 
+  const moreItems = [
+    { href: '/dashboard/planning', label: 'Chantiers', icon: Wrench },
+    { href: '/dashboard/interventions', label: 'Interventions', icon: ClipboardCheck },
+    { href: '/dashboard/tasks', label: 'Tâches', icon: CheckSquare },
+    { href: '/dashboard/visit-reports/new', label: 'Rapports de visite', icon: ClipboardList },
+    { href: '/dashboard/settings', label: 'Paramètres', icon: Settings },
+    { href: '/dashboard/settings/billing', label: 'Abonnement', icon: CreditCard },
+  ];
+
   const isActive = (href: string) => {
     if (href === '/dashboard') {
       return pathname === '/dashboard';
     }
     return pathname?.startsWith(href);
   };
+
+  const isMoreActive = moreItems.some((item) => isActive(item.href));
 
   return (
     <div className="bg-background min-h-screen pb-24 md:pb-0">
@@ -99,6 +127,42 @@ export default function DashboardLayout({
                   </Link>
                 );
               })}
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    className={cn(
+                      'relative flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200',
+                      isMoreActive
+                        ? 'text-foreground bg-muted'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                    )}
+                  >
+                    <Plus className={cn('h-4 w-4', isMoreActive && 'text-primary')} />
+                    <span>Plus</span>
+                    <ChevronDown className="h-3.5 w-3.5" />
+                    {isMoreActive && (
+                      <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-primary rounded-full" />
+                    )}
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56 shadow-lg" align="start">
+                  <DropdownMenuLabel>Plus d&apos;options</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  {moreItems.map((item) => {
+                    const Icon = item.icon;
+                    return (
+                      <DropdownMenuItem key={item.href} asChild>
+                        <Link href={item.href} className="cursor-pointer">
+                          <Icon className="mr-2 h-4 w-4" />
+                          {item.label}
+                        </Link>
+                      </DropdownMenuItem>
+                    );
+                  })}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </nav>
           </div>
 
