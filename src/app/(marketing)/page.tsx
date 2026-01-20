@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -88,11 +89,15 @@ export default function MarketingPage() {
       {/* Header */}
       <header className="sticky top-0 z-50 border-b bg-background/80 backdrop-blur-sm">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
-          <div className="flex items-center gap-2">
-            <div className="bg-primary flex h-8 w-8 items-center justify-center rounded-lg">
-              <FileText className="h-5 w-5 text-white" />
-            </div>
-            <span className="text-xl font-bold">ChantiPay</span>
+          <div className="flex items-center gap-2.5">
+            <Image
+              src="/favicon.svg"
+              alt="ChantiPay"
+              width={36}
+              height={36}
+              className="rounded-xl"
+            />
+            <span className="text-xl font-bold tracking-tight">ChantiPay</span>
           </div>
           <div className="flex items-center gap-2">
             <ThemeToggle />
@@ -352,11 +357,15 @@ export default function MarketingPage() {
       <footer className="border-t bg-slate-50 dark:bg-slate-900 py-12">
         <div className="mx-auto max-w-7xl px-4">
           <div className="flex flex-col items-center justify-between gap-6 md:flex-row">
-            <div className="flex items-center gap-2">
-              <div className="bg-primary flex h-8 w-8 items-center justify-center rounded-lg">
-                <FileText className="h-5 w-5 text-white" />
-              </div>
-              <span className="text-xl font-bold">ChantiPay</span>
+            <div className="flex items-center gap-2.5">
+              <Image
+                src="/favicon.svg"
+                alt="ChantiPay"
+                width={36}
+                height={36}
+                className="rounded-xl"
+              />
+              <span className="text-xl font-bold tracking-tight">ChantiPay</span>
             </div>
             <nav className="flex flex-wrap items-center justify-center gap-4 text-sm">
               <Link href="/mentions-legales" className="text-muted-foreground hover:text-foreground transition-colors">

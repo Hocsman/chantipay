@@ -8,6 +8,7 @@ import {
   Calendar,
   Package,
   Receipt,
+  ClipboardList,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
@@ -39,6 +40,11 @@ export default function MobileMenuPage() {
       label: 'Chantiers',
       icon: Calendar,
       href: '/mobile/projects',
+    },
+    {
+      label: 'Rapports de visite',
+      icon: ClipboardList,
+      href: '/mobile/visit-reports/new',
     },
     {
       label: 'Stocks',
