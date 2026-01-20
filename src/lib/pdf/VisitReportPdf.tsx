@@ -137,8 +137,14 @@ export function VisitReportPdfDocument({ report, photos, metadata }: VisitReport
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Résumé</Text>
           <Text style={styles.text}>{report.summary}</Text>
-          {metadata?.context && <Text style={styles.metaLine}>Contexte: {metadata.context}</Text>}
         </View>
+
+        {metadata?.context && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Notes utilisateur</Text>
+            <Text style={styles.text}>{metadata.context}</Text>
+          </View>
+        )}
 
         {report.diagnostics.length > 0 && (
           <View style={styles.section}>

@@ -381,6 +381,13 @@ export default function NewVisitReportPage() {
                 <p className="text-sm text-muted-foreground mt-1">{report.summary}</p>
               </div>
 
+              {context.trim() && (
+                <div>
+                  <Label>Notes utilisateur</Label>
+                  <p className="text-sm text-muted-foreground mt-1">{context}</p>
+                </div>
+              )}
+
               {report.diagnostics.length > 0 && (
                 <div>
                   <Label>Diagnostics</Label>
