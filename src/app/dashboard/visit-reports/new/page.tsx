@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { useState, useCallback, useEffect, useRef, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { LayoutContainer } from '@/components/LayoutContainer'
 import { PageHeader } from '@/components/PageHeader'
@@ -56,6 +56,20 @@ function severityBadgeVariant(severity: VisitReportNonConformity['severity']) {
 }
 
 export default function NewVisitReportPage() {
+  return (
+    <Suspense fallback={
+      <LayoutContainer>
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </LayoutContainer>
+    }>
+      <NewVisitReportContent />
+    </Suspense>
+  )
+}
+
+function NewVisitReportContent() {
   const searchParams = useSearchParams()
   const [photos, setPhotos] = useState<VisitPhoto[]>([])
   const [trade, setTrade] = useState('')

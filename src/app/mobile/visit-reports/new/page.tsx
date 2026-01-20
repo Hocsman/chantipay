@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { MobileLayout } from '@/components/mobile/MobileLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -48,6 +48,22 @@ function severityBadgeVariant(severity: VisitReportNonConformity['severity']) {
 }
 
 export default function NewVisitReportMobilePage() {
+  return (
+    <Suspense
+      fallback={
+        <MobileLayout title="Rapport de visite">
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+        </MobileLayout>
+      }
+    >
+      <NewVisitReportMobileContent />
+    </Suspense>
+  );
+}
+
+function NewVisitReportMobileContent() {
   const searchParams = useSearchParams();
   const [photos, setPhotos] = useState<VisitPhoto[]>([]);
   const [trade, setTrade] = useState('');
