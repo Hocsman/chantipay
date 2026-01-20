@@ -196,7 +196,7 @@ function normalizeReportResult(parsed: any, photoCount: number): VisitReportResu
     ? parsed.photoAnnotations
         .map((item: any) => normalizePhotoAnnotation(item))
         .filter((item: VisitReportPhotoAnnotation | null): item is VisitReportPhotoAnnotation => !!item)
-        .filter((item) => item.index >= 0 && item.index < photoCount)
+        .filter((item: VisitReportPhotoAnnotation) => item.index >= 0 && item.index < photoCount)
     : []
 
   return {
