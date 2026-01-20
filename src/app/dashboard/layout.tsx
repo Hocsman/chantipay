@@ -87,17 +87,13 @@ export default function DashboardLayout({
           <div className="flex items-center gap-10">
             {/* Logo */}
             <Link href="/dashboard" className="flex items-center gap-2.5 group">
-              <div className="relative">
-                <Image
-                  src="/favicon.svg"
-                  alt="ChantiPay"
-                  width={36}
-                  height={36}
-                  unoptimized
-                  className="rounded-xl transition-transform duration-300 group-hover:scale-105"
-                />
-                <div className="absolute inset-0 rounded-xl bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-              </div>
+              <img
+                src="/favicon.svg"
+                alt="ChantiPay"
+                width={36}
+                height={36}
+                className="rounded-xl transition-transform duration-300 group-hover:scale-105"
+              />
               <span className="text-xl font-bold tracking-tight">ChantiPay</span>
             </Link>
 
@@ -224,12 +220,11 @@ export default function DashboardLayout({
       <header className="bg-background/95 supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50 border-b backdrop-blur md:hidden">
         <div className="flex h-14 items-center justify-between px-4">
           <Link href="/dashboard" className="flex items-center gap-2">
-            <Image
+            <img
               src="/favicon.svg"
               alt="ChantiPay"
               width={32}
               height={32}
-              unoptimized
               className="rounded-lg"
             />
             <span className="text-lg font-bold">ChantiPay</span>
