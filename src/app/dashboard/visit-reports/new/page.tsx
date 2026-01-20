@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { LayoutContainer } from '@/components/LayoutContainer'
 import { PageHeader } from '@/components/PageHeader'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -55,6 +56,7 @@ function severityBadgeVariant(severity: VisitReportNonConformity['severity']) {
 }
 
 export default function NewVisitReportPage() {
+  const searchParams = useSearchParams()
   const [photos, setPhotos] = useState<VisitPhoto[]>([])
   const [trade, setTrade] = useState('')
   const [context, setContext] = useState('')
@@ -64,6 +66,73 @@ export default function NewVisitReportPage() {
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [isDownloading, setIsDownloading] = useState(false)
   const [report, setReport] = useState<GenerateVisitReportResponse | null>(null)
+  const [isPrefilling, setIsPrefilling] = useState(false)
+  const hasPrefilled = useRef(false)
+
+  useEffect(() => {
+    const interventionId = searchParams.get('interventionId')
+    if (!interventionId || hasPrefilled.current) return
+
+    hasPrefilled.current = true
+    setIsPrefilling(true)
+
+    const normalizeText = (value: string) =>
+      value
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+
+    const mapTradeFromType = (type?: string) => {
+      const normalized = normalizeText(type || '')
+      if (normalized.includes('plomb')) return 'plomberie'
+      if (normalized.includes('elect')) return 'electricite'
+      if (normalized.includes('renov')) return 'renovation'
+      if (normalized.includes('peint')) return 'peinture'
+      if (normalized.includes('menuis')) return 'menuiserie'
+      return ''
+    }
+
+    const loadIntervention = async () => {
+      try {
+        const response = await fetch(`/api/interventions/${interventionId}`)
+        if (!response.ok) {
+          const data = await response.json().catch(() => ({}))
+          throw new Error(data.error || 'Intervention non trouvée')
+        }
+
+        const data = await response.json()
+        const intervention = data.intervention
+
+        if (!intervention) {
+          throw new Error('Intervention non trouvée')
+        }
+
+        setClientName((prev) => prev || intervention.client_name || '')
+        setLocation((prev) => prev || intervention.address || '')
+        setVisitDate((prev) => prev || intervention.date || '')
+
+        const mappedTrade = mapTradeFromType(intervention.type)
+        setTrade((prev) => prev || mappedTrade)
+
+        const contextParts: string[] = []
+        if (intervention.description) contextParts.push(`Description: ${intervention.description}`)
+        if (intervention.notes) contextParts.push(`Notes: ${intervention.notes}`)
+        if (intervention.time) contextParts.push(`Horaire prévu: ${intervention.time}`)
+        if (intervention.duration) contextParts.push(`Durée estimée: ${intervention.duration} min`)
+        const combinedContext = contextParts.join('\n')
+        if (combinedContext) {
+          setContext((prev) => prev || combinedContext)
+        }
+      } catch (error) {
+        console.error('Erreur pré-remplissage intervention:', error)
+        toast.error(error instanceof Error ? error.message : 'Erreur lors du chargement de l\'intervention')
+      } finally {
+        setIsPrefilling(false)
+      }
+    }
+
+    loadIntervention()
+  }, [searchParams])
 
   const fileToBase64 = (file: File) => {
     return new Promise<string>((resolve, reject) => {
@@ -217,7 +286,10 @@ export default function NewVisitReportPage() {
         <Card>
           <CardHeader>
             <CardTitle>Informations de visite</CardTitle>
-            <CardDescription>Contexte et données client pour le rapport.</CardDescription>
+            <CardDescription>
+              Contexte et données client pour le rapport.
+              {isPrefilling && ' Pré-remplissage depuis l\'intervention...'}
+            </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4 md:grid-cols-2">
             <div>

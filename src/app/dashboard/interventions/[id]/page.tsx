@@ -24,7 +24,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
-import { Loader2, ArrowLeft, Calendar, Clock, MapPin, Trash2, Save } from 'lucide-react'
+import { Loader2, ArrowLeft, Calendar, Clock, MapPin, Trash2, Save, ClipboardList } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 
@@ -161,6 +161,10 @@ export default function InterventionDetailPage({ params }: { params: Promise<{ i
     return null
   }
 
+  const handleCreateReport = () => {
+    router.push(`/dashboard/visit-reports/new?interventionId=${intervention.id}`)
+  }
+
   return (
     <LayoutContainer>
       <PageHeader 
@@ -200,6 +204,10 @@ export default function InterventionDetailPage({ params }: { params: Promise<{ i
             <>
               <Button onClick={() => setIsEditing(true)}>
                 Modifier
+              </Button>
+              <Button variant="outline" onClick={handleCreateReport}>
+                <ClipboardList className="mr-2 h-4 w-4" />
+                Rapport de visite
               </Button>
               <Button variant="destructive" onClick={() => setDeleteDialogOpen(true)}>
                 <Trash2 className="mr-2 h-4 w-4" />

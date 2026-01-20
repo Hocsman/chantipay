@@ -23,7 +23,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
-import { Loader2, ArrowLeft, Calendar, Clock, MapPin, Trash2, Save } from 'lucide-react'
+import { Loader2, ArrowLeft, Calendar, Clock, MapPin, Trash2, Save, ClipboardList } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 
@@ -159,6 +159,10 @@ export default function InterventionDetailMobilePage({ params }: { params: Promi
     return null
   }
 
+  const handleCreateReport = () => {
+    router.push(`/mobile/visit-reports/new?interventionId=${intervention.id}`)
+  }
+
   return (
     <MobileLayout title="Intervention" subtitle={intervention.client_name} showBottomNav={false}>
       <div className="p-4 pb-24 space-y-6">
@@ -200,6 +204,13 @@ export default function InterventionDetailMobilePage({ params }: { params: Promi
             </>
           )}
         </div>
+
+        {!isEditing && (
+          <Button variant="outline" onClick={handleCreateReport} className="w-full">
+            <ClipboardList className="mr-2 h-4 w-4" />
+            Rapport de visite
+          </Button>
+        )}
 
         {/* Informations */}
         <Card>
