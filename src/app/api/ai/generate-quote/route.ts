@@ -4,6 +4,16 @@ import { QuoteItemInput } from '@/types/quote'
 import type { QuoteAgentType } from '@/lib/ai/quoteAgents'
 import { withAISecurity, type AIRequestContext } from '@/lib/security/aiMiddleware'
 import { getFromCache, setInCache, generateCacheKey } from '@/lib/redis'
+import { createClient } from '@/lib/supabase/server'
+import {
+  normalizeRegion,
+  normalizeSeason,
+  getPricingMultiplier,
+  applyPricingMultiplier,
+  buildPricingContextLabel,
+  type PricingRegion,
+  type PricingSeason,
+} from '@/lib/ai/pricing'
 
 // ===========================================
 // Agent Definitions
@@ -105,6 +115,9 @@ const generateQuoteInputSchema = z.object({
   trade: z.string().optional(),
   vat_rate: z.number().min(0).max(30).optional(),
   agent: z.enum(quoteAgentValues).optional(),
+  client_id: z.string().optional(),
+  region: z.string().optional(),
+  season: z.string().optional(),
 })
 
 type GenerateQuoteInput = z.infer<typeof generateQuoteInputSchema>
@@ -137,6 +150,8 @@ RÈGLES STRICTES:
 5. Inclus le déplacement si mentionné
 6. Prix réalistes pour le marché français actuel
 7. Descriptions courtes et professionnelles en français
+8. Si un contexte tarifaire (région/saison) est fourni, ajuste les prix
+9. Si un historique client est fourni, reste cohérent avec ses devis précédents
 
 SCHÉMA EXACT pour chaque item:
 {
@@ -181,6 +196,95 @@ function buildSystemPrompt(agent: ResolvedQuoteAgent): string {
   return `${BASE_SYSTEM_PROMPT}\n\n${AGENT_PROMPTS[agent]}`.trim()
 }
 
+type PricingContext = {
+  region: PricingRegion
+  season: PricingSeason
+  multiplier: number
+  label: string
+}
+
+function buildPricingContext(region?: string, season?: string): PricingContext {
+  const normalizedRegion = normalizeRegion(region)
+  const normalizedSeason = normalizeSeason(season)
+  const multiplier = getPricingMultiplier(normalizedRegion, normalizedSeason)
+  return {
+    region: normalizedRegion,
+    season: normalizedSeason,
+    multiplier,
+    label: buildPricingContextLabel(normalizedRegion, normalizedSeason, multiplier),
+  }
+}
+
+async function loadComplianceRules(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  trade?: string
+): Promise<{
+  context: string
+  items: Array<{
+    title: string
+    reference?: string
+    reason?: string
+    estimated_price_ht?: number
+    vat_rate?: number
+  }>
+}> {
+  if (!trade) return { context: '', items: [] }
+
+  const { data, error } = await supabase
+    .from('ai_compliance_rules')
+    .select('title, reference, reason, estimated_price_ht, vat_rate')
+    .eq('trade', trade)
+    .eq('active', true)
+    .order('priority', { ascending: true })
+
+  if (error || !data || data.length === 0) return { context: '', items: [] }
+
+  const context = data
+    .map((rule) => {
+      const reference = rule.reference ? ` (${rule.reference})` : ''
+      const reason = rule.reason ? ` - ${rule.reason}` : ''
+      return `- ${rule.title}${reference}${reason}`
+    })
+    .join('\n')
+
+  const items = data.map((rule) => ({
+    title: rule.title,
+    reference: rule.reference || undefined,
+    reason: rule.reason || undefined,
+    estimated_price_ht: Number(rule.estimated_price_ht) || undefined,
+    vat_rate: Number(rule.vat_rate) || undefined,
+  }))
+
+  return { context, items }
+}
+
+type ClientHistoryQuote = {
+  id: string
+  created_at: string
+  total_ht: number
+  quote_items?: Array<{
+    description: string
+    quantity: number
+    unit_price_ht: number
+    vat_rate: number
+  }>
+}
+
+function buildClientHistoryContext(quotes: ClientHistoryQuote[]): string {
+  if (!quotes.length) return ''
+
+  const lines = quotes.map((quote, index) => {
+    const date = new Date(quote.created_at).toLocaleDateString('fr-FR')
+    const items = (quote.quote_items || [])
+      .slice(0, 4)
+      .map((item) => `${item.description} (${item.unit_price_ht}€ HT x${item.quantity})`)
+      .join('; ')
+    return `${index + 1}. ${date} - ${items || 'Sans détails'}`
+  })
+
+  return `Historique client (derniers devis):\n${lines.join('\n')}`
+}
+
 // ===========================================
 // Fallback Generator
 // ===========================================
@@ -188,7 +292,9 @@ function generateFallbackItems(
   description: string,
   trade?: string,
   defaultVatRate = 20,
-  agent: ResolvedQuoteAgent = 'quick'
+  agent: ResolvedQuoteAgent = 'quick',
+  pricingMultiplier = 1,
+  complianceItems: Array<{ title: string; estimated_price_ht?: number; vat_rate?: number }> = []
 ): QuoteItemInput[] {
   const vatRate = defaultVatRate
   const lowerDesc = description.toLowerCase()
@@ -250,14 +356,28 @@ function generateFallbackItems(
     items.push({ description: 'Majoration intervention urgente', quantity: 1, unit_price_ht: 50, vat_rate: 20 })
   }
 
-  return applyAgentFallbackAdjustments(items, agent, trade, vatRate)
+  const adjusted = items.map((item) => ({
+    ...item,
+    unit_price_ht: applyPricingMultiplier(item.unit_price_ht, pricingMultiplier),
+  }))
+
+  return applyAgentFallbackAdjustments(
+    adjusted,
+    agent,
+    trade,
+    vatRate,
+    complianceItems,
+    pricingMultiplier
+  )
 }
 
 function applyAgentFallbackAdjustments(
   items: QuoteItemInput[],
   agent: ResolvedQuoteAgent,
   trade?: string,
-  defaultVatRate = 20
+  defaultVatRate = 20,
+  complianceItems: Array<{ title: string; estimated_price_ht?: number; vat_rate?: number }> = [],
+  pricingMultiplier = 1
 ): QuoteItemInput[] {
   if (agent === 'quick') {
     return items
@@ -287,6 +407,16 @@ function applyAgentFallbackAdjustments(
 
   if (agent === 'compliance') {
     const complianceItem: QuoteItemInput = (() => {
+      if (complianceItems.length > 0) {
+        const rule = complianceItems[0]
+        return {
+          description: rule.title,
+          quantity: 1,
+          unit_price_ht: applyPricingMultiplier(Math.max(rule.estimated_price_ht || 60, 1), pricingMultiplier),
+          vat_rate: rule.vat_rate ?? 10,
+        }
+      }
+
       if (tradeKey.includes('electric')) {
         return {
           description: 'Contrôle conformité NF C 15-100',
@@ -407,7 +537,10 @@ async function callOpenAI(
   description: string,
   trade: string | undefined,
   vatRate: number | undefined,
-  agent: ResolvedQuoteAgent
+  agent: ResolvedQuoteAgent,
+  pricingContext: PricingContext,
+  historyContext: string,
+  rulesContext: string
 ): Promise<QuoteItemInput[]> {
   const apiKey = process.env.OPENAI_API_KEY
   if (!apiKey) {
@@ -419,6 +552,9 @@ async function callOpenAI(
   const userPrompt = [
     trade ? `Métier: ${trade}` : '',
     vatRate ? `Taux TVA par défaut: ${vatRate}%` : '',
+    pricingContext.label ? `Contexte tarifaire: ${pricingContext.label}` : '',
+    historyContext ? `${historyContext}` : '',
+    rulesContext ? `Règles métier applicables:\n${rulesContext}` : '',
     '',
     'Description des travaux:',
     description,
@@ -484,8 +620,30 @@ async function handleGenerateQuote(
     return NextResponse.json({ error: errors }, { status: 400 })
   }
 
-  const { description, trade, vat_rate, agent } = validationResult.data
+  const { description, trade, vat_rate, agent, client_id, region, season } = validationResult.data
   const resolvedAgent = resolveAgent(agent, description)
+  const pricingContext = buildPricingContext(region, season)
+
+  const supabase = await createClient()
+  const complianceRules = await loadComplianceRules(supabase, trade)
+
+  let historyContext = ''
+  let historySignature = 'none'
+
+  if (context.user && client_id) {
+    const { data: quotes, error } = await supabase
+      .from('quotes')
+      .select('id, created_at, total_ht, quote_items(description, quantity, unit_price_ht, vat_rate)')
+      .eq('user_id', context.user.id)
+      .eq('client_id', client_id)
+      .order('created_at', { ascending: false })
+      .limit(3)
+
+    if (!error && quotes) {
+      historyContext = buildClientHistoryContext(quotes as ClientHistoryQuote[])
+      historySignature = quotes.map((quote) => quote.id).join('|') || 'none'
+    }
+  }
 
   // Générer une clé de cache
   const cacheKey = generateCacheKey({
@@ -493,6 +651,12 @@ async function handleGenerateQuote(
     trade,
     vat_rate,
     agent: resolvedAgent,
+    region: pricingContext.region,
+    season: pricingContext.season,
+    client_id: client_id || 'none',
+    history: historySignature,
+    rules: complianceRules.items.map((rule) => rule.title).join('|') || 'none',
+    user: context.user?.id || 'anon',
   })
 
   // Vérifier le cache (1h de TTL)
@@ -504,13 +668,35 @@ async function handleGenerateQuote(
   let items: QuoteItemInput[]
 
   try {
-    items = await callOpenAI(description, trade, vat_rate, resolvedAgent)
+    items = await callOpenAI(
+      description,
+      trade,
+      vat_rate,
+      resolvedAgent,
+      pricingContext,
+      historyContext,
+      complianceRules.context
+    )
+
+    if (pricingContext.multiplier !== 1) {
+      items = items.map((item) => ({
+        ...item,
+        unit_price_ht: applyPricingMultiplier(item.unit_price_ht, pricingContext.multiplier),
+      }))
+    }
 
     // Mettre en cache pour 1 heure
     await setInCache('aiResponse', `quote:${cacheKey}`, { items, agent: resolvedAgent }, 3600)
   } catch (error) {
     console.warn('OpenAI call failed, using fallback:', error)
-    items = generateFallbackItems(description, trade, vat_rate ?? 20, resolvedAgent)
+    items = generateFallbackItems(
+      description,
+      trade,
+      vat_rate ?? 20,
+      resolvedAgent,
+      pricingContext.multiplier,
+      complianceRules.items
+    )
   }
 
   // Log pour analytics

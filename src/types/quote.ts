@@ -23,6 +23,9 @@ export type GenerateQuoteRequest = {
   trade?: string         // Optional: type of trade
   vat_rate?: number      // Optional: default VAT rate (0-30)
   agent?: QuoteAgentType
+  client_id?: string
+  region?: string
+  season?: string
 }
 
 /**

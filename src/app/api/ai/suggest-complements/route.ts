@@ -2,6 +2,16 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { withAISecurity, type AIRequestContext } from '@/lib/security/aiMiddleware'
 import { getFromCache, setInCache, generateCacheKey } from '@/lib/redis'
+import { createClient } from '@/lib/supabase/server'
+import {
+  normalizeRegion,
+  normalizeSeason,
+  getPricingMultiplier,
+  applyPricingMultiplier,
+  buildPricingContextLabel,
+  type PricingRegion,
+  type PricingSeason,
+} from '@/lib/ai/pricing'
 
 // ===========================================
 // Input Validation Schema
@@ -16,6 +26,9 @@ const quoteItemSchema = z.object({
 const suggestComplementsInputSchema = z.object({
   items: z.array(quoteItemSchema).min(1, 'Au moins une ligne de devis requise'),
   trade: z.string().optional(),
+  region: z.string().optional(),
+  season: z.string().optional(),
+  client_id: z.string().optional(),
 })
 
 type SuggestComplementsInput = z.infer<typeof suggestComplementsInputSchema>
@@ -36,6 +49,77 @@ interface ComplementSuggestion {
 interface SuggestComplementsResult {
   suggestions: ComplementSuggestion[]
   message?: string
+  personalized?: boolean
+}
+
+type AcceptanceStats = {
+  suggestion: ComplementSuggestion
+  count: number
+}
+
+type PricingContext = {
+  region: PricingRegion
+  season: PricingSeason
+  multiplier: number
+  label: string
+}
+
+function buildPricingContext(region?: string, season?: string): PricingContext {
+  const normalizedRegion = normalizeRegion(region)
+  const normalizedSeason = normalizeSeason(season)
+  const multiplier = getPricingMultiplier(normalizedRegion, normalizedSeason)
+  const label = buildPricingContextLabel(normalizedRegion, normalizedSeason, multiplier)
+  return {
+    region: normalizedRegion,
+    season: normalizedSeason,
+    multiplier,
+    label,
+  }
+}
+
+function applyPricingToSuggestions(
+  suggestions: ComplementSuggestion[],
+  multiplier: number
+): ComplementSuggestion[] {
+  if (multiplier === 1) return suggestions
+  return suggestions.map((suggestion) => ({
+    ...suggestion,
+    estimated_price_ht: applyPricingMultiplier(suggestion.estimated_price_ht, multiplier),
+  }))
+}
+
+function dedupeSuggestions(suggestions: ComplementSuggestion[]): ComplementSuggestion[] {
+  const seen = new Set<string>()
+  const result: ComplementSuggestion[] = []
+
+  for (const suggestion of suggestions) {
+    const key = `${suggestion.id}:${suggestion.description.toLowerCase()}`
+    if (seen.has(key)) continue
+    seen.add(key)
+    result.push(suggestion)
+  }
+
+  return result
+}
+
+function sortSuggestions(
+  suggestions: ComplementSuggestion[],
+  acceptanceMap: Map<string, number>
+): ComplementSuggestion[] {
+  const priorityOrder = { high: 0, medium: 1, low: 2 }
+  const categoryOrder = { obligatoire: 0, recommandé: 1, optionnel: 2 }
+
+  return [...suggestions].sort((a, b) => {
+    const acceptanceA = acceptanceMap.get(a.id) || 0
+    const acceptanceB = acceptanceMap.get(b.id) || 0
+    if (acceptanceA !== acceptanceB) return acceptanceB - acceptanceA
+
+    if (categoryOrder[a.category] !== categoryOrder[b.category]) {
+      return categoryOrder[a.category] - categoryOrder[b.category]
+    }
+
+    return priorityOrder[a.priority] - priorityOrder[b.priority]
+  })
 }
 
 // ===========================================
@@ -274,6 +358,102 @@ const GENERIC_SUGGESTIONS: ComplementSuggestion[] = [
   },
 ]
 
+function normalizeCategory(value?: string | null): ComplementSuggestion['category'] {
+  if (value === 'obligatoire' || value === 'recommandé' || value === 'optionnel') return value
+  if (value === 'recommande') return 'recommandé'
+  return 'recommandé'
+}
+
+function normalizePriority(value?: string | null): ComplementSuggestion['priority'] {
+  if (value === 'high' || value === 'medium' || value === 'low') return value
+  return 'medium'
+}
+
+async function loadComplianceRules(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  trade?: string
+): Promise<ComplementSuggestion[]> {
+  if (!trade) return []
+
+  const { data, error } = await supabase
+    .from('ai_compliance_rules')
+    .select('id, title, reason, reference, category, priority, estimated_price_ht, vat_rate')
+    .eq('trade', trade)
+    .eq('active', true)
+    .order('priority', { ascending: true })
+
+  if (error || !data) return []
+
+  return data.map((rule) => ({
+    id: rule.id,
+    description: rule.reference ? `${rule.title} (${rule.reference})` : rule.title,
+    reason: rule.reason || rule.reference || 'Règle métier',
+    priority: normalizePriority(rule.priority),
+    category: normalizeCategory(rule.category),
+    estimated_price_ht: Math.max(Number(rule.estimated_price_ht) || 1, 1),
+    vat_rate: Number(rule.vat_rate) || 10,
+  }))
+}
+
+async function loadAcceptanceStats(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  trade?: string
+): Promise<{
+  acceptanceMap: Map<string, number>
+  acceptedSuggestions: ComplementSuggestion[]
+  acceptedContext: string
+}> {
+  let query = supabase
+    .from('ai_suggestion_acceptances')
+    .select('suggestion_id, description, category, estimated_price_ht, vat_rate, trade')
+    .eq('user_id', userId)
+    .order('accepted_at', { ascending: false })
+    .limit(100)
+
+  if (trade) {
+    query = query.eq('trade', trade)
+  }
+
+  const { data, error } = await query
+  if (error || !data) {
+    return { acceptanceMap: new Map(), acceptedSuggestions: [], acceptedContext: '' }
+  }
+
+  const stats = new Map<string, AcceptanceStats>()
+
+  for (const entry of data) {
+    const id = entry.suggestion_id
+    if (!stats.has(id)) {
+      stats.set(id, {
+        count: 0,
+        suggestion: {
+          id,
+          description: entry.description || 'Suggestion acceptée',
+          reason: 'Souvent accepté par vous',
+          priority: 'medium',
+          category: normalizeCategory(entry.category),
+          estimated_price_ht: Math.max(Number(entry.estimated_price_ht) || 1, 1),
+          vat_rate: Number(entry.vat_rate) || 10,
+        },
+      })
+    }
+    const current = stats.get(id)
+    if (current) {
+      current.count += 1
+    }
+  }
+
+  const sortedStats = [...stats.values()].sort((a, b) => b.count - a.count)
+  const acceptedSuggestions = sortedStats.slice(0, 2).map((entry) => entry.suggestion)
+  const acceptanceMap = new Map(sortedStats.map((entry) => [entry.suggestion.id, entry.count]))
+  const acceptedContext = acceptedSuggestions.length
+    ? `Éléments souvent acceptés: ${acceptedSuggestions.map((s) => s.description).join(', ')}`
+    : ''
+
+  return { acceptanceMap, acceptedSuggestions, acceptedContext }
+}
+
 // ===========================================
 // System Prompt for AI Suggestions
 // ===========================================
@@ -286,6 +466,8 @@ RÈGLES STRICTES:
 3. Priorise les éléments obligatoires (normes, sécurité)
 4. Les prix doivent être réalistes pour le marché français
 5. Maximum 5 suggestions pertinentes
+6. Prends en compte le contexte tarifaire (région, saison) s'il est fourni
+7. Intègre les règles métier transmises et les préférences utilisateur
 
 CATÉGORIES:
 - "obligatoire": Requis par la loi ou les normes
@@ -313,7 +495,10 @@ FORMAT DE RÉPONSE:
 // ===========================================
 async function callOpenAI(
   items: z.infer<typeof quoteItemSchema>[],
-  trade?: string
+  trade: string | undefined,
+  pricingContext: PricingContext,
+  rulesContext: string,
+  acceptedContext: string
 ): Promise<SuggestComplementsResult> {
   const apiKey = process.env.OPENAI_API_KEY
   if (!apiKey) {
@@ -328,6 +513,9 @@ async function callOpenAI(
 
   const userPrompt = [
     trade ? `Métier: ${trade}` : '',
+    pricingContext.label ? `Contexte tarifaire: ${pricingContext.label}` : '',
+    rulesContext ? `Règles métier applicables:\n${rulesContext}` : '',
+    acceptedContext ? `${acceptedContext}` : '',
     '',
     'Lignes du devis actuel:',
     itemDescriptions,
@@ -380,7 +568,8 @@ async function callOpenAI(
 // ===========================================
 function generateFallback(
   items: z.infer<typeof quoteItemSchema>[],
-  trade?: string
+  trade: string | undefined,
+  pricingMultiplier: number
 ): SuggestComplementsResult {
   const itemDescriptions = items.map(i => i.description.toLowerCase()).join(' ')
 
@@ -432,9 +621,11 @@ function generateFallback(
 
   suggestions = suggestions.slice(0, 5)
 
+  const adjusted = applyPricingToSuggestions(suggestions, pricingMultiplier)
+
   return {
-    suggestions,
-    message: suggestions.length > 0
+    suggestions: adjusted,
+    message: adjusted.length > 0
       ? `${suggestions.filter(s => s.category === 'obligatoire').length > 0 ? 'Attention: certains éléments peuvent être obligatoires.' : 'Voici quelques compléments recommandés pour votre devis.'}`
       : undefined,
   }
@@ -455,10 +646,41 @@ async function handleSuggestComplements(
     return NextResponse.json({ error: errors }, { status: 400 })
   }
 
-  const { items, trade } = validationResult.data
+  const { items, trade, region, season } = validationResult.data
+  const pricingContext = buildPricingContext(region, season)
+
+  const supabase = await createClient()
+  const complianceRules = await loadComplianceRules(supabase, trade)
+  const rulesContext = complianceRules.length
+    ? complianceRules.map((rule) => `- ${rule.description}: ${rule.reason}`).join('\n')
+    : ''
+
+  let acceptanceMap = new Map<string, number>()
+  let acceptedSuggestions: ComplementSuggestion[] = []
+  let acceptanceSignature = ''
+  let acceptedContext = ''
+
+  if (context.user) {
+    const acceptance = await loadAcceptanceStats(supabase, context.user.id, trade)
+    acceptanceMap = acceptance.acceptanceMap
+    acceptedSuggestions = acceptance.acceptedSuggestions
+    acceptanceSignature = acceptedSuggestions
+      .map((suggestion) => `${suggestion.id}:${acceptanceMap.get(suggestion.id) || 0}`)
+      .join('|')
+    acceptedContext = acceptance.acceptedContext
+  }
 
   // Check cache first
-  const cacheKey = generateCacheKey({ prefix: 'suggest-complements', items, trade })
+  const cacheKey = generateCacheKey({
+    prefix: 'suggest-complements',
+    items,
+    trade,
+    region: pricingContext.region,
+    season: pricingContext.season,
+    user: context.user?.id || 'anon',
+    acceptance: acceptanceSignature || 'none',
+    rules: complianceRules.map((rule) => rule.id).join('|') || 'none',
+  })
   const cached = await getFromCache<SuggestComplementsResult>('aiResponse', cacheKey)
   if (cached) {
     return NextResponse.json({ ...cached, fromCache: true })
@@ -468,22 +690,41 @@ async function handleSuggestComplements(
 
   try {
     // Try OpenAI API first
-    result = await callOpenAI(items, trade)
+    result = await callOpenAI(items, trade, pricingContext, rulesContext, acceptedContext)
   } catch (error) {
     console.warn('OpenAI call failed, using fallback:', error)
     // Fallback to pre-defined suggestions
-    result = generateFallback(items, trade)
+    result = generateFallback(items, trade, pricingContext.multiplier)
+  }
+
+  const adjustedRules = applyPricingToSuggestions(complianceRules, pricingContext.multiplier)
+  const adjustedAccepted = applyPricingToSuggestions(acceptedSuggestions, pricingContext.multiplier)
+  const mergedSuggestions = dedupeSuggestions([
+    ...adjustedRules,
+    ...adjustedAccepted,
+    ...(result.suggestions || []),
+  ])
+
+  const sortedSuggestions = sortSuggestions(mergedSuggestions, acceptanceMap).slice(0, 5)
+  const message = sortedSuggestions.length > 0
+    ? `${sortedSuggestions.filter(s => s.category === 'obligatoire').length > 0 ? 'Attention: certains éléments peuvent être obligatoires.' : 'Voici quelques compléments recommandés pour votre devis.'}`
+    : undefined
+
+  const finalResult = {
+    suggestions: sortedSuggestions,
+    message,
+    personalized: acceptedSuggestions.length > 0,
   }
 
   // Cache successful result (10 minutes)
-  await setInCache('aiResponse', cacheKey, result, 600)
+  await setInCache('aiResponse', cacheKey, finalResult, 600)
 
   // Log pour analytics
   if (context.user) {
     console.log(`[AI:Complements] User ${context.user.id} requested suggestions, trade: ${trade || 'none'}`)
   }
 
-  return NextResponse.json(result)
+  return NextResponse.json(finalResult)
 }
 
 export const POST = withAISecurity<SuggestComplementsInput>(

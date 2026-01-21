@@ -39,6 +39,7 @@ import { PricePreferenceHint } from '@/components/quotes/PricePreferenceHint';
 import { SortableQuoteList } from '@/components/quotes/SortableQuoteList';
 import { QUOTE_AGENT_OPTIONS } from '@/lib/ai/quoteAgents';
 import type { QuoteAgentType } from '@/lib/ai/quoteAgents';
+import { inferRegionFromPostalCode, inferSeasonFromDate } from '@/lib/ai/pricing';
 
 // ===========================================
 // Types
@@ -56,6 +57,8 @@ interface Client {
   name: string;
   email?: string;
   phone?: string;
+  postal_code?: string | null;
+  city?: string | null;
 }
 
 // ===========================================
@@ -147,6 +150,8 @@ export default function NewQuotePage() {
   const [aiDescription, setAiDescription] = useState('');
   const [selectedTrade, setSelectedTrade] = useState('');
   const [selectedAgent, setSelectedAgent] = useState<QuoteAgentType>('auto');
+  const [pricingRegionOverride, setPricingRegionOverride] = useState('auto');
+  const [pricingSeasonOverride, setPricingSeasonOverride] = useState('auto');
   const [selectedChips, setSelectedChips] = useState<Set<string>>(new Set());
   const [replaceMode, setReplaceMode] = useState(true); // true = replace, false = append
   const [showSuggestionsSheet, setShowSuggestionsSheet] = useState(false);
@@ -352,6 +357,11 @@ export default function NewQuotePage() {
   const selectedAgentInfo = QUOTE_AGENT_OPTIONS.find(
     (option) => option.value === selectedAgent
   );
+  const selectedClient = clients.find((client) => client.id === selectedClientId);
+  const inferredRegion = inferRegionFromPostalCode(selectedClient?.postal_code);
+  const inferredSeason = inferSeasonFromDate();
+  const pricingRegion = pricingRegionOverride === 'auto' ? inferredRegion : pricingRegionOverride;
+  const pricingSeason = pricingSeasonOverride === 'auto' ? inferredSeason : pricingSeasonOverride;
 
   // Génération IA des lignes de devis
   const generateWithAI = async () => {
@@ -378,6 +388,9 @@ export default function NewQuotePage() {
           trade: selectedTrade || undefined,
           vat_rate: parseFloat(vatRate),
           agent: selectedAgent,
+          client_id: selectedClientId || undefined,
+          region: pricingRegion,
+          season: pricingSeason,
         }),
       });
 
@@ -695,6 +708,62 @@ export default function NewQuotePage() {
                 </Select>
               </div>
 
+              {/* Pricing Context */}
+              <div>
+                <Label>Contexte tarifaire</Label>
+                <div className="grid gap-3 mt-1">
+                  <div>
+                    <Select
+                      value={pricingRegionOverride}
+                      onValueChange={setPricingRegionOverride}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Région" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="auto">Auto</SelectItem>
+                        <SelectItem value="ile-de-france">Île-de-France</SelectItem>
+                        <SelectItem value="province">Province</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {pricingRegionOverride === 'auto' && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Détection: {inferredRegion === 'ile-de-france'
+                          ? 'Île-de-France'
+                          : inferredRegion === 'province'
+                          ? 'Province'
+                          : 'Non spécifiée'}
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <Select
+                      value={pricingSeasonOverride}
+                      onValueChange={setPricingSeasonOverride}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Saison" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="auto">Auto</SelectItem>
+                        <SelectItem value="high">Haute saison</SelectItem>
+                        <SelectItem value="normal">Saison normale</SelectItem>
+                        <SelectItem value="low">Basse saison</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {pricingSeasonOverride === 'auto' && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Détection: {inferredSeason === 'high'
+                          ? 'Haute saison'
+                          : inferredSeason === 'low'
+                          ? 'Basse saison'
+                          : 'Saison normale'}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
               {/* Agent Selection */}
               <div>
                 <Label htmlFor="aiAgent">Agent IA</Label>
@@ -972,6 +1041,8 @@ export default function NewQuotePage() {
         <SuggestionsSheet
           items={items}
           trade={selectedTrade}
+          region={pricingRegion}
+          season={pricingSeason}
           onAddItems={handleAddSuggestedItems}
           open={showSuggestionsSheet}
           onOpenChange={setShowSuggestionsSheet}

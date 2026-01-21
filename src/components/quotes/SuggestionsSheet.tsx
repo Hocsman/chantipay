@@ -44,6 +44,8 @@ interface ComplementSuggestion {
 interface SuggestionsSheetProps {
   items: QuoteItem[]
   trade?: string
+  region?: string
+  season?: string
   onAddItems: (items: Omit<QuoteItem, 'id'>[]) => void
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -73,6 +75,8 @@ const CATEGORY_CONFIG = {
 export function SuggestionsSheet({
   items,
   trade,
+  region,
+  season,
   onAddItems,
   open,
   onOpenChange,
@@ -81,6 +85,7 @@ export function SuggestionsSheet({
   const [suggestions, setSuggestions] = useState<ComplementSuggestion[]>([])
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [hasFetched, setHasFetched] = useState(false)
+  const [isPersonalized, setIsPersonalized] = useState(false)
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('fr-FR', {
@@ -105,6 +110,8 @@ export function SuggestionsSheet({
             vat_rate: i.vat_rate,
           })),
           trade,
+          region,
+          season,
         }),
       })
 
@@ -115,6 +122,7 @@ export function SuggestionsSheet({
       const data = await response.json()
       setSuggestions(data.suggestions || [])
       setHasFetched(true)
+      setIsPersonalized(Boolean(data.personalized))
 
       // Pre-select obligatory items
       const obligatoryIds = (data.suggestions || [])
@@ -127,7 +135,7 @@ export function SuggestionsSheet({
     } finally {
       setIsLoading(false)
     }
-  }, [items, trade, hasFetched])
+  }, [items, trade, region, season, hasFetched])
 
   useEffect(() => {
     if (open && !hasFetched) {
@@ -159,6 +167,27 @@ export function SuggestionsSheet({
     onAddItems(itemsToAdd)
     toast.success(`${itemsToAdd.length} complément(s) ajouté(s)`)
 
+    if (selectedSuggestions.length > 0) {
+      fetch('/api/ai/suggest-complements/accept', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          suggestions: selectedSuggestions.map((suggestion) => ({
+            id: suggestion.id,
+            description: suggestion.description,
+            category: suggestion.category,
+            estimated_price_ht: suggestion.estimated_price_ht,
+            vat_rate: suggestion.vat_rate,
+          })),
+          trade,
+          region,
+          season,
+        }),
+      }).catch((error) => {
+        console.warn('Erreur enregistrement acceptation suggestion:', error)
+      })
+    }
+
     // Close sheet and reset
     onOpenChange(false)
   }
@@ -189,6 +218,11 @@ export function SuggestionsSheet({
                 {obligatoireCount > 0 && (
                   <span className="text-red-600 font-medium ml-1">
                     dont {obligatoireCount} obligatoire(s)
+                  </span>
+                )}
+                {isPersonalized && (
+                  <span className="ml-2 text-xs text-muted-foreground">
+                    • Personnalisé selon vos habitudes
                   </span>
                 )}
               </>

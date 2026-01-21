@@ -45,6 +45,8 @@ interface ComplementSuggestion {
 interface SuggestionsAlertProps {
   items: QuoteItem[]
   trade?: string
+  region?: string
+  season?: string
   onAddItems: (items: Omit<QuoteItem, 'id'>[]) => void
   show: boolean
   onDismiss: () => void
@@ -74,6 +76,8 @@ const CATEGORY_CONFIG = {
 export function SuggestionsAlert({
   items,
   trade,
+  region,
+  season,
   onAddItems,
   show,
   onDismiss,
@@ -83,6 +87,7 @@ export function SuggestionsAlert({
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [isOpen, setIsOpen] = useState(true)
   const [hasFetched, setHasFetched] = useState(false)
+  const [isPersonalized, setIsPersonalized] = useState(false)
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('fr-FR', {
@@ -107,6 +112,8 @@ export function SuggestionsAlert({
             vat_rate: i.vat_rate,
           })),
           trade,
+          region,
+          season,
         }),
       })
 
@@ -117,6 +124,7 @@ export function SuggestionsAlert({
       const data = await response.json()
       setSuggestions(data.suggestions || [])
       setHasFetched(true)
+      setIsPersonalized(Boolean(data.personalized))
 
       // Pre-select obligatory items
       const obligatoryIds = (data.suggestions || [])
@@ -128,7 +136,7 @@ export function SuggestionsAlert({
     } finally {
       setIsLoading(false)
     }
-  }, [items, trade, hasFetched])
+  }, [items, trade, region, season, hasFetched])
 
   useEffect(() => {
     if (show && !hasFetched) {
@@ -160,6 +168,27 @@ export function SuggestionsAlert({
     onAddItems(itemsToAdd)
     toast.success(`${itemsToAdd.length} complément(s) ajouté(s)`)
 
+    if (selectedSuggestions.length > 0) {
+      fetch('/api/ai/suggest-complements/accept', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          suggestions: selectedSuggestions.map((suggestion) => ({
+            id: suggestion.id,
+            description: suggestion.description,
+            category: suggestion.category,
+            estimated_price_ht: suggestion.estimated_price_ht,
+            vat_rate: suggestion.vat_rate,
+          })),
+          trade,
+          region,
+          season,
+        }),
+      }).catch((error) => {
+        console.warn('Erreur enregistrement acceptation suggestion:', error)
+      })
+    }
+
     // Remove added suggestions from list
     setSuggestions(prev => prev.filter(s => !selectedIds.has(s.id)))
     setSelectedIds(new Set())
@@ -186,6 +215,11 @@ export function SuggestionsAlert({
                   <AlertTitle className="text-amber-800 dark:text-amber-200">
                     Suggestions de compléments
                   </AlertTitle>
+                  {isPersonalized && (
+                    <Badge variant="secondary" className="text-[10px]">
+                      Personnalisé selon vos habitudes
+                    </Badge>
+                  )}
                   {isOpen ? (
                     <ChevronUp className="h-4 w-4 text-amber-600" />
                   ) : (
