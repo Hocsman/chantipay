@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback, useEffect, useRef, Suspense } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { LayoutContainer } from '@/components/LayoutContainer'
 import { PageHeader } from '@/components/PageHeader'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -24,6 +24,7 @@ import {
   Sparkles,
   FileText,
   AlertTriangle,
+  Save,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import type {
@@ -71,6 +72,7 @@ export default function NewVisitReportPage() {
 
 function NewVisitReportContent() {
   const searchParams = useSearchParams()
+  const router = useRouter()
   const [photos, setPhotos] = useState<VisitPhoto[]>([])
   const [trade, setTrade] = useState('')
   const [context, setContext] = useState('')
@@ -79,6 +81,7 @@ function NewVisitReportContent() {
   const [visitDate, setVisitDate] = useState('')
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [isDownloading, setIsDownloading] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
   const [report, setReport] = useState<GenerateVisitReportResponse | null>(null)
   const [isPrefilling, setIsPrefilling] = useState(false)
   const hasPrefilled = useRef(false)
@@ -289,6 +292,45 @@ function NewVisitReportContent() {
     }
   }
 
+  const handleSave = async () => {
+    if (!report) return
+
+    setIsSaving(true)
+    try {
+      const response = await fetch('/api/visit-reports', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clientName: clientName || null,
+          location: location || null,
+          visitDate: visitDate || null,
+          trade: trade || null,
+          context: context || null,
+          summary: report.summary,
+          diagnostics: report.diagnostics,
+          nonConformities: report.nonConformities,
+          recommendations: report.recommendations,
+          photoAnnotations: report.photoAnnotations,
+          photos: photos.map((photo) => photo.base64),
+        }),
+      })
+
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || 'Erreur lors de la sauvegarde')
+      }
+
+      const data = await response.json()
+      toast.success('Rapport sauvegardé')
+      router.push(`/dashboard/visit-reports/${data.report.id}`)
+    } catch (error) {
+      console.error('Erreur sauvegarde rapport:', error)
+      toast.error(error instanceof Error ? error.message : 'Erreur lors de la sauvegarde')
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
   return (
     <LayoutContainer>
       <div className="space-y-6 pb-24">
@@ -440,25 +482,43 @@ function NewVisitReportContent() {
         {report && (
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                Rapport généré
-                <Button
-                  variant="outline"
-                  onClick={handleDownloadPdf}
-                  disabled={isDownloading}
-                >
-                  {isDownloading ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      PDF...
-                    </>
-                  ) : (
-                    <>
-                      <FileText className="h-4 w-4 mr-2" />
-                      Télécharger PDF
-                    </>
-                  )}
-                </Button>
+              <CardTitle className="flex items-center justify-between flex-wrap gap-2">
+                <span>Rapport généré</span>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={handleDownloadPdf}
+                    disabled={isDownloading || isSaving}
+                  >
+                    {isDownloading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        PDF...
+                      </>
+                    ) : (
+                      <>
+                        <FileText className="h-4 w-4 mr-2" />
+                        Télécharger PDF
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    onClick={handleSave}
+                    disabled={isSaving || isDownloading}
+                  >
+                    {isSaving ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Sauvegarde...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="h-4 w-4 mr-2" />
+                        Sauvegarder
+                      </>
+                    )}
+                  </Button>
+                </div>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">

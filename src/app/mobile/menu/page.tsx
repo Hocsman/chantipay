@@ -44,7 +44,7 @@ export default function MobileMenuPage() {
     {
       label: 'Rapports de visite',
       icon: ClipboardList,
-      href: '/mobile/visit-reports/new',
+      href: '/mobile/visit-reports',
     },
     {
       label: 'Stocks',

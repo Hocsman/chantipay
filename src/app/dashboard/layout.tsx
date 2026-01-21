@@ -65,7 +65,7 @@ export default function DashboardLayout({
     { href: '/dashboard/planning', label: 'Chantiers', icon: Wrench },
     { href: '/dashboard/interventions', label: 'Interventions', icon: ClipboardCheck },
     { href: '/dashboard/tasks', label: 'Tâches', icon: CheckSquare },
-    { href: '/dashboard/visit-reports/new', label: 'Rapports de visite', icon: ClipboardList },
+    { href: '/dashboard/visit-reports', label: 'Rapports de visite', icon: ClipboardList },
     { href: '/dashboard/settings', label: 'Paramètres', icon: Settings },
     { href: '/dashboard/settings/billing', label: 'Abonnement', icon: CreditCard },
   ];
