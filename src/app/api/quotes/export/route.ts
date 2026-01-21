@@ -36,15 +36,17 @@ export async function GET(request: NextRequest) {
         quote_number,
         created_at,
         status,
-        client_name,
-        client_email,
-        client_phone,
-        client_address,
         total_ht,
         total_ttc,
         total_vat,
         valid_until,
         signed_at,
+        clients (
+          name,
+          email,
+          phone,
+          address
+        ),
         quote_items (
           description,
           quantity,
@@ -66,16 +68,29 @@ export async function GET(request: NextRequest) {
       query = query.lte('created_at', toDate)
     }
 
-    const { data: quotes, error } = await query
+    const { data: quotesRaw, error } = await query
 
     if (error) {
       console.error('Erreur récupération devis:', error)
       return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
     }
 
-    if (!quotes || quotes.length === 0) {
+    if (!quotesRaw || quotesRaw.length === 0) {
       return NextResponse.json({ error: 'Aucun devis à exporter' }, { status: 404 })
     }
+
+    // Transformer les données pour correspondre au format attendu
+    const quotes = quotesRaw.map(q => {
+      // clients peut être un objet ou un tableau selon la relation Supabase
+      const client = Array.isArray(q.clients) ? q.clients[0] : q.clients
+      return {
+        ...q,
+        client_name: client?.name || 'Client',
+        client_email: client?.email || '',
+        client_phone: client?.phone || '',
+        client_address: client?.address || '',
+      }
+    })
 
     // Générer le fichier Excel
     const workbook = generateQuotesExcel(quotes, { includeItems })

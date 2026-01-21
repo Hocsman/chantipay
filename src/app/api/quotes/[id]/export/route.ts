@@ -20,22 +20,24 @@ export async function GET(
     }
 
     // Récupérer le devis avec ses lignes
-    const { data: quote, error } = await supabase
+    const { data: quoteRaw, error } = await supabase
       .from('quotes')
       .select(`
         id,
         quote_number,
         created_at,
         status,
-        client_name,
-        client_email,
-        client_phone,
-        client_address,
         total_ht,
         total_ttc,
         total_vat,
         valid_until,
         signed_at,
+        clients (
+          name,
+          email,
+          phone,
+          address
+        ),
         quote_items (
           description,
           quantity,
@@ -47,8 +49,18 @@ export async function GET(
       .eq('user_id', user.id)
       .single()
 
-    if (error || !quote) {
+    if (error || !quoteRaw) {
       return NextResponse.json({ error: 'Devis non trouvé' }, { status: 404 })
+    }
+
+    // Transformer les données
+    const client = Array.isArray(quoteRaw.clients) ? quoteRaw.clients[0] : quoteRaw.clients
+    const quote = {
+      ...quoteRaw,
+      client_name: client?.name || 'Client',
+      client_email: client?.email || '',
+      client_phone: client?.phone || '',
+      client_address: client?.address || '',
     }
 
     // Générer le fichier Excel
