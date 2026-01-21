@@ -1,39 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-
-// ===========================================
-// Rate Limiting (Best-effort in-memory)
-// ===========================================
-const rateLimitMap = new Map<string, { count: number; resetTime: number }>()
-const RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000 // 10 minutes
-const RATE_LIMIT_MAX_REQUESTS = 20 // 20 requests per window
-
-function checkRateLimit(ip: string): { allowed: boolean; remaining: number } {
-  const now = Date.now()
-  const record = rateLimitMap.get(ip)
-
-  if (!record || now > record.resetTime) {
-    rateLimitMap.set(ip, { count: 1, resetTime: now + RATE_LIMIT_WINDOW_MS })
-    return { allowed: true, remaining: RATE_LIMIT_MAX_REQUESTS - 1 }
-  }
-
-  if (record.count >= RATE_LIMIT_MAX_REQUESTS) {
-    return { allowed: false, remaining: 0 }
-  }
-
-  record.count++
-  return { allowed: true, remaining: RATE_LIMIT_MAX_REQUESTS - record.count }
-}
-
-// Cleanup old entries periodically
-setInterval(() => {
-  const now = Date.now()
-  for (const [ip, record] of rateLimitMap.entries()) {
-    if (now > record.resetTime) {
-      rateLimitMap.delete(ip)
-    }
-  }
-}, 60 * 1000)
+import { withAISecurity, type AIRequestContext } from '@/lib/security/aiMiddleware'
+import { getFromCache, setInCache, generateCacheKey } from '@/lib/redis'
 
 // ===========================================
 // Input Validation Schema
@@ -49,6 +17,8 @@ const suggestComplementsInputSchema = z.object({
   items: z.array(quoteItemSchema).min(1, 'Au moins une ligne de devis requise'),
   trade: z.string().optional(),
 })
+
+type SuggestComplementsInput = z.infer<typeof suggestComplementsInputSchema>
 
 // ===========================================
 // Output Schema
@@ -473,60 +443,54 @@ function generateFallback(
 // ===========================================
 // API Route Handler
 // ===========================================
-export async function POST(request: NextRequest) {
-  try {
-    // Get client IP for rate limiting
-    const forwarded = request.headers.get('x-forwarded-for')
-    const ip = forwarded?.split(',')[0]?.trim() ||
-               request.headers.get('x-real-ip') ||
-               'unknown'
-
-    // Check rate limit
-    const { allowed, remaining } = checkRateLimit(ip)
-    if (!allowed) {
-      return NextResponse.json(
-        { error: 'Trop de requêtes. Veuillez réessayer dans quelques minutes.' },
-        {
-          status: 429,
-          headers: { 'X-RateLimit-Remaining': '0' }
-        }
-      )
-    }
-
-    // Parse and validate input
-    const body = await request.json()
-    const validationResult = suggestComplementsInputSchema.safeParse(body)
-
-    if (!validationResult.success) {
-      const errors = validationResult.error.issues.map(e => e.message).join(', ')
-      return NextResponse.json(
-        { error: errors },
-        { status: 400 }
-      )
-    }
-
-    const { items, trade } = validationResult.data
-
-    let result: SuggestComplementsResult
-
-    try {
-      // Try OpenAI API first
-      result = await callOpenAI(items, trade)
-    } catch (error) {
-      console.warn('OpenAI call failed, using fallback:', error)
-      // Fallback to pre-defined suggestions
-      result = generateFallback(items, trade)
-    }
-
-    return NextResponse.json(result, {
-      headers: { 'X-RateLimit-Remaining': remaining.toString() }
-    })
-
-  } catch (error) {
-    console.error('❌ Erreur suggestions compléments:', error)
-    return NextResponse.json(
-      { error: 'Erreur lors de la génération des suggestions' },
-      { status: 500 }
-    )
+async function handleSuggestComplements(
+  _request: NextRequest,
+  context: AIRequestContext,
+  input: SuggestComplementsInput
+): Promise<NextResponse> {
+  // Validate input
+  const validationResult = suggestComplementsInputSchema.safeParse(input)
+  if (!validationResult.success) {
+    const errors = validationResult.error.issues.map(e => e.message).join(', ')
+    return NextResponse.json({ error: errors }, { status: 400 })
   }
+
+  const { items, trade } = validationResult.data
+
+  // Check cache first
+  const cacheKey = generateCacheKey({ prefix: 'suggest-complements', items, trade })
+  const cached = await getFromCache<SuggestComplementsResult>('aiResponse', cacheKey)
+  if (cached) {
+    return NextResponse.json({ ...cached, fromCache: true })
+  }
+
+  let result: SuggestComplementsResult
+
+  try {
+    // Try OpenAI API first
+    result = await callOpenAI(items, trade)
+  } catch (error) {
+    console.warn('OpenAI call failed, using fallback:', error)
+    // Fallback to pre-defined suggestions
+    result = generateFallback(items, trade)
+  }
+
+  // Cache successful result (10 minutes)
+  await setInCache('aiResponse', cacheKey, result, 600)
+
+  // Log pour analytics
+  if (context.user) {
+    console.log(`[AI:Complements] User ${context.user.id} requested suggestions, trade: ${trade || 'none'}`)
+  }
+
+  return NextResponse.json(result)
 }
+
+export const POST = withAISecurity<SuggestComplementsInput>(
+  {
+    action: 'ai:suggest-complements',
+    requireAuth: false,
+    allowAnonymous: true,
+  },
+  handleSuggestComplements
+)

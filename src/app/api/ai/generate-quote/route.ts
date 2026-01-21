@@ -2,41 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { QuoteItemInput } from '@/types/quote'
 import type { QuoteAgentType } from '@/lib/ai/quoteAgents'
-
-// ===========================================
-// Rate Limiting (Best-effort in-memory)
-// ===========================================
-// TODO: For production, use Upstash Redis or similar for distributed rate limiting
-const rateLimitMap = new Map<string, { count: number; resetTime: number }>()
-const RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000 // 10 minutes
-const RATE_LIMIT_MAX_REQUESTS = 10 // 10 requests per window
-
-function checkRateLimit(ip: string): { allowed: boolean; remaining: number } {
-  const now = Date.now()
-  const record = rateLimitMap.get(ip)
-
-  if (!record || now > record.resetTime) {
-    rateLimitMap.set(ip, { count: 1, resetTime: now + RATE_LIMIT_WINDOW_MS })
-    return { allowed: true, remaining: RATE_LIMIT_MAX_REQUESTS - 1 }
-  }
-
-  if (record.count >= RATE_LIMIT_MAX_REQUESTS) {
-    return { allowed: false, remaining: 0 }
-  }
-
-  record.count++
-  return { allowed: true, remaining: RATE_LIMIT_MAX_REQUESTS - record.count }
-}
-
-// Cleanup old entries periodically
-setInterval(() => {
-  const now = Date.now()
-  for (const [ip, record] of rateLimitMap.entries()) {
-    if (now > record.resetTime) {
-      rateLimitMap.delete(ip)
-    }
-  }
-}, 60 * 1000) // Every minute
+import { withAISecurity, type AIRequestContext } from '@/lib/security/aiMiddleware'
+import { getFromCache, setInCache, generateCacheKey } from '@/lib/redis'
 
 // ===========================================
 // Agent Definitions
@@ -139,6 +106,8 @@ const generateQuoteInputSchema = z.object({
   vat_rate: z.number().min(0).max(30).optional(),
   agent: z.enum(quoteAgentValues).optional(),
 })
+
+type GenerateQuoteInput = z.infer<typeof generateQuoteInputSchema>
 
 // ===========================================
 // Output Validation Schema
@@ -503,80 +472,61 @@ async function callOpenAI(
 // ===========================================
 // API Route Handler
 // ===========================================
-export async function POST(request: NextRequest) {
-  try {
-    // Get client IP for rate limiting
-    const forwarded = request.headers.get('x-forwarded-for')
-    const ip = forwarded?.split(',')[0]?.trim() || 
-               request.headers.get('x-real-ip') || 
-               'unknown'
-
-    // Check rate limit
-    const { allowed, remaining } = checkRateLimit(ip)
-    if (!allowed) {
-      return NextResponse.json(
-        { error: 'Trop de requêtes. Veuillez patienter quelques minutes.' },
-        { 
-          status: 429,
-          headers: { 'X-RateLimit-Remaining': '0' }
-        }
-      )
-    }
-
-    // Parse and validate input
-    const body = await request.json()
-    const validationResult = generateQuoteInputSchema.safeParse(body)
-
-    if (!validationResult.success) {
-      const errors = validationResult.error.issues.map(e => e.message).join(', ')
-      return NextResponse.json(
-        { error: errors },
-        { status: 400 }
-      )
-    }
-
-    const { description, trade, vat_rate, agent } = validationResult.data
-    const resolvedAgent = resolveAgent(agent, description)
-
-    let items: QuoteItemInput[]
-
-    try {
-      // Try OpenAI first
-      items = await callOpenAI(description, trade, vat_rate, resolvedAgent)
-    } catch (error) {
-      console.warn('OpenAI call failed, using fallback:', error)
-      // Fallback to heuristic generation
-      items = generateFallbackItems(description, trade, vat_rate ?? 20, resolvedAgent)
-    }
-
-    return NextResponse.json(
-      { items, agent: resolvedAgent },
-      { 
-        headers: { 'X-RateLimit-Remaining': remaining.toString() }
-      }
-    )
-
-  } catch (error) {
-    console.error('❌ Erreur génération IA:', error)
-    
-    // Try to return fallback even on unexpected errors
-    try {
-      const body = await request.clone().json().catch(() => ({}))
-      const requestedAgent = isQuoteAgent(body.agent) ? body.agent : undefined
-      const description = body.description || 'Travaux généraux'
-      const resolvedAgent = resolveAgent(requestedAgent, description)
-      const fallbackItems = generateFallbackItems(
-        description,
-        body.trade,
-        body.vat_rate ?? 20,
-        resolvedAgent
-      )
-      return NextResponse.json({ items: fallbackItems, agent: resolvedAgent })
-    } catch {
-      return NextResponse.json(
-        { error: 'Erreur lors de la génération du devis' },
-        { status: 500 }
-      )
-    }
+async function handleGenerateQuote(
+  _request: NextRequest,
+  context: AIRequestContext,
+  body: GenerateQuoteInput
+): Promise<NextResponse> {
+  // Validation Zod
+  const validationResult = generateQuoteInputSchema.safeParse(body)
+  if (!validationResult.success) {
+    const errors = validationResult.error.issues.map(e => e.message).join(', ')
+    return NextResponse.json({ error: errors }, { status: 400 })
   }
+
+  const { description, trade, vat_rate, agent } = validationResult.data
+  const resolvedAgent = resolveAgent(agent, description)
+
+  // Générer une clé de cache
+  const cacheKey = generateCacheKey({
+    description: description.toLowerCase().trim(),
+    trade,
+    vat_rate,
+    agent: resolvedAgent,
+  })
+
+  // Vérifier le cache (1h de TTL)
+  const cached = await getFromCache<{ items: QuoteItemInput[]; agent: string }>('aiResponse', `quote:${cacheKey}`)
+  if (cached) {
+    return NextResponse.json({ ...cached, cached: true })
+  }
+
+  let items: QuoteItemInput[]
+
+  try {
+    items = await callOpenAI(description, trade, vat_rate, resolvedAgent)
+
+    // Mettre en cache pour 1 heure
+    await setInCache('aiResponse', `quote:${cacheKey}`, { items, agent: resolvedAgent }, 3600)
+  } catch (error) {
+    console.warn('OpenAI call failed, using fallback:', error)
+    items = generateFallbackItems(description, trade, vat_rate ?? 20, resolvedAgent)
+  }
+
+  // Log pour analytics
+  if (context.user) {
+    console.log(`[AI:Quote] User ${context.user.id} generated quote, agent: ${resolvedAgent}, trade: ${trade || 'none'}`)
+  }
+
+  return NextResponse.json({ items, agent: resolvedAgent })
 }
+
+// Export avec le wrapper de sécurité
+export const POST = withAISecurity<GenerateQuoteInput>(
+  {
+    action: 'ai:generate-quote',
+    requireAuth: false,
+    allowAnonymous: true,
+  },
+  handleGenerateQuote
+)

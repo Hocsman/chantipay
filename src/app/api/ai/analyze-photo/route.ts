@@ -1,53 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-
-// ===========================================
-// Rate Limiting (Best-effort in-memory)
-// ===========================================
-const rateLimitMap = new Map<string, { count: number; resetTime: number }>()
-const RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000 // 10 minutes
-const RATE_LIMIT_MAX_REQUESTS = 5 // 5 requests per window (Vision is more expensive)
-
-function checkRateLimit(ip: string): { allowed: boolean; remaining: number } {
-  const now = Date.now()
-  const record = rateLimitMap.get(ip)
-
-  if (!record || now > record.resetTime) {
-    rateLimitMap.set(ip, { count: 1, resetTime: now + RATE_LIMIT_WINDOW_MS })
-    return { allowed: true, remaining: RATE_LIMIT_MAX_REQUESTS - 1 }
-  }
-
-  if (record.count >= RATE_LIMIT_MAX_REQUESTS) {
-    return { allowed: false, remaining: 0 }
-  }
-
-  record.count++
-  return { allowed: true, remaining: RATE_LIMIT_MAX_REQUESTS - record.count }
-}
-
-// Cleanup old entries periodically
-setInterval(() => {
-  const now = Date.now()
-  for (const [ip, record] of rateLimitMap.entries()) {
-    if (now > record.resetTime) {
-      rateLimitMap.delete(ip)
-    }
-  }
-}, 60 * 1000)
+import { withAISecurity, validateImageBase64, type AIRequestContext } from '@/lib/security/aiMiddleware'
+import { getFromCache, setInCache, generateCacheKey } from '@/lib/redis'
 
 // ===========================================
 // Input Validation Schema
 // ===========================================
 const analyzePhotoInputSchema = z.object({
   imageBase64: z.string()
-    .min(100, 'Image invalide')
-    .refine(
-      (val) => val.startsWith('data:image/'),
-      'Format d\'image invalide (doit être base64 avec préfixe data:image/)'
-    ),
+    .min(100, 'Image invalide'),
   trade: z.string().optional(),
   context: z.string().max(500).optional(),
 })
+
+type AnalyzePhotoInput = z.infer<typeof analyzePhotoInputSchema>
 
 // ===========================================
 // Output Schema
@@ -210,68 +176,69 @@ function generateFallbackResult(): PhotoAnalysisResult {
 // ===========================================
 // API Route Handler
 // ===========================================
-export async function POST(request: NextRequest) {
-  try {
-    // Get client IP for rate limiting
-    const forwarded = request.headers.get('x-forwarded-for')
-    const ip = forwarded?.split(',')[0]?.trim() ||
-               request.headers.get('x-real-ip') ||
-               'unknown'
-
-    // Check rate limit
-    const { allowed, remaining } = checkRateLimit(ip)
-    if (!allowed) {
-      return NextResponse.json(
-        { error: 'Trop de requêtes. L\'analyse de photos est limitée à 5 par 10 minutes.' },
-        {
-          status: 429,
-          headers: { 'X-RateLimit-Remaining': '0' }
-        }
-      )
-    }
-
-    // Parse and validate input
-    const body = await request.json()
-    const validationResult = analyzePhotoInputSchema.safeParse(body)
-
-    if (!validationResult.success) {
-      const errors = validationResult.error.issues.map(e => e.message).join(', ')
-      return NextResponse.json(
-        { error: errors },
-        { status: 400 }
-      )
-    }
-
-    const { imageBase64, trade, context } = validationResult.data
-
-    // Check image size (max ~4MB base64)
-    if (imageBase64.length > 5 * 1024 * 1024) {
-      return NextResponse.json(
-        { error: 'Image trop volumineuse. Maximum 4MB.' },
-        { status: 400 }
-      )
-    }
-
-    let result: PhotoAnalysisResult
-
-    try {
-      // Call OpenAI Vision API
-      result = await callOpenAIVision(imageBase64, trade, context)
-    } catch (error) {
-      console.warn('OpenAI Vision call failed:', error)
-      // Return fallback result
-      result = generateFallbackResult()
-    }
-
-    return NextResponse.json(result, {
-      headers: { 'X-RateLimit-Remaining': remaining.toString() }
-    })
-
-  } catch (error) {
-    console.error('❌ Erreur analyse photo:', error)
-    return NextResponse.json(
-      { error: 'Erreur lors de l\'analyse de la photo' },
-      { status: 500 }
-    )
+async function handleAnalyzePhoto(
+  _request: NextRequest,
+  context: AIRequestContext,
+  body: AnalyzePhotoInput
+): Promise<NextResponse> {
+  // Validation Zod
+  const validationResult = analyzePhotoInputSchema.safeParse(body)
+  if (!validationResult.success) {
+    const errors = validationResult.error.issues.map(e => e.message).join(', ')
+    return NextResponse.json({ error: errors }, { status: 400 })
   }
+
+  const { imageBase64, trade, context: photoContext } = validationResult.data
+
+  // Validation approfondie de l'image (magic bytes)
+  const imageValidation = validateImageBase64(imageBase64, {
+    maxSizeBytes: 4 * 1024 * 1024, // 4MB max
+    allowedMimeTypes: ['image/jpeg', 'image/png', 'image/webp'],
+  })
+
+  if (!imageValidation.valid) {
+    return NextResponse.json({ error: imageValidation.error }, { status: 400 })
+  }
+
+  // Générer une clé de cache basée sur un hash de l'image + contexte
+  const cacheKey = generateCacheKey({
+    imageHash: imageBase64.slice(-100),
+    trade,
+    context: photoContext,
+  })
+
+  // Vérifier le cache
+  const cached = await getFromCache<PhotoAnalysisResult>('aiResponse', `photo:${cacheKey}`)
+  if (cached) {
+    return NextResponse.json({ ...cached, cached: true })
+  }
+
+  let result: PhotoAnalysisResult
+
+  try {
+    result = await callOpenAIVision(imageBase64, trade, photoContext)
+
+    // Mettre en cache pour 1 heure
+    await setInCache('aiResponse', `photo:${cacheKey}`, result, 3600)
+  } catch (error) {
+    console.warn('OpenAI Vision call failed:', error)
+    result = generateFallbackResult()
+  }
+
+  // Log pour analytics (utilisateur connecté uniquement)
+  if (context.user) {
+    console.log(`[AI:Photo] User ${context.user.id} analyzed photo, trade: ${trade || 'none'}`)
+  }
+
+  return NextResponse.json(result)
 }
+
+// Export avec le wrapper de sécurité
+export const POST = withAISecurity<AnalyzePhotoInput>(
+  {
+    action: 'ai:analyze-photo',
+    requireAuth: false,
+    allowAnonymous: true,
+  },
+  handleAnalyzePhoto
+)

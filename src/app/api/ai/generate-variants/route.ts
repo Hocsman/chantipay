@@ -1,39 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-
-// ===========================================
-// Rate Limiting (Best-effort in-memory)
-// ===========================================
-const rateLimitMap = new Map<string, { count: number; resetTime: number }>()
-const RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000 // 10 minutes
-const RATE_LIMIT_MAX_REQUESTS = 10 // 10 requests per window
-
-function checkRateLimit(ip: string): { allowed: boolean; remaining: number } {
-  const now = Date.now()
-  const record = rateLimitMap.get(ip)
-
-  if (!record || now > record.resetTime) {
-    rateLimitMap.set(ip, { count: 1, resetTime: now + RATE_LIMIT_WINDOW_MS })
-    return { allowed: true, remaining: RATE_LIMIT_MAX_REQUESTS - 1 }
-  }
-
-  if (record.count >= RATE_LIMIT_MAX_REQUESTS) {
-    return { allowed: false, remaining: 0 }
-  }
-
-  record.count++
-  return { allowed: true, remaining: RATE_LIMIT_MAX_REQUESTS - record.count }
-}
-
-// Cleanup old entries periodically
-setInterval(() => {
-  const now = Date.now()
-  for (const [ip, record] of rateLimitMap.entries()) {
-    if (now > record.resetTime) {
-      rateLimitMap.delete(ip)
-    }
-  }
-}, 60 * 1000)
+import { withAISecurity, type AIRequestContext } from '@/lib/security/aiMiddleware'
+import { getFromCache, setInCache, generateCacheKey } from '@/lib/redis'
 
 // ===========================================
 // Input Validation Schema
@@ -51,6 +19,8 @@ const generateVariantsInputSchema = z.object({
   trade: z.string().optional(),
   context: z.string().max(500).optional(),
 })
+
+type GenerateVariantsInput = z.infer<typeof generateVariantsInputSchema>
 
 // ===========================================
 // Output Schema
@@ -323,60 +293,54 @@ function generateFallback(baseItems: QuoteItem[]): GenerateVariantsResult {
 // ===========================================
 // API Route Handler
 // ===========================================
-export async function POST(request: NextRequest) {
-  try {
-    // Get client IP for rate limiting
-    const forwarded = request.headers.get('x-forwarded-for')
-    const ip = forwarded?.split(',')[0]?.trim() ||
-               request.headers.get('x-real-ip') ||
-               'unknown'
-
-    // Check rate limit
-    const { allowed, remaining } = checkRateLimit(ip)
-    if (!allowed) {
-      return NextResponse.json(
-        { error: 'Trop de requêtes. Veuillez réessayer dans quelques minutes.' },
-        {
-          status: 429,
-          headers: { 'X-RateLimit-Remaining': '0' }
-        }
-      )
-    }
-
-    // Parse and validate input
-    const body = await request.json()
-    const validationResult = generateVariantsInputSchema.safeParse(body)
-
-    if (!validationResult.success) {
-      const errors = validationResult.error.issues.map(e => e.message).join(', ')
-      return NextResponse.json(
-        { error: errors },
-        { status: 400 }
-      )
-    }
-
-    const { baseItems, trade, context } = validationResult.data
-
-    let result: GenerateVariantsResult
-
-    try {
-      // Try OpenAI API first
-      result = await callOpenAI(baseItems, trade, context)
-    } catch (error) {
-      console.warn('OpenAI call failed, using fallback:', error)
-      // Fallback to simple generation
-      result = generateFallback(baseItems)
-    }
-
-    return NextResponse.json(result, {
-      headers: { 'X-RateLimit-Remaining': remaining.toString() }
-    })
-
-  } catch (error) {
-    console.error('❌ Erreur génération variantes:', error)
-    return NextResponse.json(
-      { error: 'Erreur lors de la génération des variantes' },
-      { status: 500 }
-    )
+async function handleGenerateVariants(
+  _request: NextRequest,
+  reqContext: AIRequestContext,
+  input: GenerateVariantsInput
+): Promise<NextResponse> {
+  // Validate input
+  const validationResult = generateVariantsInputSchema.safeParse(input)
+  if (!validationResult.success) {
+    const errors = validationResult.error.issues.map(e => e.message).join(', ')
+    return NextResponse.json({ error: errors }, { status: 400 })
   }
+
+  const { baseItems, trade, context } = validationResult.data
+
+  // Check cache first
+  const cacheKey = generateCacheKey({ prefix: 'generate-variants', baseItems, trade, context })
+  const cached = await getFromCache<GenerateVariantsResult>('aiResponse', cacheKey)
+  if (cached) {
+    return NextResponse.json({ ...cached, fromCache: true })
+  }
+
+  let result: GenerateVariantsResult
+
+  try {
+    // Try OpenAI API first
+    result = await callOpenAI(baseItems, trade, context)
+  } catch (error) {
+    console.warn('OpenAI call failed, using fallback:', error)
+    // Fallback to simple generation
+    result = generateFallback(baseItems)
+  }
+
+  // Cache successful result (10 minutes)
+  await setInCache('aiResponse', cacheKey, result, 600)
+
+  // Log pour analytics
+  if (reqContext.user) {
+    console.log(`[AI:Variants] User ${reqContext.user.id} generated variants, trade: ${trade || 'none'}`)
+  }
+
+  return NextResponse.json(result)
 }
+
+export const POST = withAISecurity<GenerateVariantsInput>(
+  {
+    action: 'ai:generate-variants',
+    requireAuth: false,
+    allowAnonymous: true,
+  },
+  handleGenerateVariants
+)

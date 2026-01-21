@@ -1,39 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-
-// ===========================================
-// Rate Limiting (Best-effort in-memory)
-// ===========================================
-const rateLimitMap = new Map<string, { count: number; resetTime: number }>()
-const RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000 // 10 minutes
-const RATE_LIMIT_MAX_REQUESTS = 15 // 15 requests per window
-
-function checkRateLimit(ip: string): { allowed: boolean; remaining: number } {
-  const now = Date.now()
-  const record = rateLimitMap.get(ip)
-
-  if (!record || now > record.resetTime) {
-    rateLimitMap.set(ip, { count: 1, resetTime: now + RATE_LIMIT_WINDOW_MS })
-    return { allowed: true, remaining: RATE_LIMIT_MAX_REQUESTS - 1 }
-  }
-
-  if (record.count >= RATE_LIMIT_MAX_REQUESTS) {
-    return { allowed: false, remaining: 0 }
-  }
-
-  record.count++
-  return { allowed: true, remaining: RATE_LIMIT_MAX_REQUESTS - record.count }
-}
-
-// Cleanup old entries periodically
-setInterval(() => {
-  const now = Date.now()
-  for (const [ip, record] of rateLimitMap.entries()) {
-    if (now > record.resetTime) {
-      rateLimitMap.delete(ip)
-    }
-  }
-}, 60 * 1000)
+import { withAISecurity, type AIRequestContext } from '@/lib/security/aiMiddleware'
+import { getFromCache, setInCache, generateCacheKey } from '@/lib/redis'
 
 // ===========================================
 // Input Validation Schema
@@ -52,6 +20,8 @@ const smartEditInputSchema = z.object({
     .max(500, 'L\'instruction ne peut pas dépasser 500 caractères'),
   currentItems: z.array(quoteItemSchema).min(1, 'Le devis doit contenir au moins une ligne'),
 })
+
+type SmartEditInput = z.infer<typeof smartEditInputSchema>
 
 // ===========================================
 // Output Validation Schema
@@ -288,60 +258,54 @@ function applyFallbackEdit(
 // ===========================================
 // API Route Handler
 // ===========================================
-export async function POST(request: NextRequest) {
-  try {
-    // Get client IP for rate limiting
-    const forwarded = request.headers.get('x-forwarded-for')
-    const ip = forwarded?.split(',')[0]?.trim() ||
-               request.headers.get('x-real-ip') ||
-               'unknown'
-
-    // Check rate limit
-    const { allowed, remaining } = checkRateLimit(ip)
-    if (!allowed) {
-      return NextResponse.json(
-        { error: 'Trop de requêtes. Veuillez patienter quelques minutes.' },
-        {
-          status: 429,
-          headers: { 'X-RateLimit-Remaining': '0' }
-        }
-      )
-    }
-
-    // Parse and validate input
-    const body = await request.json()
-    const validationResult = smartEditInputSchema.safeParse(body)
-
-    if (!validationResult.success) {
-      const errors = validationResult.error.issues.map(e => e.message).join(', ')
-      return NextResponse.json(
-        { error: errors },
-        { status: 400 }
-      )
-    }
-
-    const { instruction, currentItems } = validationResult.data
-
-    let result: SmartEditResult
-
-    try {
-      // Try OpenAI first
-      result = await callOpenAI(instruction, currentItems)
-    } catch (error) {
-      console.warn('OpenAI call failed, using fallback:', error)
-      // Fallback to simple pattern matching
-      result = applyFallbackEdit(instruction, currentItems)
-    }
-
-    return NextResponse.json(result, {
-      headers: { 'X-RateLimit-Remaining': remaining.toString() }
-    })
-
-  } catch (error) {
-    console.error('❌ Erreur modification intelligente:', error)
-    return NextResponse.json(
-      { error: 'Erreur lors de la modification du devis' },
-      { status: 500 }
-    )
+async function handleSmartEdit(
+  _request: NextRequest,
+  context: AIRequestContext,
+  input: SmartEditInput
+): Promise<NextResponse> {
+  // Validate input
+  const validationResult = smartEditInputSchema.safeParse(input)
+  if (!validationResult.success) {
+    const errors = validationResult.error.issues.map(e => e.message).join(', ')
+    return NextResponse.json({ error: errors }, { status: 400 })
   }
+
+  const { instruction, currentItems } = validationResult.data
+
+  // Check cache first
+  const cacheKey = generateCacheKey({ prefix: 'smart-edit', instruction, currentItems })
+  const cached = await getFromCache<SmartEditResult>('aiResponse', cacheKey)
+  if (cached) {
+    return NextResponse.json({ ...cached, fromCache: true })
+  }
+
+  let result: SmartEditResult
+
+  try {
+    // Try OpenAI first
+    result = await callOpenAI(instruction, currentItems)
+  } catch (error) {
+    console.warn('OpenAI call failed, using fallback:', error)
+    // Fallback to simple pattern matching
+    result = applyFallbackEdit(instruction, currentItems)
+  }
+
+  // Cache successful result (5 minutes)
+  await setInCache('aiResponse', cacheKey, result, 300)
+
+  // Log pour analytics
+  if (context.user) {
+    console.log(`[AI:SmartEdit] User ${context.user.id} edited quote`)
+  }
+
+  return NextResponse.json(result)
 }
+
+export const POST = withAISecurity<SmartEditInput>(
+  {
+    action: 'ai:smart-edit',
+    requireAuth: false,
+    allowAnonymous: true,
+  },
+  handleSmartEdit
+)
