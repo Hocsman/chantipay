@@ -72,7 +72,7 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       console.error('Erreur récupération devis:', error)
-      return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
+      return NextResponse.json({ error: 'Erreur base de données', details: error.message }, { status: 500 })
     }
 
     if (!quotesRaw || quotesRaw.length === 0) {
@@ -81,11 +81,23 @@ export async function GET(request: NextRequest) {
 
     // Transformer les données pour correspondre au format attendu
     const quotes = quotesRaw.map(q => {
-      // clients peut être un objet ou un tableau selon la relation Supabase
-      const client = Array.isArray(q.clients) ? q.clients[0] : q.clients
+      // clients peut être un objet, un tableau, ou null selon la relation Supabase
+      let client = null
+      if (q.clients) {
+        client = Array.isArray(q.clients) ? q.clients[0] : q.clients
+      }
       return {
-        ...q,
-        client_name: client?.name || 'Client',
+        id: q.id,
+        quote_number: q.quote_number || '',
+        created_at: q.created_at,
+        status: q.status || 'draft',
+        total_ht: q.total_ht || 0,
+        total_ttc: q.total_ttc || 0,
+        total_vat: q.total_vat || 0,
+        valid_until: q.valid_until,
+        signed_at: q.signed_at,
+        quote_items: q.quote_items || [],
+        client_name: client?.name || 'Client inconnu',
         client_email: client?.email || '',
         client_phone: client?.phone || '',
         client_address: client?.address || '',
@@ -109,6 +121,7 @@ export async function GET(request: NextRequest) {
     })
   } catch (error) {
     console.error('Erreur export Excel devis:', error)
-    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
+    const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue'
+    return NextResponse.json({ error: 'Erreur serveur', details: errorMessage }, { status: 500 })
   }
 }
