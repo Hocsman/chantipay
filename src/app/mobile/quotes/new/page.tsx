@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { MobileLayout } from '@/components/mobile/MobileLayout';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Plus, Trash2, Sparkles, Loader2, Check, Replace, PlusCircle, Car, Package, Clock, AlertTriangle, Construction, Zap, Droplets, ArrowLeft } from 'lucide-react';
+import { Plus, Sparkles, Loader2, Check, Replace, PlusCircle, Car, Package, Clock, AlertTriangle, Construction, Zap, Droplets, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQuoteAutoSave } from '@/hooks/useQuoteAutoSave';
 import {
@@ -28,8 +27,8 @@ import { QuoteCreationTracker, QuoteAITracker } from '@/lib/analytics/quoteAnaly
 import { useAIHistory } from '@/hooks/useAIHistory';
 import { AIHistorySheet } from '@/components/ai/AIHistorySheet';
 import { TemplateSelectorSheet } from '@/components/templates/TemplateSelectorSheet';
+import { SaveTemplateSheet } from '@/components/templates/SaveTemplateSheet';
 import type { QuoteTemplate } from '@/lib/templates/quoteTemplates';
-import { PriceAdjustmentSheet } from '@/components/quotes/PriceAdjustmentSheet';
 import { PhotoAnalysisSheet } from '@/components/quotes/PhotoAnalysisSheet';
 import { ComparativeQuotesSheet } from '@/components/quotes/ComparativeQuotesSheet';
 import { LibraryImportSheet } from '@/components/library/LibraryImportSheet';
@@ -37,6 +36,7 @@ import type { LibraryItem } from '@/types/quote-library';
 import { SuggestionsSheet } from '@/components/quotes/SuggestionsSheet';
 import { VoiceMicButton } from '@/components/ai/VoiceMicButton';
 import { PricePreferenceHint } from '@/components/quotes/PricePreferenceHint';
+import { SortableQuoteList } from '@/components/quotes/SortableQuoteList';
 import { QUOTE_AGENT_OPTIONS } from '@/lib/ai/quoteAgents';
 import type { QuoteAgentType } from '@/lib/ai/quoteAgents';
 
@@ -735,6 +735,13 @@ export default function NewQuotePage() {
                       disabled={isGeneratingAI}
                     />
                   </div>
+                  <SaveTemplateSheet
+                    description={aiDescription}
+                    trade={selectedTrade}
+                    disabled={isGeneratingAI}
+                  />
+                </div>
+                <div className="flex justify-end mb-1">
                   <span
                     className={`text-xs ${aiDescription.length > 1800
                       ? 'text-destructive'
@@ -869,98 +876,28 @@ export default function NewQuotePage() {
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">3. Lignes du devis</CardTitle>
-            <CardDescription>Ajoutez les prestations et fournitures</CardDescription>
+            <CardDescription>
+              Glissez pour réorganiser • Ajoutez les prestations et fournitures
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {items.map((item, index) => (
-                <Card key={item.id} className="bg-muted/50">
-                  <CardContent className="p-4 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">Ligne {index + 1}</span>
-                      <div className="flex gap-1">
-                        <PriceAdjustmentSheet
-                          description={item.description}
-                          quantity={item.quantity}
-                          currentPrice={item.unit_price_ht}
-                          onApplyPrice={(newPrice) => updateItem(item.id, 'unit_price_ht', newPrice)}
-                        />
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => removeItem(item.id)}
-                          disabled={items.length === 1}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </div>
-                    </div>
-                    <div>
-                      <Label>Description</Label>
-                      <Input
-                        value={item.description}
-                        onChange={(e) => updateItem(item.id, 'description', e.target.value)}
-                        placeholder="Description de la prestation"
-                      />
-                    </div>
-                    <div className="grid grid-cols-3 gap-2">
-                      <div>
-                        <Label>Qté</Label>
-                        <Input
-                          type="number"
-                          min="1"
-                          value={item.quantity}
-                          onChange={(e) =>
-                            updateItem(item.id, 'quantity', parseFloat(e.target.value) || 0)
-                          }
-                        />
-                      </div>
-                      <div>
-                        <Label>Prix HT</Label>
-                        <Input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value={item.unit_price_ht}
-                          onChange={(e) =>
-                            updateItem(
-                              item.id,
-                              'unit_price_ht',
-                              parseFloat(e.target.value) || 0
-                            )
-                          }
-                        />
-                      </div>
-                      <div>
-                        <Label>TVA %</Label>
-                        <Input
-                          type="number"
-                          min="0"
-                          max="100"
-                          value={item.vat_rate}
-                          onChange={(e) =>
-                            updateItem(item.id, 'vat_rate', parseFloat(e.target.value) || 0)
-                          }
-                        />
-                      </div>
-                    </div>
-                    <div className="text-right text-sm">
-                      Total:{' '}
-                      <strong>{formatCurrency(item.quantity * item.unit_price_ht)}</strong> HT
-                    </div>
-                    {/* Suggestion de prix basée sur l'historique */}
-                    {item.description.length >= 10 && (
-                      <PricePreferenceHint
-                        description={item.description}
-                        currentPrice={item.unit_price_ht}
-                        onApplyPrice={(price) => updateItem(item.id, 'unit_price_ht', price)}
-                        compact
-                      />
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+            <SortableQuoteList
+              items={items}
+              onItemsChange={setItems}
+              onUpdateItem={updateItem}
+              onRemoveItem={removeItem}
+              formatCurrency={formatCurrency}
+              renderItemExtras={(item) => (
+                item.description.length >= 10 ? (
+                  <PricePreferenceHint
+                    description={item.description}
+                    currentPrice={item.unit_price_ht}
+                    onApplyPrice={(price) => updateItem(item.id, 'unit_price_ht', price)}
+                    compact
+                  />
+                ) : null
+              )}
+            />
 
             <div className="flex flex-col gap-3 mt-4">
               <Button variant="outline" className="w-full" onClick={addItem}>

@@ -38,6 +38,7 @@ import { QuoteCreationTracker, QuoteAITracker } from '@/lib/analytics/quoteAnaly
 import { useAIHistory } from '@/hooks/useAIHistory'
 import { AIHistoryDropdown } from '@/components/ai/AIHistoryDropdown'
 import { TemplateSelector } from '@/components/templates/TemplateSelector'
+import { SaveTemplateDialog } from '@/components/templates/SaveTemplateDialog'
 import type { QuoteTemplate } from '@/lib/templates/quoteTemplates'
 import { PriceAdjustmentDialog } from '@/components/quotes/PriceAdjustmentDialog'
 import { PhotoAnalysisDialog } from '@/components/quotes/PhotoAnalysisDialog'
@@ -48,6 +49,7 @@ import type { LibraryItem } from '@/types/quote-library'
 import { SuggestionsAlert } from '@/components/quotes/SuggestionsAlert'
 import { VoiceMicButton } from '@/components/ai/VoiceMicButton'
 import { PricePreferenceHint } from '@/components/quotes/PricePreferenceHint'
+import { SortableQuoteList } from '@/components/quotes/SortableQuoteList'
 import { QUOTE_AGENT_OPTIONS } from '@/lib/ai/quoteAgents'
 import type { QuoteAgentType } from '@/lib/ai/quoteAgents'
 
@@ -625,84 +627,25 @@ export default function NewQuotePage() {
             <CardDescription>Ajoutez les prestations et fournitures</CardDescription>
           </CardHeader>
           <CardContent>
-            {/* Vue mobile */}
-            <div className="space-y-4 md:hidden">
-              {items.map((item, index) => (
-                <Card key={item.id} className="bg-muted/50">
-                  <CardContent className="p-4 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">Ligne {index + 1}</span>
-                      <div className="flex gap-1">
-                        <PriceAdjustmentDialog
-                          description={item.description}
-                          quantity={item.quantity}
-                          currentPrice={item.unit_price_ht}
-                          onApplyPrice={(newPrice) => updateItem(item.id, 'unit_price_ht', newPrice)}
-                        />
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => removeItem(item.id)}
-                          disabled={items.length === 1}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </div>
-                    </div>
-                    <div>
-                      <Label>Description</Label>
-                      <Input
-                        value={item.description}
-                        onChange={(e) => updateItem(item.id, 'description', e.target.value)}
-                        placeholder="Description de la prestation"
-                      />
-                    </div>
-                    <div className="grid grid-cols-3 gap-2">
-                      <div>
-                        <Label>Qté</Label>
-                        <Input
-                          type="number"
-                          min="1"
-                          value={item.quantity}
-                          onChange={(e) => updateItem(item.id, 'quantity', parseFloat(e.target.value) || 0)}
-                        />
-                      </div>
-                      <div>
-                        <Label>Prix HT</Label>
-                        <Input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value={item.unit_price_ht}
-                          onChange={(e) => updateItem(item.id, 'unit_price_ht', parseFloat(e.target.value) || 0)}
-                        />
-                      </div>
-                      <div>
-                        <Label>TVA %</Label>
-                        <Input
-                          type="number"
-                          min="0"
-                          max="100"
-                          value={item.vat_rate}
-                          onChange={(e) => updateItem(item.id, 'vat_rate', parseFloat(e.target.value) || 0)}
-                        />
-                      </div>
-                    </div>
-                    <div className="text-right text-sm">
-                      Total: <strong>{formatCurrency(item.quantity * item.unit_price_ht)}</strong> HT
-                    </div>
-                    {/* Suggestion de prix basée sur l'historique */}
-                    {item.description.length >= 10 && (
-                      <PricePreferenceHint
-                        description={item.description}
-                        currentPrice={item.unit_price_ht}
-                        onApplyPrice={(price) => updateItem(item.id, 'unit_price_ht', price)}
-                        compact
-                      />
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
+            {/* Vue mobile avec drag & drop */}
+            <div className="md:hidden">
+              <SortableQuoteList
+                items={items}
+                onItemsChange={setItems}
+                onUpdateItem={updateItem}
+                onRemoveItem={removeItem}
+                formatCurrency={formatCurrency}
+                renderItemExtras={(item) => (
+                  item.description.length >= 10 ? (
+                    <PricePreferenceHint
+                      description={item.description}
+                      currentPrice={item.unit_price_ht}
+                      onApplyPrice={(price) => updateItem(item.id, 'unit_price_ht', price)}
+                      compact
+                    />
+                  ) : null
+                )}
+              />
             </div>
 
             {/* Vue desktop */}
@@ -901,6 +844,11 @@ export default function NewQuotePage() {
                           return newText.length <= 2000 ? newText : prev
                         })
                       }}
+                      disabled={isGeneratingAI}
+                    />
+                    <SaveTemplateDialog
+                      description={aiDescription}
+                      trade={selectedTrade}
                       disabled={isGeneratingAI}
                     />
                   </div>

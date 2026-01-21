@@ -22,6 +22,7 @@ import {
   Loader2,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { FeedbackButtons } from '@/components/ai/FeedbackButtons'
 
 interface QuoteItem {
   id: string
@@ -260,8 +261,18 @@ export function SuggestionsAlert({
                             {suggestion.reason}
                           </p>
                         </div>
-                        {/* Prix - toujours visible */}
-                        <div className="text-right">
+                        {/* Prix + Feedback */}
+                        <div className="flex items-center justify-between">
+                          <FeedbackButtons
+                            context="suggestion"
+                            itemId={suggestion.id}
+                            size="sm"
+                            metadata={{
+                              description: suggestion.description,
+                              category: suggestion.category,
+                              price: suggestion.estimated_price_ht,
+                            }}
+                          />
                           <span className="font-semibold text-primary">
                             {formatCurrency(suggestion.estimated_price_ht)}
                           </span>

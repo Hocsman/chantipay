@@ -13,8 +13,9 @@ import {
 } from '@/components/ui/dialog'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
-import { Wand2, Loader2, Sparkles, Check, X, ArrowRight } from 'lucide-react'
+import { Wand2, Loader2, Sparkles, Check, X } from 'lucide-react'
 import { toast } from 'sonner'
+import { QuoteDiffView } from './QuoteDiffView'
 
 interface QuoteItem {
   id: string
@@ -48,13 +49,6 @@ export function SmartEditDialog({ items, onApplyChanges, disabled }: SmartEditDi
   const [instruction, setInstruction] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [preview, setPreview] = useState<SmartEditResult | null>(null)
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('fr-FR', {
-      style: 'currency',
-      currency: 'EUR',
-    }).format(amount)
-  }
 
   const handleGeneratePreview = async () => {
     if (!instruction.trim() || instruction.length < 5) {
@@ -109,14 +103,6 @@ export function SmartEditDialog({ items, onApplyChanges, disabled }: SmartEditDi
     setPreview(null)
     setOpen(false)
   }
-
-  const calculateTotal = (itemList: QuoteItem[]) => {
-    return itemList.reduce((sum, item) => sum + item.quantity * item.unit_price_ht, 0)
-  }
-
-  const currentTotal = calculateTotal(items)
-  const previewTotal = preview ? calculateTotal(preview.items) : 0
-  const totalDiff = preview ? previewTotal - currentTotal : 0
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -184,7 +170,7 @@ export function SmartEditDialog({ items, onApplyChanges, disabled }: SmartEditDi
             </Button>
           )}
 
-          {/* Preview */}
+          {/* Preview with Diff View */}
           {preview && (
             <div className="space-y-4">
               {/* Explanation */}
@@ -195,52 +181,8 @@ export function SmartEditDialog({ items, onApplyChanges, disabled }: SmartEditDi
                 </div>
               )}
 
-              {/* Comparison */}
-              <div className="grid grid-cols-2 gap-4">
-                {/* Before */}
-                <div className="space-y-2">
-                  <p className="text-sm font-medium text-muted-foreground">Avant</p>
-                  <div className="p-3 bg-muted/30 rounded-lg space-y-2 max-h-[200px] overflow-y-auto">
-                    {items.map((item, index) => (
-                      <div key={item.id} className="text-sm">
-                        <p className="font-medium truncate">{item.description}</p>
-                        <p className="text-muted-foreground">
-                          {item.quantity} × {formatCurrency(item.unit_price_ht)}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                  <p className="text-sm font-semibold text-right">
-                    Total: {formatCurrency(currentTotal)} HT
-                  </p>
-                </div>
-
-                {/* After */}
-                <div className="space-y-2">
-                  <p className="text-sm font-medium text-muted-foreground flex items-center gap-1">
-                    <ArrowRight className="h-3 w-3" />
-                    Après
-                  </p>
-                  <div className="p-3 bg-green-50 dark:bg-green-950/30 rounded-lg space-y-2 max-h-[200px] overflow-y-auto">
-                    {preview.items.map((item, index) => (
-                      <div key={item.id} className="text-sm">
-                        <p className="font-medium truncate">{item.description}</p>
-                        <p className="text-muted-foreground">
-                          {item.quantity} × {formatCurrency(item.unit_price_ht)}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                  <p className="text-sm font-semibold text-right">
-                    Total: {formatCurrency(previewTotal)} HT
-                    {totalDiff !== 0 && (
-                      <span className={`ml-2 ${totalDiff > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        ({totalDiff > 0 ? '+' : ''}{formatCurrency(totalDiff)})
-                      </span>
-                    )}
-                  </p>
-                </div>
-              </div>
+              {/* Diff View */}
+              <QuoteDiffView before={items} after={preview.items} />
             </div>
           )}
         </div>

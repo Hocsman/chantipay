@@ -18,6 +18,7 @@ import {
   Loader2,
   Info,
 } from 'lucide-react'
+import { FeedbackButtonsInline } from '@/components/ai/FeedbackButtons'
 
 interface PriceHint {
   message: string | null
@@ -159,26 +160,33 @@ export function PricePreferenceHint({
   // Mode compact (pour l'utilisation inline)
   if (compact) {
     return (
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <button
-              type="button"
-              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs ${config.bgColor} ${config.color} hover:opacity-80 transition-opacity`}
-              onClick={() => onApplyPrice?.(hint.suggestedPrice!)}
-            >
-              <History className="h-3 w-3" />
-              {formatCurrency(hint.suggestedPrice)}
-            </button>
-          </TooltipTrigger>
-          <TooltipContent side="top" className="max-w-xs">
-            <p className="text-sm">{hint.message}</p>
-            <p className="text-xs text-muted-foreground mt-1">
-              Basé sur {hint.basedOn} devis précédent(s)
-            </p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
+      <div className="flex items-center gap-2">
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs ${config.bgColor} ${config.color} hover:opacity-80 transition-opacity`}
+                onClick={() => onApplyPrice?.(hint.suggestedPrice!)}
+              >
+                <History className="h-3 w-3" />
+                {formatCurrency(hint.suggestedPrice)}
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="top" className="max-w-xs">
+              <p className="text-sm">{hint.message}</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Basé sur {hint.basedOn} devis précédent(s)
+              </p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+        <FeedbackButtonsInline
+          context="price_hint"
+          itemId={`price-hint-${description.slice(0, 20)}`}
+          metadata={{ description, suggestedPrice: hint.suggestedPrice }}
+        />
+      </div>
     )
   }
 
