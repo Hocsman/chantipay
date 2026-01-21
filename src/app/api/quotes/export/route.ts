@@ -28,26 +28,20 @@ export async function GET(request: NextRequest) {
     const fromDate = searchParams.get('from')
     const toDate = searchParams.get('to')
 
-    // Construire la requête
+    // Construire la requête - utiliser la même structure que /api/quotes
     let query = supabase
       .from('quotes')
       .select(`
-        id,
-        quote_number,
-        created_at,
-        status,
-        total_ht,
-        total_ttc,
-        total_vat,
-        valid_until,
-        signed_at,
+        *,
         clients (
+          id,
           name,
           email,
           phone,
           address
         ),
-        quote_items (
+        items:quote_items (
+          id,
           description,
           quantity,
           unit_price_ht,
@@ -86,17 +80,23 @@ export async function GET(request: NextRequest) {
       if (q.clients) {
         client = Array.isArray(q.clients) ? q.clients[0] : q.clients
       }
+
+      // Calculer total_vat si non présent
+      const totalHt = q.total_ht || 0
+      const totalTtc = q.total_ttc || 0
+      const totalVat = q.total_vat ?? (totalTtc - totalHt)
+
       return {
         id: q.id,
         quote_number: q.quote_number || '',
         created_at: q.created_at,
         status: q.status || 'draft',
-        total_ht: q.total_ht || 0,
-        total_ttc: q.total_ttc || 0,
-        total_vat: q.total_vat || 0,
-        valid_until: q.valid_until,
+        total_ht: totalHt,
+        total_ttc: totalTtc,
+        total_vat: totalVat,
+        valid_until: q.valid_until || q.expires_at,
         signed_at: q.signed_at,
-        quote_items: q.quote_items || [],
+        quote_items: q.items || [],
         client_name: client?.name || 'Client inconnu',
         client_email: client?.email || '',
         client_phone: client?.phone || '',
