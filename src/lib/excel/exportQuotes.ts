@@ -212,7 +212,6 @@ export function generateSingleQuoteExcel(quote: Quote): XLSX.WorkBook {
 /**
  * Convertit un workbook en ArrayBuffer pour le téléchargement
  */
-export function workbookToBuffer(workbook: XLSX.WorkBook): ArrayBuffer {
-  const uint8Array = XLSX.write(workbook, { type: 'array', bookType: 'xlsx' }) as Uint8Array
-  return uint8Array.buffer.slice(uint8Array.byteOffset, uint8Array.byteOffset + uint8Array.byteLength) as ArrayBuffer
+export function workbookToBuffer(workbook: XLSX.WorkBook): Buffer {
+  return Buffer.from(XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' }))
 }
