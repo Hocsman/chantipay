@@ -100,7 +100,7 @@ export default function ContactPage() {
               height={28}
               className="rounded-lg"
             />
-            <span className="font-bold text-lg hidden sm:inline">ChantiPay</span>
+            <span className="font-bold text-lg">ChantiPay</span>
           </Link>
           <div className="w-20" /> {/* Spacer for centering */}
         </div>
