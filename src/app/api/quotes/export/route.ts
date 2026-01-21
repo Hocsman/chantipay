@@ -5,12 +5,6 @@ import { generateQuotesExcel, workbookToBuffer } from '@/lib/excel/exportQuotes'
 /**
  * GET /api/quotes/export
  * Exporte tous les devis de l'utilisateur en Excel
- *
- * Query params:
- * - includeItems: boolean (inclure le détail des lignes)
- * - status: string (filtrer par statut)
- * - from: string (date de début, ISO)
- * - to: string (date de fin, ISO)
  */
 export async function GET(request: NextRequest) {
   try {
@@ -25,66 +19,78 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const includeItems = searchParams.get('includeItems') === 'true'
     const status = searchParams.get('status')
-    const fromDate = searchParams.get('from')
-    const toDate = searchParams.get('to')
 
-    // Construire la requête - utiliser la même structure que /api/quotes
+    // Requête simplifiée - sans les relations pour tester
     let query = supabase
       .from('quotes')
-      .select(`
-        *,
-        clients (
-          id,
-          name,
-          email,
-          phone,
-          address
-        ),
-        items:quote_items (
-          id,
-          description,
-          quantity,
-          unit_price_ht,
-          vat_rate
-        )
-      `)
+      .select('*')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
 
-    // Appliquer les filtres
     if (status) {
       query = query.eq('status', status)
-    }
-    if (fromDate) {
-      query = query.gte('created_at', fromDate)
-    }
-    if (toDate) {
-      query = query.lte('created_at', toDate)
     }
 
     const { data: quotesRaw, error } = await query
 
     if (error) {
       console.error('Erreur récupération devis:', error)
-      return NextResponse.json({ error: 'Erreur base de données', details: error.message }, { status: 500 })
+      return NextResponse.json({
+        error: 'Erreur base de données',
+        details: error.message,
+        code: error.code,
+        hint: error.hint
+      }, { status: 500 })
     }
 
     if (!quotesRaw || quotesRaw.length === 0) {
       return NextResponse.json({ error: 'Aucun devis à exporter' }, { status: 404 })
     }
 
-    // Transformer les données pour correspondre au format attendu
-    const quotes = quotesRaw.map(q => {
-      // clients peut être un objet, un tableau, ou null selon la relation Supabase
-      let client = null
-      if (q.clients) {
-        client = Array.isArray(q.clients) ? q.clients[0] : q.clients
-      }
+    // Récupérer les clients séparément
+    const clientIds = [...new Set(quotesRaw.map(q => q.client_id).filter(Boolean))]
+    let clientsMap: Record<string, { name: string; email?: string; phone?: string; address?: string }> = {}
 
-      // Calculer total_vat si non présent
+    if (clientIds.length > 0) {
+      const { data: clients } = await supabase
+        .from('clients')
+        .select('id, name, email, phone, address')
+        .in('id', clientIds)
+
+      if (clients) {
+        clientsMap = clients.reduce((acc, c) => {
+          acc[c.id] = c
+          return acc
+        }, {} as Record<string, { name: string; email?: string; phone?: string; address?: string }>)
+      }
+    }
+
+    // Récupérer les items si nécessaire
+    let itemsMap: Record<string, Array<{ description: string; quantity: number; unit_price_ht: number; vat_rate: number }>> = {}
+
+    if (includeItems) {
+      const quoteIds = quotesRaw.map(q => q.id)
+      const { data: items } = await supabase
+        .from('quote_items')
+        .select('quote_id, description, quantity, unit_price_ht, vat_rate')
+        .in('quote_id', quoteIds)
+
+      if (items) {
+        itemsMap = items.reduce((acc, item) => {
+          if (!acc[item.quote_id]) {
+            acc[item.quote_id] = []
+          }
+          acc[item.quote_id].push(item)
+          return acc
+        }, {} as Record<string, Array<{ description: string; quantity: number; unit_price_ht: number; vat_rate: number }>>)
+      }
+    }
+
+    // Transformer les données
+    const quotes = quotesRaw.map(q => {
+      const client = q.client_id ? clientsMap[q.client_id] : null
       const totalHt = q.total_ht || 0
       const totalTtc = q.total_ttc || 0
-      const totalVat = q.total_vat ?? (totalTtc - totalHt)
 
       return {
         id: q.id,
@@ -93,10 +99,10 @@ export async function GET(request: NextRequest) {
         status: q.status || 'draft',
         total_ht: totalHt,
         total_ttc: totalTtc,
-        total_vat: totalVat,
+        total_vat: totalTtc - totalHt,
         valid_until: q.valid_until || q.expires_at,
         signed_at: q.signed_at,
-        quote_items: q.items || [],
+        quote_items: itemsMap[q.id] || [],
         client_name: client?.name || 'Client inconnu',
         client_email: client?.email || '',
         client_phone: client?.phone || '',
@@ -112,7 +118,6 @@ export async function GET(request: NextRequest) {
     const dateStr = new Date().toISOString().split('T')[0]
     const filename = `devis_export_${dateStr}.xlsx`
 
-    // Retourner le fichier
     return new Response(new Uint8Array(buffer), {
       headers: {
         'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -122,6 +127,11 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Erreur export Excel devis:', error)
     const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue'
-    return NextResponse.json({ error: 'Erreur serveur', details: errorMessage }, { status: 500 })
+    const errorStack = error instanceof Error ? error.stack : ''
+    return NextResponse.json({
+      error: 'Erreur serveur',
+      details: errorMessage,
+      stack: errorStack
+    }, { status: 500 })
   }
 }
