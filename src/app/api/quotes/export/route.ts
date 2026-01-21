@@ -101,7 +101,7 @@ export async function GET(request: NextRequest) {
     const filename = `devis_export_${dateStr}.xlsx`
 
     // Retourner le fichier
-    return new Response(buffer, {
+    return new Response(new Uint8Array(buffer), {
       headers: {
         'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         'Content-Disposition': `attachment; filename="${filename}"`,
