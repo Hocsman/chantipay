@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/table'
 import { Plus, Search, FileText, Loader2, TrendingUp } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { ExportButton } from '@/components/ExportButton'
 
 type QuoteStatus = 'draft' | 'sent' | 'signed' | 'deposit_paid' | 'completed' | 'canceled'
 
@@ -122,13 +123,20 @@ export default function QuotesPage() {
         title="Devis"
         description="Gérez tous vos devis clients"
         action={
-          <Button
-            onClick={() => router.push('/dashboard/quotes/new')}
-            className="hidden sm:flex gap-2 shadow-md hover:shadow-lg"
-          >
-            <Plus className="h-4 w-4" />
-            Nouveau devis
-          </Button>
+          <div className="flex items-center gap-2">
+            <ExportButton
+              type="quotes"
+              filters={{ status: statusFilter !== 'all' ? statusFilter : undefined }}
+              className="hidden sm:flex"
+            />
+            <Button
+              onClick={() => router.push('/dashboard/quotes/new')}
+              className="hidden sm:flex gap-2 shadow-md hover:shadow-lg"
+            >
+              <Plus className="h-4 w-4" />
+              Nouveau devis
+            </Button>
+          </div>
         }
       />
 

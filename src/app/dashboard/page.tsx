@@ -19,6 +19,8 @@ import {
 } from '@/components/ui/table';
 import { FileText, Users, CreditCard, Clock, Plus, Loader2, TrendingUp, ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { AIStatsCard } from '@/components/ai/AIStatsCard';
+import { QuoteReminders } from '@/components/quotes/QuoteReminders';
 
 interface Quote {
   id: string
@@ -205,6 +207,12 @@ export default function DashboardPage() {
                 </CardContent>
               </Card>
             </Link>
+          </div>
+
+          {/* AI Stats & Reminders */}
+          <div className="grid gap-4 lg:grid-cols-2">
+            <AIStatsCard />
+            <QuoteReminders />
           </div>
 
           {/* Recent Quotes */}

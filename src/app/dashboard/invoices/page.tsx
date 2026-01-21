@@ -17,9 +17,10 @@ import {
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { FloatingActionButton } from '@/components/FloatingActionButton'
-import { Loader2, Plus, FileText, Euro, Search, TrendingUp } from 'lucide-react'
+import { Loader2, Plus, FileText, Search, TrendingUp } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import { ExportButton } from '@/components/ExportButton'
 
 interface InvoiceItem {
   id: string
@@ -155,13 +156,20 @@ export default function InvoicesPage() {
         title="Factures"
         description="Gérez vos factures clients"
         action={
-          <Button
-            onClick={() => router.push('/dashboard/invoices/new')}
-            className="hidden sm:flex gap-2 shadow-md hover:shadow-lg"
-          >
-            <Plus className="h-4 w-4" />
-            Nouvelle facture
-          </Button>
+          <div className="flex items-center gap-2">
+            <ExportButton
+              type="invoices"
+              filters={{ status: filter !== 'all' ? filter : undefined }}
+              className="hidden sm:flex"
+            />
+            <Button
+              onClick={() => router.push('/dashboard/invoices/new')}
+              className="hidden sm:flex gap-2 shadow-md hover:shadow-lg"
+            >
+              <Plus className="h-4 w-4" />
+              Nouvelle facture
+            </Button>
+          </div>
         }
       />
 
