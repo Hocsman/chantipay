@@ -53,13 +53,14 @@ CREATE INDEX IF NOT EXISTS idx_clients_search_gin ON clients USING gin(
 
 -- ===========================================
 -- Indexes on ai_history table
+-- Note: Column is 'agent', not 'type'
 -- ===========================================
 
--- Index for user_id + created_at (recent history) - NEW
-CREATE INDEX IF NOT EXISTS idx_ai_history_user_created ON ai_history(user_id, created_at DESC);
+-- Index for user_id + created_at (recent history) - already exists in 013
+-- CREATE INDEX IF NOT EXISTS idx_ai_history_user_created ON ai_history(user_id, created_at DESC);
 
--- Index for type filtering - NEW
-CREATE INDEX IF NOT EXISTS idx_ai_history_type ON ai_history(type);
+-- Index for agent filtering - NEW
+CREATE INDEX IF NOT EXISTS idx_ai_history_agent ON ai_history(agent);
 
 -- ===========================================
 -- Indexes on interventions table
