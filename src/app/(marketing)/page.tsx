@@ -88,25 +88,25 @@ export default function MarketingPage() {
 
       {/* Header */}
       <header className="sticky top-0 z-50 border-b bg-background/80 backdrop-blur-sm">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 gap-2">
-          <Link href="/" className="flex items-center gap-2 flex-shrink-0">
+        <div className="mx-auto flex h-14 sm:h-16 max-w-7xl items-center justify-between px-3 sm:px-4">
+          <Link href="/" className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
             <Image
               src="/favicon.svg"
               alt="ChantiPay"
-              width={32}
-              height={32}
+              width={28}
+              height={28}
               unoptimized
-              className="rounded-xl"
+              className="rounded-lg sm:rounded-xl sm:w-9 sm:h-9"
             />
-            <span className="text-lg sm:text-xl font-bold tracking-tight hidden min-[400px]:inline">ChantiPay</span>
+            <span className="text-base sm:text-xl font-bold tracking-tight">ChantiPay</span>
           </Link>
           <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
             <ThemeToggle />
-            <Link href="/login" className="hidden sm:block">
-              <Button variant="ghost" size="sm">Connexion</Button>
+            <Link href="/login">
+              <Button variant="ghost" size="sm" className="text-xs sm:text-sm px-2 sm:px-3">Connexion</Button>
             </Link>
             <Link href="/register">
-              <Button size="sm" className="text-xs sm:text-sm px-3 sm:px-4">Essai gratuit</Button>
+              <Button size="sm" className="text-xs sm:text-sm px-2 sm:px-4">Essai gratuit</Button>
             </Link>
           </div>
         </div>
