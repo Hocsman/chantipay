@@ -1,52 +1,89 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { AIHistoryEntry, AI_HISTORY_CONFIG } from '@/types/ai-history'
 import { QuoteItemInput } from '@/types/quote'
 
 /**
  * Hook personnalisé pour gérer l'historique des générations IA
- * Stocke les 5 dernières générations dans localStorage
+ * Stocke l'historique en base de données Supabase avec fallback localStorage
  */
 export function useAIHistory() {
   const [history, setHistory] = useState<AIHistoryEntry[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const hasFetched = useRef(false)
 
-  // Charger l'historique depuis localStorage au montage
+  // Charger l'historique depuis l'API au montage
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(AI_HISTORY_CONFIG.STORAGE_KEY)
-      if (stored) {
-        const parsed = JSON.parse(stored) as AIHistoryEntry[]
-        setHistory(parsed)
+    if (hasFetched.current) return
+    hasFetched.current = true
+
+    const fetchHistory = async () => {
+      setIsLoading(true)
+      setError(null)
+
+      try {
+        const response = await fetch('/api/ai/history?limit=10')
+        
+        if (response.ok) {
+          const data = await response.json()
+          setHistory(data.history || [])
+        } else if (response.status === 401) {
+          // Non authentifié - utiliser localStorage comme fallback
+          loadFromLocalStorage()
+        } else {
+          throw new Error('Erreur serveur')
+        }
+      } catch (err) {
+        console.error('Erreur chargement historique IA:', err)
+        // Fallback vers localStorage
+        loadFromLocalStorage()
+        setError('Impossible de charger depuis le serveur, utilisation du cache local')
+      } finally {
+        setIsLoading(false)
       }
-    } catch (error) {
-      console.error('Erreur lors du chargement de l\'historique IA:', error)
-      setHistory([])
     }
+
+    const loadFromLocalStorage = () => {
+      try {
+        const stored = localStorage.getItem(AI_HISTORY_CONFIG.STORAGE_KEY)
+        if (stored) {
+          const parsed = JSON.parse(stored) as AIHistoryEntry[]
+          setHistory(parsed)
+        }
+      } catch (e) {
+        console.error('Erreur chargement localStorage:', e)
+        setHistory([])
+      }
+    }
+
+    fetchHistory()
   }, [])
 
-  // Sauvegarder l'historique dans localStorage
-  const saveHistory = useCallback((newHistory: AIHistoryEntry[]) => {
+  // Sauvegarder aussi en localStorage pour le fallback
+  const saveToLocalStorage = useCallback((entries: AIHistoryEntry[]) => {
     try {
-      localStorage.setItem(AI_HISTORY_CONFIG.STORAGE_KEY, JSON.stringify(newHistory))
-      setHistory(newHistory)
-    } catch (error) {
-      console.error('Erreur lors de la sauvegarde de l\'historique IA:', error)
+      const toSave = entries.slice(0, AI_HISTORY_CONFIG.MAX_ENTRIES)
+      localStorage.setItem(AI_HISTORY_CONFIG.STORAGE_KEY, JSON.stringify(toSave))
+    } catch (e) {
+      console.error('Erreur sauvegarde localStorage:', e)
     }
   }, [])
 
   /**
    * Ajouter une nouvelle génération à l'historique
-   * Garde seulement les 5 dernières entrées
+   * Sauvegarde en BDD et localStorage
    */
   const addToHistory = useCallback(
-    (
+    async (
       description: string,
       items: QuoteItemInput[],
       trade?: string,
       vatRate?: number,
       agent?: AIHistoryEntry['agent']
     ) => {
-      const newEntry: AIHistoryEntry = {
-        id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      // Créer l'entrée localement d'abord pour une UI réactive
+      const tempEntry: AIHistoryEntry = {
+        id: `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         timestamp: Date.now(),
         description,
         trade,
@@ -55,11 +92,42 @@ export function useAIHistory() {
         items,
       }
 
-      // Ajouter en début de liste et limiter à MAX_ENTRIES
-      const newHistory = [newEntry, ...history].slice(0, AI_HISTORY_CONFIG.MAX_ENTRIES)
-      saveHistory(newHistory)
+      // Mise à jour optimiste
+      const newHistory = [tempEntry, ...history].slice(0, AI_HISTORY_CONFIG.MAX_ENTRIES)
+      setHistory(newHistory)
+      saveToLocalStorage(newHistory)
+
+      // Sauvegarder en BDD
+      try {
+        const response = await fetch('/api/ai/history', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            description,
+            items,
+            trade,
+            vatRate,
+            agent,
+          }),
+        })
+
+        if (response.ok) {
+          const savedEntry = await response.json()
+          // Remplacer l'entrée temporaire par celle de la BDD
+          setHistory(prev => {
+            const updated = prev.map(e => 
+              e.id === tempEntry.id ? savedEntry : e
+            )
+            saveToLocalStorage(updated)
+            return updated
+          })
+        }
+      } catch (err) {
+        console.error('Erreur sauvegarde historique IA en BDD:', err)
+        // L'entrée reste en localStorage
+      }
     },
-    [history, saveHistory]
+    [history, saveToLocalStorage]
   )
 
   /**
@@ -74,25 +142,69 @@ export function useAIHistory() {
    * Supprimer une entrée de l'historique
    */
   const removeFromHistory = useCallback(
-    (entryId: string) => {
+    async (entryId: string) => {
+      // Mise à jour optimiste
       const newHistory = history.filter((e) => e.id !== entryId)
-      saveHistory(newHistory)
+      setHistory(newHistory)
+      saveToLocalStorage(newHistory)
+
+      // Supprimer en BDD si ce n'est pas une entrée temporaire
+      if (!entryId.startsWith('temp-')) {
+        try {
+          await fetch(`/api/ai/history/${entryId}`, {
+            method: 'DELETE',
+          })
+        } catch (err) {
+          console.error('Erreur suppression historique IA en BDD:', err)
+        }
+      }
     },
-    [history, saveHistory]
+    [history, saveToLocalStorage]
   )
 
   /**
    * Vider tout l'historique
    */
-  const clearHistory = useCallback(() => {
-    saveHistory([])
-  }, [saveHistory])
+  const clearHistory = useCallback(async () => {
+    setHistory([])
+    saveToLocalStorage([])
+
+    try {
+      await fetch('/api/ai/history', {
+        method: 'DELETE',
+      })
+    } catch (err) {
+      console.error('Erreur suppression totale historique IA:', err)
+    }
+  }, [saveToLocalStorage])
+
+  /**
+   * Recharger l'historique depuis le serveur
+   */
+  const refreshHistory = useCallback(async () => {
+    setIsLoading(true)
+    try {
+      const response = await fetch('/api/ai/history?limit=10')
+      if (response.ok) {
+        const data = await response.json()
+        setHistory(data.history || [])
+        saveToLocalStorage(data.history || [])
+      }
+    } catch (err) {
+      console.error('Erreur rafraîchissement historique:', err)
+    } finally {
+      setIsLoading(false)
+    }
+  }, [saveToLocalStorage])
 
   return {
     history,
+    isLoading,
+    error,
     addToHistory,
     restoreFromHistory,
     removeFromHistory,
     clearHistory,
+    refreshHistory,
   }
 }

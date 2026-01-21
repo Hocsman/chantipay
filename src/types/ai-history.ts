@@ -16,8 +16,10 @@ export interface AIHistoryEntry {
 
 /**
  * Configuration de l'historique
+ * MAX_ENTRIES est pour le fallback localStorage (la BDD garde jusqu'à 50)
  */
 export const AI_HISTORY_CONFIG = {
-  MAX_ENTRIES: 5,
+  MAX_ENTRIES: 10,
   STORAGE_KEY: 'chantipay_ai_history',
+  DB_MAX_ENTRIES: 50,
 } as const
