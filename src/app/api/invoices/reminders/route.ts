@@ -193,10 +193,15 @@ export async function POST(request: NextRequest) {
         }
 
         // Récupérer le nombre de relances existantes
-        const { data: existingReminders } = await supabase
+        const { data: existingReminders, error: remindersError } = await supabase
             .from('invoice_reminders')
             .select('invoice_id')
             .in('invoice_id', invoiceIds)
+
+        if (remindersError) {
+            console.error('Erreur récupération relances:', remindersError)
+            // Continue même si la table n'existe pas
+        }
 
         const reminderCounts: Record<string, number> = {}
         existingReminders?.forEach(r => {
@@ -313,12 +318,17 @@ export async function POST(request: NextRequest) {
                 }
 
                 // Enregistrer la relance
-                await supabase.from('invoice_reminders').insert({
+                const { error: insertError } = await supabase.from('invoice_reminders').insert({
                     invoice_id: invoice.id,
                     user_id: user.id,
                     reminder_number: reminderNumber,
                     email_sent_to: clientEmail,
                 })
+
+                if (insertError) {
+                    console.error('Erreur enregistrement relance:', insertError)
+                    // L'email a été envoyé, on continue même si l'enregistrement échoue
+                }
 
                 results.push({ invoiceId: invoice.id, success: true })
             } catch (err) {
@@ -337,6 +347,10 @@ export async function POST(request: NextRequest) {
         })
     } catch (error) {
         console.error('Erreur POST /api/invoices/reminders:', error)
-        return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
+        const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue'
+        return NextResponse.json({
+            error: 'Erreur serveur',
+            details: errorMessage
+        }, { status: 500 })
     }
 }
