@@ -16,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Loader2, ArrowLeft, Save, FileText, Euro, Calendar, Send, CheckCircle2, Download, Building2, FileCode } from 'lucide-react'
+import { Loader2, ArrowLeft, Save, FileText, Euro, Calendar, Send, CheckCircle2, Download, Building2, FileCode, RefreshCw } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { downloadInvoicePDF } from '@/lib/pdf/InvoicePdf'
@@ -84,6 +84,7 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
   const [isSaving, setIsSaving] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [isSendingEmail, setIsSendingEmail] = useState(false)
+  const [isSendingReminder, setIsSendingReminder] = useState(false)
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
 
   useEffect(() => {
@@ -103,17 +104,17 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
         .select('company_name, full_name, address, phone, email, siret')
         .eq('id', user.id)
         .single()
-      
+
       if (profile) {
         // Vérifier si un logo existe
         const { data: logoData } = await supabase.storage
           .from('logos')
           .list(user.id, { limit: 1 })
-        
+
         const logoUrl = logoData && logoData.length > 0
           ? supabase.storage.from('logos').getPublicUrl(`${user.id}/${logoData[0].name}`).data.publicUrl
           : null
-        
+
         setUserProfile({ ...profile, logo_url: logoUrl })
       }
     }
@@ -265,6 +266,40 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
       })
     } finally {
       setIsSendingEmail(false)
+    }
+  }
+
+  // Envoyer une relance
+  const sendReminder = async () => {
+    if (!invoice || !invoice.client_email) {
+      toast.error('Le client n\'a pas d\'adresse email')
+      return
+    }
+    if (!['sent', 'overdue'].includes(invoice.payment_status)) {
+      toast.error('Cette facture ne peut pas être relancée')
+      return
+    }
+
+    setIsSendingReminder(true)
+    try {
+      const response = await fetch('/api/invoices/reminders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ invoiceIds: [invoice.id] }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) throw new Error(data.error || 'Erreur lors de l\'envoi')
+
+      toast.success('Relance envoyée', {
+        description: `Email de relance envoyé à ${invoice.client_email}`,
+      })
+    } catch (error) {
+      console.error('Erreur envoi relance:', error)
+      toast.error(error instanceof Error ? error.message : 'Erreur lors de l\'envoi de la relance')
+    } finally {
+      setIsSendingReminder(false)
     }
   }
 
@@ -435,6 +470,25 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
                 <FileCode className="mr-2 h-4 w-4" />
                 Factur-X PDF
               </Button>
+              {(invoice.payment_status === 'sent' || invoice.payment_status === 'overdue') && invoice.client_email && (
+                <Button
+                  variant="outline"
+                  onClick={sendReminder}
+                  disabled={isSendingReminder}
+                >
+                  {isSendingReminder ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Envoi...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="mr-2 h-4 w-4" />
+                      Relancer
+                    </>
+                  )}
+                </Button>
+              )}
             </>
           )}
         </div>
@@ -582,9 +636,9 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
                             <span className={cn(
                               "px-2 py-0.5 rounded text-xs font-medium",
                               item.vat_rate === 20 ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" :
-                              item.vat_rate === 10 ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" :
-                              item.vat_rate === 5.5 ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400" :
-                              "bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400"
+                                item.vat_rate === 10 ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" :
+                                  item.vat_rate === 5.5 ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400" :
+                                    "bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400"
                             )}>
                               {item.vat_rate ?? invoice.tax_rate}%
                             </span>
@@ -607,9 +661,9 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
                     acc[rate].tax += item.total * (rate / 100)
                     return acc
                   }, {} as Record<number, { base: number; tax: number }>)
-                  
+
                   const rateCount = Object.keys(vatGroups).length
-                  
+
                   return rateCount > 1 ? (
                     <div className="mt-4 p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg">
                       <div className="text-sm font-semibold text-amber-800 dark:text-amber-400 mb-2">

@@ -21,6 +21,7 @@ import { FileText, Users, CreditCard, Clock, Plus, Loader2, TrendingUp, ArrowRig
 import { cn } from '@/lib/utils';
 import { AIStatsCard } from '@/components/ai/AIStatsCard';
 import { QuoteReminders } from '@/components/quotes/QuoteReminders';
+import { InvoiceReminders } from '@/components/invoices/InvoiceReminders';
 
 interface Quote {
   id: string
@@ -209,11 +210,14 @@ export default function DashboardPage() {
             </Link>
           </div>
 
-          {/* AI Stats & Reminders */}
+          {/* AI Stats & Quote Reminders */}
           <div className="grid gap-4 lg:grid-cols-2">
             <AIStatsCard />
             <QuoteReminders />
           </div>
+
+          {/* Invoice Reminders */}
+          <InvoiceReminders />
 
           {/* Recent Quotes */}
           <Card className="overflow-hidden">
