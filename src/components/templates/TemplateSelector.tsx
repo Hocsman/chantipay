@@ -109,7 +109,7 @@ export function TemplateSelector({ selectedTrade, onSelectTemplate }: TemplateSe
           )}
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-3xl max-h-[80vh]">
+      <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-primary" />
@@ -129,7 +129,7 @@ export function TemplateSelector({ selectedTrade, onSelectTemplate }: TemplateSe
             <p>Veuillez d&apos;abord sélectionner un métier</p>
           </div>
         ) : (
-          <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+          <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full flex-1 flex flex-col overflow-hidden">
             <TabsList className="grid w-full grid-cols-2 mb-4">
               <TabsTrigger value="system" className="flex items-center gap-2">
                 <Sparkles className="h-4 w-4" />
@@ -141,7 +141,7 @@ export function TemplateSelector({ selectedTrade, onSelectTemplate }: TemplateSe
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="system" className="space-y-4">
+            <TabsContent value="system" className="space-y-4 flex-1 overflow-hidden flex flex-col">
               {/* Filtres par catégorie */}
               {systemCategories.length > 0 && (
                 <div className="flex flex-wrap gap-2">
@@ -169,7 +169,7 @@ export function TemplateSelector({ selectedTrade, onSelectTemplate }: TemplateSe
               )}
 
               {/* Liste des templates système */}
-              <ScrollArea className="h-[350px] pr-4">
+              <ScrollArea className="flex-1 pr-4">
                 <div className="space-y-3">
                   {filteredSystemTemplates.length === 0 ? (
                     <div className="text-center py-8 text-muted-foreground">
@@ -198,7 +198,7 @@ export function TemplateSelector({ selectedTrade, onSelectTemplate }: TemplateSe
               </ScrollArea>
             </TabsContent>
 
-            <TabsContent value="user" className="space-y-4">
+            <TabsContent value="user" className="space-y-4 flex-1 overflow-hidden flex flex-col">
               {/* Filtres par catégorie utilisateur */}
               {userCategories.length > 0 && (
                 <div className="flex flex-wrap gap-2">
@@ -226,7 +226,7 @@ export function TemplateSelector({ selectedTrade, onSelectTemplate }: TemplateSe
               )}
 
               {/* Liste des templates utilisateur */}
-              <ScrollArea className="h-[350px] pr-4">
+              <ScrollArea className="flex-1 pr-4">
                 <div className="space-y-3">
                   {filteredUserTemplatesByCategory.length === 0 ? (
                     <div className="text-center py-8 text-muted-foreground">

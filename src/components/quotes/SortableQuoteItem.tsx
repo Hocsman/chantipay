@@ -108,7 +108,9 @@ export function SortableQuoteItem({
             <Input
               type="number"
               min="1"
-              value={item.quantity}
+              value={item.quantity || ''}
+              placeholder="1"
+              className="text-center"
               onChange={(e) =>
                 onUpdate(item.id, 'quantity', parseFloat(e.target.value) || 0)
               }
@@ -120,7 +122,8 @@ export function SortableQuoteItem({
               type="number"
               min="0"
               step="0.01"
-              value={item.unit_price_ht}
+              value={item.unit_price_ht || ''}
+              placeholder="0.00"
               onChange={(e) =>
                 onUpdate(item.id, 'unit_price_ht', parseFloat(e.target.value) || 0)
               }
@@ -132,7 +135,9 @@ export function SortableQuoteItem({
               type="number"
               min="0"
               max="100"
-              value={item.vat_rate}
+              value={item.vat_rate || ''}
+              placeholder="20"
+              className="text-center"
               onChange={(e) =>
                 onUpdate(item.id, 'vat_rate', parseFloat(e.target.value) || 0)
               }

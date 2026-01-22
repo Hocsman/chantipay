@@ -268,8 +268,8 @@ export function SuggestionsAlert({
                   <div
                     key={suggestion.id}
                     className={`p-3 rounded-lg border cursor-pointer transition-colors ${selectedIds.has(suggestion.id)
-                        ? 'border-primary bg-primary/5'
-                        : 'hover:bg-muted/50'
+                      ? 'border-primary bg-primary/5'
+                      : 'hover:bg-muted/50'
                       }`}
                     onClick={() => toggleSelection(suggestion.id)}
                   >
@@ -277,39 +277,35 @@ export function SuggestionsAlert({
                       <Checkbox
                         checked={selectedIds.has(suggestion.id)}
                         onCheckedChange={() => toggleSelection(suggestion.id)}
-                        className="mt-1 flex-shrink-0"
+                        className="mt-0.5 flex-shrink-0"
                       />
-                      <div className="flex-1 min-w-0 space-y-2">
-                        {/* Description + Badge */}
-                        <div>
-                          <div className="flex flex-wrap items-start gap-2 mb-1">
-                            <span className="font-medium text-sm break-words">
-                              {suggestion.description}
-                            </span>
-                            <Badge variant={config.badgeVariant} className="text-xs flex-shrink-0">
-                              <Icon className="h-3 w-3 mr-1" />
-                              {suggestion.category}
-                            </Badge>
-                          </div>
-                          <p className="text-xs text-muted-foreground">
-                            {suggestion.reason}
-                          </p>
+                      <div className="flex-1 min-w-0">
+                        {/* Title row with badge inline */}
+                        <div className="flex flex-wrap items-center gap-2 mb-1">
+                          <span className="font-medium text-sm">{suggestion.description}</span>
+                          <Badge variant={config.badgeVariant} className="text-xs flex-shrink-0 whitespace-nowrap">
+                            <Icon className="h-3 w-3 mr-1" />
+                            {suggestion.category}
+                          </Badge>
                         </div>
-                        {/* Prix + Feedback */}
-                        <div className="flex items-center justify-between">
-                          <FeedbackButtons
-                            context="suggestion"
-                            itemId={suggestion.id}
-                            size="sm"
-                            metadata={{
-                              description: suggestion.description,
-                              category: suggestion.category,
-                              price: suggestion.estimated_price_ht,
-                            }}
-                          />
-                          <span className="font-semibold text-primary">
-                            {formatCurrency(suggestion.estimated_price_ht)}
-                          </span>
+                        {/* Reason + Price on same line */}
+                        <div className="flex items-center justify-between gap-4 flex-wrap">
+                          <p className="text-xs text-muted-foreground flex-1 min-w-0">{suggestion.reason}</p>
+                          <div className="flex items-center gap-3 flex-shrink-0">
+                            <FeedbackButtons
+                              context="suggestion"
+                              itemId={suggestion.id}
+                              size="sm"
+                              metadata={{
+                                description: suggestion.description,
+                                category: suggestion.category,
+                                price: suggestion.estimated_price_ht,
+                              }}
+                            />
+                            <span className="font-semibold text-primary whitespace-nowrap">
+                              {formatCurrency(suggestion.estimated_price_ht)}
+                            </span>
+                          </div>
                         </div>
                       </div>
                     </div>

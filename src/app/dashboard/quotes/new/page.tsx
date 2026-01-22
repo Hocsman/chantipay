@@ -689,8 +689,10 @@ export default function NewQuotePage() {
                         <Input
                           type="number"
                           min="1"
-                          value={item.quantity}
+                          value={item.quantity || ''}
                           onChange={(e) => updateItem(item.id, 'quantity', parseFloat(e.target.value) || 0)}
+                          placeholder="1"
+                          className="w-20 text-center"
                         />
                       </TableCell>
                       <TableCell>
@@ -699,8 +701,10 @@ export default function NewQuotePage() {
                             type="number"
                             min="0"
                             step="0.01"
-                            value={item.unit_price_ht}
+                            value={item.unit_price_ht || ''}
                             onChange={(e) => updateItem(item.id, 'unit_price_ht', parseFloat(e.target.value) || 0)}
+                            placeholder="0.00"
+                            className="w-28"
                           />
                           {item.description.length >= 10 && (
                             <PricePreferenceHint
@@ -717,8 +721,10 @@ export default function NewQuotePage() {
                           type="number"
                           min="0"
                           max="100"
-                          value={item.vat_rate}
+                          value={item.vat_rate || ''}
                           onChange={(e) => updateItem(item.id, 'vat_rate', parseFloat(e.target.value) || 0)}
+                          placeholder="20"
+                          className="w-20 text-center"
                         />
                       </TableCell>
                       <TableCell className="text-right font-medium">
@@ -942,8 +948,8 @@ export default function NewQuotePage() {
                       key={chip.id}
                       variant={selectedChips.has(chip.id) ? 'default' : 'outline'}
                       className={`cursor-pointer transition-colors py-1.5 px-3 ${selectedChips.has(chip.id)
-                          ? 'bg-primary hover:bg-primary/90'
-                          : 'hover:bg-muted'
+                        ? 'bg-primary hover:bg-primary/90'
+                        : 'hover:bg-muted'
                         }`}
                       onClick={() => toggleChip(chip)}
                     >

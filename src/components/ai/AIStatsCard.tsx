@@ -84,18 +84,18 @@ export function AIStatsCard({ className }: { className?: string }) {
 
   return (
     <Card className={cn('overflow-hidden', className)}>
-      <CardHeader className="bg-gradient-to-r from-violet-500/10 to-purple-500/10 border-b">
-        <div className="flex items-center justify-between">
+      <CardHeader className="p-4 sm:p-6 bg-gradient-to-r from-violet-500/10 to-purple-500/10 border-b">
+        <div className="flex items-start sm:items-center justify-between flex-col sm:flex-row gap-2">
           <div>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
               <Sparkles className="h-5 w-5 text-violet-500" />
               Statistiques IA
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-xs sm:text-sm mt-1">
               Économies de temps grâce à l'intelligence artificielle
             </CardDescription>
           </div>
-          <Badge variant="secondary" className="bg-violet-100 text-violet-700 dark:bg-violet-900 dark:text-violet-300">
+          <Badge variant="secondary" className="bg-violet-100 text-violet-700 dark:bg-violet-900 dark:text-violet-300 whitespace-nowrap">
             <Zap className="h-3 w-3 mr-1" />
             {stats.aiUsageRate}% d'utilisation
           </Badge>
