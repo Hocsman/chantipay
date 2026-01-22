@@ -28,22 +28,26 @@ export async function GET() {
       .select(`
         id,
         quote_number,
-        client_name,
-        client_email,
         total_ttc,
         sent_at,
-        status
+        status,
+        clients (
+          name,
+          email
+        )
       `)
       .eq('user_id', user.id)
       .eq('status', 'sent')
       .not('sent_at', 'is', null)
-      .not('client_email', 'is', null)
       .order('sent_at', { ascending: true })
 
     if (quotesError) {
       console.error('Erreur récupération devis:', quotesError)
       return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
     }
+
+    // Filtrer les devis sans email client
+    const quotesWithEmail = quotes?.filter(q => (q.clients as any)?.email) || []
 
     // Récupérer le nombre de relances par devis
     const { data: reminders } = await supabase
@@ -68,7 +72,7 @@ export async function GET() {
 
     // Enrichir les devis avec les infos de relance
     const now = new Date()
-    const quotesWithReminders = quotes?.map(quote => {
+    const quotesWithReminders = quotesWithEmail.map(quote => {
       const sentAt = new Date(quote.sent_at)
       const daysSinceSent = Math.floor((now.getTime() - sentAt.getTime()) / (1000 * 60 * 60 * 24))
       const reminderCount = reminderCounts[quote.id] || 0
@@ -93,14 +97,19 @@ export async function GET() {
       }
 
       return {
-        ...quote,
+        id: quote.id,
+        quote_number: quote.quote_number,
+        client_name: (quote.clients as any)?.name || 'Client',
+        client_email: (quote.clients as any)?.email,
+        total_ttc: quote.total_ttc,
+        sent_at: quote.sent_at,
         daysSinceSent,
         reminderCount,
         nextReminderDue,
         nextReminderIn,
         canRemind: reminderCount < reminderSettings.maxReminders,
       }
-    }) || []
+    })
 
     // Statistiques
     const stats = {
@@ -154,23 +163,30 @@ export async function POST(request: NextRequest) {
       .eq('id', user.id)
       .single()
 
-    // Récupérer les devis à relancer
+    // Récupérer les devis à relancer avec les infos client
     const { data: quotes, error: quotesError } = await supabase
       .from('quotes')
       .select(`
         id,
         quote_number,
-        client_name,
-        client_email,
         total_ttc,
-        sent_at
+        sent_at,
+        clients (
+          name,
+          email
+        )
       `)
       .in('id', quoteIds)
       .eq('user_id', user.id)
       .eq('status', 'sent')
 
-    if (quotesError || !quotes || quotes.length === 0) {
-      return NextResponse.json({ error: 'Devis non trouvés' }, { status: 404 })
+    if (quotesError) {
+      console.error('Erreur récupération devis:', quotesError)
+      return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
+    }
+
+    if (!quotes || quotes.length === 0) {
+      return NextResponse.json({ error: 'Devis non trouvés ou non éligibles à la relance' }, { status: 404 })
     }
 
     // Récupérer le nombre de relances existantes pour chaque devis
@@ -190,7 +206,10 @@ export async function POST(request: NextRequest) {
     const results: { quoteId: string; success: boolean; error?: string }[] = []
 
     for (const quote of quotes) {
-      if (!quote.client_email) {
+      const clientEmail = (quote.clients as any)?.email
+      const clientName = (quote.clients as any)?.name || 'Client'
+
+      if (!clientEmail) {
         results.push({ quoteId: quote.id, success: false, error: 'Pas d\'email client' })
         continue
       }
@@ -210,7 +229,7 @@ export async function POST(request: NextRequest) {
         const { error: sendError } = await resend.emails.send({
           from: `${companyName} <devis@chantipay.com>`,
           replyTo: profile?.email || 'contact@chantipay.com',
-          to: quote.client_email,
+          to: clientEmail,
           subject: `Relance - Devis ${quote.quote_number}`,
           html: `
             <!DOCTYPE html>
@@ -234,7 +253,7 @@ export async function POST(request: NextRequest) {
                     <h1 style="margin: 0;">Rappel - Devis ${quote.quote_number}</h1>
                   </div>
                   <div class="content">
-                    <p>Bonjour ${quote.client_name},</p>
+                    <p>Bonjour ${clientName},</p>
 
                     <p>${customMessage || defaultMessage}</p>
 
@@ -276,7 +295,7 @@ export async function POST(request: NextRequest) {
           quote_id: quote.id,
           user_id: user.id,
           reminder_number: reminderNumber,
-          email_sent_to: quote.client_email,
+          email_sent_to: clientEmail,
         })
 
         results.push({ quoteId: quote.id, success: true })
