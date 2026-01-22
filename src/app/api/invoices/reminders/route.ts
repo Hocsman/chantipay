@@ -26,17 +26,16 @@ export async function GET() {
         const { data: invoices, error: invoicesError } = await supabase
             .from('invoices')
             .select(`
-        id,
-        invoice_number,
-        total_ttc,
-        issue_date,
-        due_date,
-        payment_status,
-        clients (
-          name,
-          email
-        )
-      `)
+                id,
+                invoice_number,
+                total_ttc,
+                total,
+                issue_date,
+                due_date,
+                payment_status,
+                client_name,
+                client_email
+            `)
             .eq('user_id', user.id)
             .in('payment_status', ['sent', 'overdue', 'partial'])
             .not('due_date', 'is', null)
@@ -48,7 +47,7 @@ export async function GET() {
         }
 
         // Filtrer les factures avec email client
-        const invoicesWithEmail = invoices?.filter(inv => (inv.clients as any)?.email) || []
+        const invoicesWithEmail = invoices?.filter(inv => inv.client_email) || []
 
         // Récupérer le nombre de relances par facture
         const { data: reminders } = await supabase
@@ -103,9 +102,9 @@ export async function GET() {
             return {
                 id: invoice.id,
                 invoice_number: invoice.invoice_number,
-                client_name: (invoice.clients as any)?.name || 'Client',
-                client_email: (invoice.clients as any)?.email,
-                total_ttc: invoice.total_ttc,
+                client_name: invoice.client_name || 'Client',
+                client_email: invoice.client_email,
+                total_ttc: invoice.total_ttc || invoice.total,
                 due_date: invoice.due_date,
                 daysPastDue: Math.max(0, daysPastDue),
                 reminderCount,
@@ -171,16 +170,15 @@ export async function POST(request: NextRequest) {
         const { data: invoices, error: invoicesError } = await supabase
             .from('invoices')
             .select(`
-        id,
-        invoice_number,
-        total_ttc,
-        issue_date,
-        due_date,
-        clients (
-          name,
-          email
-        )
-      `)
+                id,
+                invoice_number,
+                total_ttc,
+                total,
+                issue_date,
+                due_date,
+                client_name,
+                client_email
+            `)
             .in('id', invoiceIds)
             .eq('user_id', user.id)
             .in('payment_status', ['sent', 'overdue', 'partial'])
@@ -213,8 +211,8 @@ export async function POST(request: NextRequest) {
         const recoveryFee = settings?.recovery_fee ?? 40.00
 
         for (const invoice of invoices) {
-            const clientEmail = (invoice.clients as any)?.email
-            const clientName = (invoice.clients as any)?.name || 'Client'
+            const clientEmail = invoice.client_email
+            const clientName = invoice.client_name || 'Client'
 
             if (!clientEmail) {
                 results.push({ invoiceId: invoice.id, success: false, error: 'Pas d\'email client' })
@@ -272,7 +270,7 @@ export async function POST(request: NextRequest) {
                       <p style="margin: 5px 0;">Date d'émission : ${new Date(invoice.issue_date).toLocaleDateString('fr-FR')}</p>
                       <p style="margin: 5px 0;">Date d'échéance : ${dueDate.toLocaleDateString('fr-FR')}</p>
                       <p style="margin: 5px 0; color: #DC2626;"><strong>Retard : ${daysPastDue} jour(s)</strong></p>
-                      <p class="amount" style="margin: 10px 0 0 0;">${new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(invoice.total_ttc)} TTC</p>
+                      <p class="amount" style="margin: 10px 0 0 0;">${new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(invoice.total_ttc || invoice.total)} TTC</p>
                     </div>
 
                     <p>Nous vous remercions de bien vouloir procéder au règlement dans les meilleurs délais.</p>
