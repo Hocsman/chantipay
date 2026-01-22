@@ -40,7 +40,6 @@ export async function GET() {
             .select(`
                 id,
                 invoice_number,
-                total_ttc,
                 total,
                 issue_date,
                 due_date,
@@ -116,7 +115,7 @@ export async function GET() {
                 invoice_number: invoice.invoice_number,
                 client_name: invoice.client_name || 'Client',
                 client_email: invoice.client_email,
-                total_ttc: invoice.total_ttc || invoice.total,
+                total_ttc: invoice.total,
                 due_date: invoice.due_date,
                 daysPastDue: Math.max(0, daysPastDue),
                 reminderCount,
@@ -184,7 +183,6 @@ export async function POST(request: NextRequest) {
             .select(`
                 id,
                 invoice_number,
-                total_ttc,
                 total,
                 issue_date,
                 due_date,
@@ -294,7 +292,7 @@ export async function POST(request: NextRequest) {
                       <p style="margin: 5px 0;">Date d'émission : ${issueDateStr}</p>
                       <p style="margin: 5px 0;">Date d'échéance : ${dueDateStr}</p>
                       <p style="margin: 5px 0; color: #DC2626;"><strong>Retard : ${daysPastDue} jour(s)</strong></p>
-                      <p class="amount" style="margin: 10px 0 0 0;">${new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(invoice.total_ttc || invoice.total)} TTC</p>
+                      <p class="amount" style="margin: 10px 0 0 0;">${new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(invoice.total)} TTC</p>
                     </div>
 
                     <p>Nous vous remercions de bien vouloir procéder au règlement dans les meilleurs délais.</p>
