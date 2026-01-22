@@ -275,8 +275,8 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
       toast.error('Le client n\'a pas d\'adresse email')
       return
     }
-    if (!['sent', 'overdue'].includes(invoice.payment_status)) {
-      toast.error('Cette facture ne peut pas être relancée')
+    if (!['sent', 'overdue', 'partial'].includes(invoice.payment_status)) {
+      toast.error('Cette facture n\'est pas éligible à une relance')
       return
     }
 
@@ -470,7 +470,7 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
                 <FileCode className="mr-2 h-4 w-4" />
                 Factur-X PDF
               </Button>
-              {(invoice.payment_status === 'sent' || invoice.payment_status === 'overdue') && invoice.client_email && (
+              {['sent', 'overdue', 'partial'].includes(invoice.payment_status) && invoice.client_email && (
                 <Button
                   variant="outline"
                   onClick={sendReminder}

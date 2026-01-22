@@ -38,7 +38,7 @@ export async function GET() {
         )
       `)
             .eq('user_id', user.id)
-            .in('payment_status', ['sent', 'overdue'])
+            .in('payment_status', ['sent', 'overdue', 'partial'])
             .not('due_date', 'is', null)
             .order('due_date', { ascending: true })
 
@@ -183,7 +183,7 @@ export async function POST(request: NextRequest) {
       `)
             .in('id', invoiceIds)
             .eq('user_id', user.id)
-            .in('payment_status', ['sent', 'overdue'])
+            .in('payment_status', ['sent', 'overdue', 'partial'])
 
         if (invoicesError) {
             console.error('Erreur récupération factures:', invoicesError)
