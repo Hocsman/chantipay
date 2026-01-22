@@ -59,7 +59,7 @@ export async function GET() {
     // Paramètres par défaut
     const reminderSettings = {
       enabled: settings?.enabled ?? true,
-      firstReminderDays: settings?.first_reminder_days ?? 3,
+      firstReminderDays: settings?.first_reminder_days ?? 2,
       secondReminderDays: settings?.second_reminder_days ?? 7,
       thirdReminderDays: settings?.third_reminder_days ?? 14,
       maxReminders: settings?.max_reminders ?? 3,
@@ -204,8 +204,8 @@ export async function POST(request: NextRequest) {
         const defaultMessage = reminderNumber === 1
           ? `Nous nous permettons de vous relancer concernant notre devis du ${new Date(quote.sent_at).toLocaleDateString('fr-FR')}.`
           : reminderNumber === 2
-          ? `Suite à notre précédent message, nous souhaitons savoir si vous avez pu étudier notre devis.`
-          : `Nous restons à votre disposition pour toute question concernant notre devis.`
+            ? `Suite à notre précédent message, nous souhaitons savoir si vous avez pu étudier notre devis.`
+            : `Nous restons à votre disposition pour toute question concernant notre devis.`
 
         const { error: sendError } = await resend.emails.send({
           from: `${companyName} <devis@chantipay.com>`,

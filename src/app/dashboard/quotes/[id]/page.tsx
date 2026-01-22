@@ -50,6 +50,7 @@ import {
   Wallet,
   CalendarCheck,
   FileText,
+  RefreshCw,
 } from 'lucide-react'
 
 type QuoteStatus = 'draft' | 'sent' | 'signed' | 'deposit_paid' | 'completed' | 'canceled'
@@ -118,6 +119,7 @@ export default function QuoteDetailPage() {
   const [isDownloadingPDF, setIsDownloadingPDF] = useState(false)
   const [isSavingSignature, setIsSavingSignature] = useState(false)
   const [isSendingEmail, setIsSendingEmail] = useState(false)
+  const [isSendingReminder, setIsSendingReminder] = useState(false)
   const [isSigned, setIsSigned] = useState(false)
 
   // Charger le devis directement depuis Supabase (côté client)
@@ -412,6 +414,41 @@ export default function QuoteDetailPage() {
       toast.error(error instanceof Error ? error.message : 'Erreur lors de l\'envoi de l\'email')
     } finally {
       setIsSendingEmail(false)
+    }
+  }
+
+  // Envoyer une relance
+  const handleSendReminder = async () => {
+    if (!quote) return
+    if (!quote.clients?.email) {
+      toast.error('Le client n\'a pas d\'adresse email')
+      return
+    }
+    if (quote.status !== 'sent') {
+      toast.error('Ce devis n\'a pas encore été envoyé')
+      return
+    }
+
+    setIsSendingReminder(true)
+    try {
+      const response = await fetch('/api/quotes/reminders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ quoteIds: [quote.id] }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) throw new Error(data.error || 'Erreur lors de l\'envoi')
+
+      toast.success('Relance envoyée', {
+        description: `Email de relance envoyé à ${quote.clients.email}`,
+      })
+    } catch (error) {
+      console.error('Erreur envoi relance:', error)
+      toast.error(error instanceof Error ? error.message : 'Erreur lors de l\'envoi de la relance')
+    } finally {
+      setIsSendingReminder(false)
     }
   }
 
@@ -799,6 +836,26 @@ export default function QuoteDetailPage() {
               </>
             )}
           </Button>
+          {quote.status === 'sent' && client.email && (
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={handleSendReminder}
+              disabled={isSendingReminder}
+            >
+              {isSendingReminder ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Envoi...
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Relancer
+                </>
+              )}
+            </Button>
+          )}
           <Button
             variant="outline"
             className="flex-1"
