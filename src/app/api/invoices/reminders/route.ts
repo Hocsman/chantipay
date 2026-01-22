@@ -2,6 +2,18 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { Resend } from 'resend'
 
+// Helper pour formater les dates de manière sécurisée
+function formatDateFR(dateString: string | null | undefined): string {
+    if (!dateString) return 'N/A'
+    try {
+        const date = new Date(dateString)
+        if (isNaN(date.getTime())) return 'N/A'
+        return date.toLocaleDateString('fr-FR')
+    } catch {
+        return 'N/A'
+    }
+}
+
 /**
  * GET /api/invoices/reminders
  * Récupère les factures à relancer et les statistiques de relance
@@ -224,15 +236,22 @@ export async function POST(request: NextRequest) {
                 continue
             }
 
+            if (!invoice.due_date) {
+                results.push({ invoiceId: invoice.id, success: false, error: 'Pas de date d\'échéance' })
+                continue
+            }
+
             const reminderNumber = (reminderCounts[invoice.id] || 0) + 1
             const companyName = profile?.company_name || 'ChantiPay'
             const dueDate = new Date(invoice.due_date)
+            const dueDateStr = formatDateFR(invoice.due_date)
+            const issueDateStr = formatDateFR(invoice.issue_date)
             const daysPastDue = Math.floor((new Date().getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24))
 
             try {
                 const customMessage = settings?.custom_message || null
                 const defaultMessage = reminderNumber === 1
-                    ? `Sauf erreur de notre part, nous n'avons pas encore reçu le règlement de la facture ci-dessous, arrivée à échéance le ${dueDate.toLocaleDateString('fr-FR')}.`
+                    ? `Sauf erreur de notre part, nous n'avons pas encore reçu le règlement de la facture ci-dessous, arrivée à échéance le ${dueDateStr}.`
                     : reminderNumber === 2
                         ? `Malgré notre précédent rappel, nous constatons que la facture ci-dessous demeure impayée.`
                         : `Nous nous permettons de vous adresser un dernier rappel concernant la facture suivante.`
@@ -272,8 +291,8 @@ export async function POST(request: NextRequest) {
 
                     <div class="highlight">
                       <p style="margin: 0;"><strong>Facture n° ${invoice.invoice_number}</strong></p>
-                      <p style="margin: 5px 0;">Date d'émission : ${new Date(invoice.issue_date).toLocaleDateString('fr-FR')}</p>
-                      <p style="margin: 5px 0;">Date d'échéance : ${dueDate.toLocaleDateString('fr-FR')}</p>
+                      <p style="margin: 5px 0;">Date d'émission : ${issueDateStr}</p>
+                      <p style="margin: 5px 0;">Date d'échéance : ${dueDateStr}</p>
                       <p style="margin: 5px 0; color: #DC2626;"><strong>Retard : ${daysPastDue} jour(s)</strong></p>
                       <p class="amount" style="margin: 10px 0 0 0;">${new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(invoice.total_ttc || invoice.total)} TTC</p>
                     </div>
