@@ -1,7 +1,7 @@
 'use client'
 
 import { LayoutContainer } from '@/components/LayoutContainer'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Accordion,
   AccordionContent,
@@ -153,10 +153,15 @@ const quickGuides = [
 
 export default function HelpPage() {
   return (
-    <LayoutContainer
-      title="Centre d'aide"
-      description="Trouvez des réponses à vos questions et apprenez à utiliser ChantiPay"
-    >
+    <LayoutContainer>
+      {/* Page Header */}
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold tracking-tight">Centre d&apos;aide</h1>
+        <p className="text-muted-foreground mt-1">
+          Trouvez des réponses à vos questions et apprenez à utiliser ChantiPay
+        </p>
+      </div>
+
       {/* Quick Guides */}
       <div className="mb-8">
         <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
