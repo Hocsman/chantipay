@@ -32,6 +32,7 @@ import {
   ClipboardCheck,
   CreditCard,
   ChevronDown,
+  HelpCircle,
 } from 'lucide-react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
@@ -68,6 +69,7 @@ export default function DashboardLayout({
     { href: '/dashboard/visit-reports', label: 'Rapports de visite', icon: ClipboardList },
     { href: '/dashboard/settings', label: 'Paramètres', icon: Settings },
     { href: '/dashboard/settings/billing', label: 'Abonnement', icon: CreditCard },
+    { href: '/dashboard/help', label: 'Aide', icon: HelpCircle },
   ];
 
   const isActive = (href: string) => {
