@@ -75,90 +75,94 @@ export default function ContactPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+    <div className="min-h-screen bg-slate-950 text-slate-50 selection:bg-orange-500/30">
       {/* Decorative background elements */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary/5 rounded-full blur-3xl" />
-        <div className="absolute top-1/2 -left-40 w-80 h-80 bg-blue-500/5 rounded-full blur-3xl" />
+        <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))] opacity-10"></div>
+        <div className="absolute -top-40 -right-40 w-96 h-96 bg-orange-600/10 rounded-full blur-[100px]" />
+        <div className="absolute top-1/2 -left-40 w-80 h-80 bg-blue-600/10 rounded-full blur-[100px]" />
       </div>
 
       {/* Header */}
-      <header className="sticky top-0 z-50 border-b bg-background/80 backdrop-blur-xl">
+      <header className="sticky top-0 z-50 border-b border-white/5 bg-slate-950/80 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-6">
           <Link
             href="/"
-            className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+            className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors group"
           >
-            <ArrowLeft className="h-4 w-4" />
+            <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
             <span className="text-sm font-medium">Retour</span>
           </Link>
-          <Link href="/" className="flex items-center gap-2">
-            <Image
-              src="/favicon.svg"
-              alt="ChantiPay"
-              width={28}
-              height={28}
-              className="rounded-lg"
-            />
-            <span className="font-bold text-lg">ChantiPay</span>
+          <Link href="/" className="flex items-center gap-2 group">
+            <div className="relative h-8 w-8 transition-all duration-300 group-hover:drop-shadow-[0_0_8px_rgba(249,115,22,0.8)]">
+              <Image
+                src="/favicon.svg"
+                alt="ChantiPay"
+                width={32}
+                height={32}
+                className="w-full h-full object-contain"
+                unoptimized
+              />
+            </div>
+            <span className="font-bold text-lg text-white group-hover:text-orange-500 transition-colors">ChantiPay</span>
           </Link>
           <div className="w-20" /> {/* Spacer for centering */}
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="relative mx-auto max-w-5xl px-6 py-12 md:py-20">
+      <main className="relative mx-auto max-w-5xl px-6 py-12 md:py-20 z-10">
         <div className="grid md:grid-cols-5 gap-12 items-start">
           {/* Left side - Info */}
           <div className="md:col-span-2 space-y-8">
             <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-500/10 border border-orange-500/20 text-orange-400 text-sm font-medium mb-4">
                 <Sparkles className="h-3.5 w-3.5" />
-                Support réactif
+                Support réactif 7j/7
               </div>
-              <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-4">
+              <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-4 text-white">
                 Contactez-nous
               </h1>
-              <p className="text-lg text-muted-foreground">
-                Une question, une suggestion, ou besoin d&apos;aide ? On est là pour vous accompagner.
+              <p className="text-lg text-gray-400 leading-relaxed">
+                Une question sur Factur-X ? Besoin d'une démo personnalisée ? Notre équipe d'experts est là pour vous accompagner.
               </p>
             </div>
 
             {/* Features */}
             <div className="space-y-4">
-              <div className="flex items-start gap-4 p-4 rounded-xl bg-white/50 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50">
-                <div className="w-10 h-10 rounded-lg bg-blue-500 flex items-center justify-center flex-shrink-0">
-                  <Clock className="h-5 w-5 text-white" />
+              <div className="flex items-start gap-4 p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">
+                <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center flex-shrink-0 text-blue-400">
+                  <Clock className="h-5 w-5" />
                 </div>
                 <div>
-                  <h3 className="font-semibold mb-1">Réponse rapide</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Nous répondons généralement sous 24h ouvrées
+                  <h3 className="font-semibold text-white mb-1">Réponse rapide</h3>
+                  <p className="text-sm text-gray-400">
+                    Nous répondons généralement sous quelques heures
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-start gap-4 p-4 rounded-xl bg-white/50 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50">
-                <div className="w-10 h-10 rounded-lg bg-emerald-500 flex items-center justify-center flex-shrink-0">
-                  <MessageSquare className="h-5 w-5 text-white" />
+              <div className="flex items-start gap-4 p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">
+                <div className="w-10 h-10 rounded-lg bg-emerald-500/20 flex items-center justify-center flex-shrink-0 text-emerald-400">
+                  <MessageSquare className="h-5 w-5" />
                 </div>
                 <div>
-                  <h3 className="font-semibold mb-1">Support personnalisé</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Une vraie personne vous répondra, pas un robot
+                  <h3 className="font-semibold text-white mb-1">Support humain</h3>
+                  <p className="text-sm text-gray-400">
+                    Une vraie personne basée en France vous répondra
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-start gap-4 p-4 rounded-xl bg-white/50 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50">
-                <div className="w-10 h-10 rounded-lg bg-violet-500 flex items-center justify-center flex-shrink-0">
-                  <Mail className="h-5 w-5 text-white" />
+              <div className="flex items-start gap-4 p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">
+                <div className="w-10 h-10 rounded-lg bg-orange-500/20 flex items-center justify-center flex-shrink-0 text-orange-400">
+                  <Mail className="h-5 w-5" />
                 </div>
                 <div>
-                  <h3 className="font-semibold mb-1">Email direct</h3>
-                  <p className="text-sm text-muted-foreground">
+                  <h3 className="font-semibold text-white mb-1">Email direct</h3>
+                  <p className="text-sm text-gray-400">
                     Ou écrivez-nous à{' '}
-                    <a href="mailto:contact@chantipay.com" className="text-primary hover:underline">
+                    <a href="mailto:contact@chantipay.com" className="text-orange-400 hover:text-orange-300 hover:underline transition-colors">
                       contact@chantipay.com
                     </a>
                   </p>
@@ -169,20 +173,20 @@ export default function ContactPage() {
 
           {/* Right side - Form */}
           <div className="md:col-span-3">
-            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xl shadow-slate-200/50 dark:shadow-slate-950/50 overflow-hidden">
+            <div className="bg-slate-900/50 backdrop-blur-sm rounded-2xl border border-white/10 shadow-2xl overflow-hidden">
               {result === 'success' ? (
                 <div className="p-8 md:p-12 text-center">
-                  <div className="w-20 h-20 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mx-auto mb-6">
-                    <CheckCircle className="h-10 w-10 text-green-600" />
+                  <div className="w-20 h-20 rounded-full bg-green-500/20 flex items-center justify-center mx-auto mb-6">
+                    <CheckCircle className="h-10 w-10 text-green-500" />
                   </div>
-                  <h2 className="text-2xl font-bold mb-3">Message envoyé !</h2>
-                  <p className="text-muted-foreground mb-6 max-w-sm mx-auto">
-                    Merci pour votre message. Nous vous répondrons dans les plus brefs délais.
+                  <h2 className="text-2xl font-bold mb-3 text-white">Message envoyé !</h2>
+                  <p className="text-gray-400 mb-8 max-w-sm mx-auto">
+                    Merci pour votre message. Nous vous répondrons dans les plus brefs délais directement par email.
                   </p>
                   <Button
                     variant="outline"
                     onClick={() => setResult(null)}
-                    className="gap-2"
+                    className="gap-2 border-white/10 hover:bg-white/5 text-white"
                   >
                     <Send className="h-4 w-4" />
                     Envoyer un autre message
@@ -194,14 +198,14 @@ export default function ContactPage() {
                   <HoneypotField value={honeypot} onChange={setHoneypot} name="company_url" />
 
                   <div className="space-y-2">
-                    <h2 className="text-xl font-semibold">Envoyez-nous un message</h2>
-                    <p className="text-sm text-muted-foreground">
+                    <h2 className="text-xl font-semibold text-white">Envoyez-nous un message</h2>
+                    <p className="text-sm text-gray-400">
                       Tous les champs sont obligatoires
                     </p>
                   </div>
 
                   {errorMessage && (
-                    <div className="rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 p-4 text-sm text-red-600 dark:text-red-400 flex items-center gap-3">
+                    <div className="rounded-xl bg-red-500/10 border border-red-500/20 p-4 text-sm text-red-400 flex items-center gap-3">
                       <AlertCircle className="h-5 w-5 flex-shrink-0" />
                       {errorMessage}
                     </div>
@@ -209,7 +213,7 @@ export default function ContactPage() {
 
                   <div className="grid md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="name" className="text-sm font-medium">Nom</Label>
+                      <Label htmlFor="name" className="text-sm font-medium text-gray-300">Nom</Label>
                       <Input
                         type="text"
                         id="name"
@@ -220,12 +224,12 @@ export default function ContactPage() {
                         minLength={2}
                         maxLength={100}
                         placeholder="Votre nom"
-                        className="h-12"
+                        className="h-12 bg-white/5 border-white/10 text-white placeholder:text-gray-600 focus:border-orange-500 focus:ring-orange-500/20"
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="email" className="text-sm font-medium">Email</Label>
+                      <Label htmlFor="email" className="text-sm font-medium text-gray-300">Email</Label>
                       <Input
                         type="email"
                         id="email"
@@ -234,13 +238,13 @@ export default function ContactPage() {
                         onChange={handleChange}
                         required
                         placeholder="votre@email.com"
-                        className="h-12"
+                        className="h-12 bg-white/5 border-white/10 text-white placeholder:text-gray-600 focus:border-orange-500 focus:ring-orange-500/20"
                       />
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="subject" className="text-sm font-medium">Sujet</Label>
+                    <Label htmlFor="subject" className="text-sm font-medium text-gray-300">Sujet</Label>
                     <Input
                       type="text"
                       id="subject"
@@ -251,12 +255,12 @@ export default function ContactPage() {
                       minLength={3}
                       maxLength={120}
                       placeholder="Objet de votre message"
-                      className="h-12"
+                      className="h-12 bg-white/5 border-white/10 text-white placeholder:text-gray-600 focus:border-orange-500 focus:ring-orange-500/20"
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="message" className="text-sm font-medium">Message</Label>
+                    <Label htmlFor="message" className="text-sm font-medium text-gray-300">Message</Label>
                     <Textarea
                       id="message"
                       name="message"
@@ -267,17 +271,17 @@ export default function ContactPage() {
                       maxLength={5000}
                       placeholder="Décrivez votre demande en détail..."
                       rows={6}
-                      className="resize-none"
+                      className="resize-none bg-white/5 border-white/10 text-white placeholder:text-gray-600 focus:border-orange-500 focus:ring-orange-500/20"
                     />
-                    <p className="text-xs text-muted-foreground text-right">
+                    <p className="text-xs text-gray-500 text-right">
                       {formData.message.length}/5000
                     </p>
                   </div>
 
                   {result === 'error' && (
-                    <div className="rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 p-4 flex items-center gap-3">
-                      <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0" />
-                      <p className="text-red-800 dark:text-red-400 text-sm">
+                    <div className="rounded-xl bg-red-500/10 border border-red-500/20 p-4 flex items-center gap-3">
+                      <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0" />
+                      <p className="text-red-400 text-sm">
                         Erreur lors de l&apos;envoi. Veuillez réessayer.
                       </p>
                     </div>
@@ -286,10 +290,10 @@ export default function ContactPage() {
                   <Button
                     type="submit"
                     className={cn(
-                      "w-full h-14 text-base font-semibold gap-2 transition-all duration-300",
-                      "bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary",
-                      "shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30",
-                      "hover:-translate-y-0.5"
+                      "w-full h-14 text-base font-bold gap-2 transition-all duration-300",
+                      "bg-orange-600 hover:bg-orange-500 text-white",
+                      "shadow-[0_0_20px_rgba(234,88,12,0.3)] hover:shadow-[0_0_30px_rgba(234,88,12,0.5)]",
+                      "hover:-translate-y-0.5 border-0"
                     )}
                     disabled={isSubmitting}
                   >

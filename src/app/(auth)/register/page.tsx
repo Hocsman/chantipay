@@ -9,10 +9,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { FileText, Loader2, Building2, User, Phone, MapPin, Hash, Eye, EyeOff } from 'lucide-react';
+import { Loader2, Building2, User, Phone, MapPin, Hash, Eye, EyeOff } from 'lucide-react';
 import { useAntiBot, HoneypotField } from '@/hooks/useAntiBot';
 import { Separator } from '@/components/ui/separator';
 import { useIsNativeApp } from '@/hooks/usePlatform';
+import { cn } from '@/lib/utils';
 
 export default function RegisterPage() {
   // Form state
@@ -142,22 +143,28 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <Link href="/" className="mx-auto mb-4 flex items-center gap-2.5">
-            <Image
-              src="/favicon.svg"
-              alt="ChantiPay"
-              width={44}
-              height={44}
-              unoptimized
-              className="rounded-xl"
-            />
-            <span className="text-2xl font-bold tracking-tight">ChantiPay</span>
+    <div className="flex min-h-screen items-center justify-center bg-slate-950 p-4 selection:bg-orange-500/30 relative overflow-hidden">
+      {/* Background Decor */}
+      <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))] opacity-5 pointer-events-none"></div>
+      <div className="absolute bottom-0 right-0 w-[800px] h-[800px] bg-orange-600/10 rounded-full blur-[120px] opacity-20 pointer-events-none"></div>
+
+      <Card className="w-full max-w-lg bg-slate-900/50 backdrop-blur-sm border-white/10 shadow-2xl z-10 my-8">
+        <CardHeader className="text-center space-y-2">
+          <Link href="/" className="mx-auto mb-2 flex items-center gap-2.5 group">
+            <div className="relative h-10 w-10 transition-all duration-300 group-hover:drop-shadow-[0_0_10px_rgba(249,115,22,0.8)]">
+              <Image
+                src="/favicon.svg"
+                alt="ChantiPay"
+                width={40}
+                height={40}
+                className="w-full h-full object-contain"
+                unoptimized
+              />
+            </div>
+            <span className="text-2xl font-bold tracking-tight text-white group-hover:text-orange-500 transition-colors">ChantiPay</span>
           </Link>
-          <CardTitle>Créer un compte</CardTitle>
-          <CardDescription>
+          <CardTitle className="text-white text-xl">Créer un compte</CardTitle>
+          <CardDescription className="text-gray-400">
             Commencez votre essai gratuit de 14 jours
           </CardDescription>
         </CardHeader>
@@ -167,7 +174,7 @@ export default function RegisterPage() {
             <Button
               type="button"
               variant="outline"
-              className="w-full h-12"
+              className="w-full h-12 bg-white text-slate-900 border-white hover:bg-gray-100 font-medium"
               onClick={() => handleOAuthSignUp('google')}
               disabled={isOAuthLoading || isLoading}
             >
@@ -199,7 +206,7 @@ export default function RegisterPage() {
             <Button
               type="button"
               variant="outline"
-              className="w-full h-12"
+              className="w-full h-12 bg-white/5 text-white border-white/10 hover:bg-white/10 hover:text-white"
               onClick={() => handleOAuthSignUp('apple')}
               disabled={isOAuthLoading || isLoading}
             >
@@ -215,171 +222,191 @@ export default function RegisterPage() {
           </div>
 
           <div className="relative mb-6">
-            <Separator />
-            <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white px-2 text-xs text-muted-foreground">
+            <Separator className="bg-white/10" />
+            <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-slate-900 px-2 text-xs text-gray-400">
               ou par email
             </span>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-5">
             {/* Honeypot anti-bot field */}
             <HoneypotField value={honeypot} onChange={setHoneypot} name="company_website" />
 
             {error && (
-              <div className="rounded-md bg-red-50 p-3 text-sm text-red-600">
+              <div className="rounded-md bg-red-500/10 border border-red-500/20 p-3 text-sm text-red-400">
                 {error}
               </div>
             )}
 
             {/* Personal Info */}
-            <div className="space-y-2">
-              <Label htmlFor="fullName" className="flex items-center gap-2">
-                <User className="h-4 w-4 text-muted-foreground" />
-                Nom complet *
-              </Label>
-              <Input
-                id="fullName"
-                type="text"
-                placeholder="Jean Dupont"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                required
-                autoComplete="name"
-              />
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 text-orange-400 text-sm font-semibold uppercase tracking-wider">
+                <User className="h-4 w-4" />
+                <span>Vos informations</span>
+              </div>
+
+              <div className="grid gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="fullName" className="text-gray-300">Nom complet *</Label>
+                  <Input
+                    id="fullName"
+                    type="text"
+                    placeholder="Jean Dupont"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    required
+                    autoComplete="name"
+                    className="h-11 bg-white/5 border-white/10 text-white placeholder:text-gray-600 focus:border-orange-500 focus:ring-orange-500/20"
+                  />
+                </div>
+              </div>
             </div>
+
+            <Separator className="bg-white/10" />
 
             {/* Company Info */}
-            <div className="space-y-2">
-              <Label htmlFor="companyName" className="flex items-center gap-2">
-                <Building2 className="h-4 w-4 text-muted-foreground" />
-                Nom de l&apos;entreprise *
-              </Label>
-              <Input
-                id="companyName"
-                type="text"
-                placeholder="Plomberie Dupont"
-                value={companyName}
-                onChange={(e) => setCompanyName(e.target.value)}
-                required
-                autoComplete="organization"
-              />
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 text-orange-400 text-sm font-semibold uppercase tracking-wider">
+                <Building2 className="h-4 w-4" />
+                <span>Votre entreprise</span>
+              </div>
+
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="companyName" className="text-gray-300">Nom de l&apos;entreprise *</Label>
+                  <Input
+                    id="companyName"
+                    type="text"
+                    placeholder="Plomberie Dupont"
+                    value={companyName}
+                    onChange={(e) => setCompanyName(e.target.value)}
+                    required
+                    autoComplete="organization"
+                    className="h-11 bg-white/5 border-white/10 text-white placeholder:text-gray-600 focus:border-orange-500 focus:ring-orange-500/20"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="phone" className="text-gray-300">Téléphone *</Label>
+                  <Input
+                    id="phone"
+                    type="tel"
+                    placeholder="06 12 34 56 78"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    required
+                    autoComplete="tel"
+                    className="h-11 bg-white/5 border-white/10 text-white placeholder:text-gray-600 focus:border-orange-500 focus:ring-orange-500/20"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2 col-span-2 sm:col-span-1">
+                    <Label htmlFor="address" className="text-gray-300">Adresse <span className="text-gray-500 text-xs">(optionnel)</span></Label>
+                    <Input
+                      id="address"
+                      type="text"
+                      placeholder="Ville"
+                      value={address}
+                      onChange={(e) => setAddress(e.target.value)}
+                      autoComplete="street-address"
+                      className="h-11 bg-white/5 border-white/10 text-white placeholder:text-gray-600 focus:border-orange-500 focus:ring-orange-500/20"
+                    />
+                  </div>
+                  <div className="space-y-2 col-span-2 sm:col-span-1">
+                    <Label htmlFor="siret" className="text-gray-300">SIRET <span className="text-gray-500 text-xs">(optionnel)</span></Label>
+                    <Input
+                      id="siret"
+                      type="tel"
+                      inputMode="numeric"
+                      placeholder="14 chiffres"
+                      value={siret}
+                      onChange={(e) => setSiret(e.target.value)}
+                      maxLength={17}
+                      className="h-11 bg-white/5 border-white/10 text-white placeholder:text-gray-600 focus:border-orange-500 focus:ring-orange-500/20"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="phone" className="flex items-center gap-2">
-                <Phone className="h-4 w-4 text-muted-foreground" />
-                Téléphone *
-              </Label>
-              <Input
-                id="phone"
-                type="tel"
-                placeholder="06 12 34 56 78"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                required
-                autoComplete="tel"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="address" className="flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-muted-foreground" />
-                Adresse <span className="text-muted-foreground text-xs">(optionnel)</span>
-              </Label>
-              <Input
-                id="address"
-                type="text"
-                placeholder="123 rue de la Paix, 75001 Paris"
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                autoComplete="street-address"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="siret" className="flex items-center gap-2">
-                <Hash className="h-4 w-4 text-muted-foreground" />
-                SIRET <span className="text-muted-foreground text-xs">(optionnel)</span>
-              </Label>
-              <Input
-                id="siret"
-                type="tel"
-                inputMode="numeric"
-                placeholder="123 456 789 00012"
-                value={siret}
-                onChange={(e) => setSiret(e.target.value)}
-                maxLength={17}
-              />
-              <p className="text-muted-foreground text-xs">
-                14 chiffres - affiché sur vos devis
-              </p>
-            </div>
+            <Separator className="bg-white/10" />
 
             {/* Auth Info */}
-            <div className="space-y-2">
-              <Label htmlFor="email">Email *</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="vous@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                autoComplete="email"
-              />
-            </div>
+            <div className="space-y-4">
 
-            <div className="space-y-2">
-              <Label htmlFor="password">Mot de passe *</Label>
-              <div className="relative">
-                <Input
-                  id="password"
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  minLength={8}
-                  autoComplete="new-password"
-                  className="pr-12"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-0 top-0 flex h-full w-12 items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
-                  aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-5 w-5" />
-                  ) : (
-                    <Eye className="h-5 w-5" />
-                  )}
-                </button>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email" className="text-gray-300">Email *</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="vous@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    autoComplete="email"
+                    className="h-11 bg-white/5 border-white/10 text-white placeholder:text-gray-600 focus:border-orange-500 focus:ring-orange-500/20"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="password" className="text-gray-300">Mot de passe *</Label>
+                  <div className="relative">
+                    <Input
+                      id="password"
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      minLength={8}
+                      autoComplete="new-password"
+                      className="pr-12 h-11 bg-white/5 border-white/10 text-white placeholder:text-gray-600 focus:border-orange-500 focus:ring-orange-500/20"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-0 top-0 flex h-full w-12 items-center justify-center text-gray-500 hover:text-white transition-colors"
+                      aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-5 w-5" />
+                      ) : (
+                        <Eye className="h-5 w-5" />
+                      )}
+                    </button>
+                  </div>
+                  <p className="text-gray-500 text-xs text-right">
+                    Min. 8 caractères
+                  </p>
+                </div>
               </div>
-              <p className="text-muted-foreground text-xs">
-                Minimum 8 caractères
-              </p>
             </div>
 
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            <Button
+              type="submit"
+              className="w-full h-14 bg-orange-600 hover:bg-orange-500 text-white font-bold text-lg shadow-[0_0_20px_rgba(234,88,12,0.3)] hover:shadow-[0_0_30px_rgba(234,88,12,0.5)] transition-all border-0 mt-4"
+              disabled={isLoading}
+            >
+              {isLoading && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
               Créer mon compte
             </Button>
           </form>
-          <p className="text-muted-foreground mt-4 text-center text-xs">
+          <p className="text-gray-500 mt-6 text-center text-xs px-4">
             En créant un compte, vous acceptez nos{' '}
-            <Link href="/cgu" className="underline hover:text-foreground">
+            <Link href="/cgu" className="underline hover:text-white transition-colors">
               conditions d&apos;utilisation
             </Link>{' '}
             et notre{' '}
-            <Link href="/politique-confidentialite" className="underline hover:text-foreground">
+            <Link href="/politique-confidentialite" className="underline hover:text-white transition-colors">
               politique de confidentialité
             </Link>
             .
           </p>
           <div className="mt-6 text-center text-sm">
-            <span className="text-muted-foreground">Déjà un compte ? </span>
-            <Link href="/login" className="text-primary hover:underline">
+            <span className="text-gray-400">Déjà un compte ? </span>
+            <Link href="/login" className="text-orange-400 hover:text-orange-300 hover:underline font-semibold">
               Se connecter
             </Link>
           </div>

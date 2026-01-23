@@ -9,10 +9,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { FileText, Loader2, Eye, EyeOff, Mail } from 'lucide-react';
+import { Loader2, Eye, EyeOff } from 'lucide-react';
 import { useAntiBot, HoneypotField } from '@/hooks/useAntiBot';
 import { useIsNativeApp } from '@/hooks/usePlatform';
 import { Separator } from '@/components/ui/separator';
+import { cn } from '@/lib/utils';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -102,22 +103,28 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <Link href="/" className="mx-auto mb-4 flex items-center gap-2.5">
-            <Image
-              src="/favicon.svg"
-              alt="ChantiPay"
-              width={44}
-              height={44}
-              unoptimized
-              className="rounded-xl"
-            />
-            <span className="text-2xl font-bold tracking-tight">ChantiPay</span>
+    <div className="flex min-h-screen items-center justify-center bg-slate-950 p-4 selection:bg-orange-500/30 relative overflow-hidden">
+      {/* Background Decor */}
+      <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))] opacity-5 pointer-events-none"></div>
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-orange-600/10 rounded-full blur-[120px] opacity-20 pointer-events-none"></div>
+
+      <Card className="w-full max-w-md bg-slate-900/50 backdrop-blur-sm border-white/10 shadow-2xl z-10">
+        <CardHeader className="text-center space-y-2">
+          <Link href="/" className="mx-auto mb-2 flex items-center gap-2.5 group">
+            <div className="relative h-10 w-10 transition-all duration-300 group-hover:drop-shadow-[0_0_10px_rgba(249,115,22,0.8)]">
+              <Image
+                src="/favicon.svg"
+                alt="ChantiPay"
+                width={40}
+                height={40}
+                className="w-full h-full object-contain"
+                unoptimized
+              />
+            </div>
+            <span className="text-2xl font-bold tracking-tight text-white group-hover:text-orange-500 transition-colors">ChantiPay</span>
           </Link>
-          <CardTitle>Connexion</CardTitle>
-          <CardDescription>
+          <CardTitle className="text-white text-xl">Bienvenue</CardTitle>
+          <CardDescription className="text-gray-400">
             Connectez-vous pour accéder à votre espace
           </CardDescription>
         </CardHeader>
@@ -127,7 +134,7 @@ export default function LoginPage() {
             <Button
               type="button"
               variant="outline"
-              className="w-full h-12"
+              className="w-full h-12 bg-white text-slate-900 border-white hover:bg-gray-100 font-medium"
               onClick={() => handleOAuthSignIn('google')}
               disabled={isOAuthLoading || isLoading}
             >
@@ -159,7 +166,7 @@ export default function LoginPage() {
             <Button
               type="button"
               variant="outline"
-              className="w-full h-12"
+              className="w-full h-12 bg-white/5 text-white border-white/10 hover:bg-white/10 hover:text-white"
               onClick={() => handleOAuthSignIn('apple')}
               disabled={isOAuthLoading || isLoading}
             >
@@ -175,8 +182,8 @@ export default function LoginPage() {
           </div>
 
           <div className="relative mb-6">
-            <Separator />
-            <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white px-2 text-xs text-muted-foreground">
+            <Separator className="bg-white/10" />
+            <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-slate-900 px-2 text-xs text-gray-400">
               ou par email
             </span>
           </div>
@@ -186,12 +193,12 @@ export default function LoginPage() {
             <HoneypotField value={honeypot} onChange={setHoneypot} name="website_url" />
 
             {error && (
-              <div className="rounded-md bg-red-50 p-3 text-sm text-red-600">
+              <div className="rounded-md bg-red-500/10 border border-red-500/20 p-3 text-sm text-red-400">
                 {error}
               </div>
             )}
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email" className="text-gray-300">Email</Label>
               <Input
                 id="email"
                 type="email"
@@ -200,10 +207,16 @@ export default function LoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 autoComplete="email"
+                className="h-12 bg-white/5 border-white/10 text-white placeholder:text-gray-600 focus:border-orange-500 focus:ring-orange-500/20"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Mot de passe</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password" className="text-gray-300">Mot de passe</Label>
+                <Link href="/forgot-password" className="text-xs text-orange-400 hover:text-orange-300 hover:underline">
+                  Mot de passe oublié ?
+                </Link>
+              </div>
               <div className="relative">
                 <Input
                   id="password"
@@ -213,12 +226,12 @@ export default function LoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   autoComplete="current-password"
-                  className="pr-12"
+                  className="pr-12 h-12 bg-white/5 border-white/10 text-white placeholder:text-gray-600 focus:border-orange-500 focus:ring-orange-500/20"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-0 top-0 flex h-full w-12 items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+                  className="absolute right-0 top-0 flex h-full w-12 items-center justify-center text-gray-500 hover:text-white transition-colors"
                   aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
                 >
                   {showPassword ? (
@@ -229,15 +242,19 @@ export default function LoginPage() {
                 </button>
               </div>
             </div>
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            <Button
+              type="submit"
+              className="w-full h-12 bg-orange-600 hover:bg-orange-500 text-white font-bold text-lg shadow-[0_0_20px_rgba(234,88,12,0.3)] hover:shadow-[0_0_30px_rgba(234,88,12,0.5)] transition-all border-0"
+              disabled={isLoading}
+            >
+              {isLoading && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
               Se connecter
             </Button>
           </form>
           <div className="mt-6 text-center text-sm">
-            <span className="text-muted-foreground">Pas encore de compte ? </span>
-            <Link href="/register" className="text-primary hover:underline">
-              S&apos;inscrire
+            <span className="text-gray-400">Pas encore de compte ? </span>
+            <Link href="/register" className="text-orange-400 hover:text-orange-300 hover:underline font-semibold">
+              S&apos;inscrire gratuitement
             </Link>
           </div>
         </CardContent>
