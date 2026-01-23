@@ -165,7 +165,7 @@ export default function MarketingPage() {
                       Commencer l'essai gratuit
                     </Button>
                   </Link>
-                  <p className="text-xs text-center text-gray-500 mt-4">14 jours offerts, sans engagement</p>
+                  <p className="text-xs text-center text-gray-500 mt-4">7 jours d'essai gratuit, sans engagement</p>
                 </CardContent>
               </Card>
 
@@ -230,7 +230,7 @@ export default function MarketingPage() {
               </Button>
             </Link>
             <p className="mt-6 text-sm text-gray-500">
-              Aucune carte bancaire requise. 14 jours d'essai gratuit.
+              paiement par carte bancaire. 7 jours d'essai gratuit.
             </p>
           </div>
         </section>
