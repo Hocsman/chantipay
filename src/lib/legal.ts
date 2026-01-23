@@ -16,12 +16,12 @@ export const LEGAL_ENTITY = {
   country: 'France',
   email: 'contact@chantipay.com',
   phone: '', // Optional
-  siret: '99456306200011',
+  siret: '999 763 873',
   tvaNumber: 'FR 99 999999999', // À remplacer par le vrai numéro
 
   // === Publication Director ===
   publisherName: 'Hocine AZZOUG',
-  
+
   // === Hosting Provider ===
   hostingProvider: {
     name: 'Vercel Inc.',
@@ -30,11 +30,11 @@ export const LEGAL_ENTITY = {
     country: 'États-Unis',
     website: 'https://vercel.com',
   },
-  
+
   // === Service Information ===
   serviceName: 'ChantiPay',
   serviceUrl: 'https://www.chantipay.com',
-  
+
   // === Data Processors ===
   dataProcessors: [
     {
@@ -62,21 +62,21 @@ export const LEGAL_ENTITY = {
       website: 'https://resend.com',
     },
   ],
-  
+
   // === Data Retention (indicative) ===
   dataRetention: {
     accountData: '3 ans après la dernière connexion',
     invoices: '10 ans (obligation légale)',
     logs: '12 mois',
   },
-  
+
   // === Regulatory ===
   supervisoryAuthority: {
     name: 'CNIL (Commission Nationale de l\'Informatique et des Libertés)',
     address: '3 Place de Fontenoy, TSA 80715, 75334 Paris Cedex 07',
     website: 'https://www.cnil.fr',
   },
-  
+
   // === Last Update Date ===
   lastUpdate: {
     mentions: '12 janvier 2026',
