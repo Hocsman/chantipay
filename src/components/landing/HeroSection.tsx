@@ -1,0 +1,122 @@
+'use client';
+
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { ArrowRight, CheckCircle2 } from 'lucide-react';
+import { motion } from 'framer-motion';
+
+export function HeroSection() {
+    return (
+        <section className="relative overflow-hidden bg-black text-white pt-20 pb-32 lg:pt-32 lg:pb-48">
+            {/* Background Elements */}
+            <div className="absolute top-0 right-0 -z-10 w-[800px] h-[800px] bg-orange-600/10 rounded-full blur-[120px] opacity-30 translate-x-1/3 -translate-y-1/4" />
+            <div className="absolute bottom-0 left-0 -z-10 w-[600px] h-[600px] bg-blue-600/5 rounded-full blur-[100px] opacity-20 -translate-x-1/3 translate-y-1/4" />
+
+            <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10">
+                <div className="flex flex-col items-center text-center">
+
+                    {/* Badge */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5 }}
+                        className="mb-8 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-sm font-medium text-orange-400 backdrop-blur-md"
+                    >
+                        <span className="relative flex h-2 w-2">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500"></span>
+                        </span>
+                        Prêt pour Factur-X 2026
+                    </motion.div>
+
+                    {/* Title */}
+                    <motion.h1
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5, delay: 0.1 }}
+                        className="mb-6 max-w-4xl text-5xl font-extrabold tracking-tight sm:text-6xl md:text-7xl lg:text-8xl"
+                    >
+                        Le <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-orange-600">BTP</span> nouvelle génération.
+                    </motion.h1>
+
+                    {/* Subtitle */}
+                    <motion.p
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5, delay: 0.2 }}
+                        className="mb-10 max-w-2xl text-lg text-gray-400 sm:text-xl md:text-2xl font-light leading-relaxed"
+                    >
+                        Devis signés en un éclair. Acomptes encaissés instantanément. Factures électroniques conformes.
+                        <span className="block mt-2 text-white font-medium">L'outil tout-en-un pour les artisans qui veulent avancer.</span>
+                    </motion.p>
+
+                    {/* CTA Buttons */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5, delay: 0.3 }}
+                        className="flex flex-col gap-4 w-full sm:w-auto sm:flex-row sm:justify-center"
+                    >
+                        <Link href="/register" className="w-full sm:w-auto">
+                            <Button size="lg" className="w-full sm:w-auto h-14 px-8 text-lg font-bold bg-orange-600 hover:bg-orange-500 text-white border-0 shadow-[0_0_20px_rgba(234,88,12,0.3)] hover:shadow-[0_0_30px_rgba(234,88,12,0.5)] transition-all duration-300">
+                                Commencer gratuitement
+                                <ArrowRight className="ml-2 h-5 w-5" />
+                            </Button>
+                        </Link>
+                        <Link href="/demo" className="w-full sm:w-auto">
+                            <Button size="lg" variant="outline" className="w-full sm:w-auto h-14 px-8 text-lg bg-transparent text-white border-white/20 hover:bg-white/10 hover:text-white backdrop-blur-sm transition-all duration-300">
+                                Voir la démo
+                            </Button>
+                        </Link>
+                    </motion.div>
+
+                    {/* Trust badges */}
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ duration: 0.5, delay: 0.5 }}
+                        className="mt-12 flex flex-wrap justify-center gap-x-8 gap-y-4 text-sm text-gray-400"
+                    >
+                        <div className="flex items-center gap-2">
+                            <CheckCircle2 className="h-4 w-4 text-orange-500" />
+                            <span>14 jours d'essai gratuit</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <CheckCircle2 className="h-4 w-4 text-orange-500" />
+                            <span>Sans carte bancaire</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <CheckCircle2 className="h-4 w-4 text-orange-500" />
+                            <span>Annulation à tout moment</span>
+                        </div>
+                    </motion.div>
+
+                </div>
+            </div>
+
+            {/* Hero Image Mockup - Optionnel pour ajouter de la profondeur */}
+            <motion.div
+                initial={{ opacity: 0, y: 100 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, delay: 0.4 }}
+                className="mx-auto mt-16 max-w-5xl px-4 sm:px-6 lg:px-8 relative z-20 hidden md:block"
+            >
+                <div className="relative rounded-xl border border-white/10 bg-white/5 p-2 backdrop-blur-sm shadow-2xl">
+                    <div className="overflow-hidden rounded-lg border border-white/5 bg-black/80 aspect-[16/9]">
+                        {/* Ici on mettra une image du dashboard ou une vidéo plus tard */}
+                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-900 to-black relative">
+                            <div className="text-center">
+                                <div className="text-6xl font-bold text-white/5 mb-4">DASHBOARD</div>
+                                <p className="text-white/20">Aperçu interface ChantiPay</p>
+                            </div>
+                            {/* Overlay gradient */}
+                            <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-80"></div>
+                        </div>
+                    </div>
+                    {/* Glow effect under the image */}
+                    <div className="absolute -inset-1 bg-gradient-to-r from-orange-500 to-amber-500 rounded-xl blur-lg opacity-20 -z-10"></div>
+                </div>
+            </motion.div>
+        </section>
+    );
+}
