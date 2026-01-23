@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, CheckCircle2 } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -94,27 +95,26 @@ export function HeroSection() {
                 </div>
             </div>
 
-            {/* Hero Image Mockup - Optionnel pour ajouter de la profondeur */}
+            {/* Hero Image Mockup (Real Screenshot) */}
             <motion.div
                 initial={{ opacity: 0, y: 100 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8, delay: 0.4 }}
-                className="mx-auto mt-16 max-w-5xl px-4 sm:px-6 lg:px-8 relative z-20 hidden md:block"
+                className="mx-auto mt-16 max-w-6xl px-4 sm:px-6 lg:px-8 relative z-20 hidden md:block"
             >
-                <div className="relative rounded-xl border border-white/10 bg-white/5 p-2 backdrop-blur-sm shadow-2xl">
-                    <div className="overflow-hidden rounded-lg border border-white/5 bg-black/80 aspect-[16/9]">
-                        {/* Ici on mettra une image du dashboard ou une vidéo plus tard */}
-                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-900 to-black relative">
-                            <div className="text-center">
-                                <div className="text-6xl font-bold text-white/5 mb-4">DASHBOARD</div>
-                                <p className="text-white/20">Aperçu interface ChantiPay</p>
-                            </div>
-                            {/* Overlay gradient */}
-                            <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-80"></div>
-                        </div>
+                <div className="relative rounded-xl border border-white/10 bg-white/5 p-2 backdrop-blur-sm shadow-2xl group">
+                    <div className="overflow-hidden rounded-lg bg-black border border-white/5">
+                        <Image
+                            src="/images/landing/dashboard-hero.png"
+                            alt="Interface Dashboard ChantiPay"
+                            width={1400}
+                            height={900}
+                            className="w-full h-auto transform group-hover:scale-[1.01] transition duration-700"
+                            priority
+                        />
                     </div>
                     {/* Glow effect under the image */}
-                    <div className="absolute -inset-1 bg-gradient-to-r from-orange-500 to-amber-500 rounded-xl blur-lg opacity-20 -z-10"></div>
+                    <div className="absolute -inset-1 bg-gradient-to-r from-orange-500 to-amber-500 rounded-xl blur-lg opacity-20 -z-10 transition duration-700 group-hover:opacity-40"></div>
                 </div>
             </motion.div>
         </section>
