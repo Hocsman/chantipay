@@ -54,12 +54,19 @@ export async function GET(request: NextRequest) {
     if (clientIds.length > 0) {
       const { data: clients } = await supabase
         .from('clients')
-        .select('id, name, email, phone, address')
+        .select('id, name, email, phone, address_line1, postal_code, city')
         .in('id', clientIds)
 
       if (clients) {
         clientsMap = clients.reduce((acc, c) => {
-          acc[c.id] = c
+          // Construire l'adresse complète à partir des champs séparés
+          const addressParts = [c.address_line1, c.postal_code, c.city].filter(Boolean)
+          acc[c.id] = {
+            name: c.name,
+            email: c.email || undefined,
+            phone: c.phone || undefined,
+            address: addressParts.length > 0 ? addressParts.join(', ') : undefined
+          }
           return acc
         }, {} as Record<string, { name: string; email?: string; phone?: string; address?: string }>)
       }

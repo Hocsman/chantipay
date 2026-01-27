@@ -36,7 +36,9 @@ export async function GET(
           name,
           email,
           phone,
-          address
+          address_line1,
+          postal_code,
+          city
         ),
         quote_items (
           description,
@@ -55,12 +57,16 @@ export async function GET(
 
     // Transformer les données
     const client = Array.isArray(quoteRaw.clients) ? quoteRaw.clients[0] : quoteRaw.clients
+    // Construire l'adresse complète à partir des champs séparés
+    const clientAddress = client
+      ? [client.address_line1, client.postal_code, client.city].filter(Boolean).join(', ')
+      : ''
     const quote = {
       ...quoteRaw,
       client_name: client?.name || 'Client',
       client_email: client?.email || '',
       client_phone: client?.phone || '',
-      client_address: client?.address || '',
+      client_address: clientAddress,
     }
 
     // Générer le fichier Excel

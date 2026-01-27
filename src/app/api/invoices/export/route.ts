@@ -36,21 +36,21 @@ export async function GET(request: NextRequest) {
         invoice_number,
         created_at,
         due_date,
-        status,
+        payment_status,
         client_name,
         client_email,
         client_phone,
         client_address,
-        total_ht,
-        total_ttc,
-        total_vat,
+        subtotal,
+        tax_amount,
+        total,
         paid_at,
         payment_method,
         invoice_items (
           description,
           quantity,
-          unit_price_ht,
-          vat_rate
+          unit_price,
+          total
         )
       `)
       .eq('user_id', user.id)
@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
 
     // Appliquer les filtres
     if (status) {
-      query = query.eq('status', status)
+      query = query.eq('payment_status', status)
     }
     if (fromDate) {
       query = query.gte('created_at', fromDate)
@@ -67,16 +67,40 @@ export async function GET(request: NextRequest) {
       query = query.lte('created_at', toDate)
     }
 
-    const { data: invoices, error } = await query
+    const { data: invoicesRaw, error } = await query
 
     if (error) {
       console.error('Erreur récupération factures:', error)
       return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
     }
 
-    if (!invoices || invoices.length === 0) {
+    if (!invoicesRaw || invoicesRaw.length === 0) {
       return NextResponse.json({ error: 'Aucune facture à exporter' }, { status: 404 })
     }
+
+    // Transformer les données pour correspondre au format attendu par generateInvoicesExcel
+    const invoices = invoicesRaw.map(inv => ({
+      id: inv.id,
+      invoice_number: inv.invoice_number,
+      created_at: inv.created_at,
+      due_date: inv.due_date,
+      status: inv.payment_status, // payment_status -> status
+      client_name: inv.client_name,
+      client_email: inv.client_email,
+      client_phone: inv.client_phone,
+      client_address: inv.client_address,
+      total_ht: inv.subtotal || 0, // subtotal -> total_ht
+      total_vat: inv.tax_amount || 0, // tax_amount -> total_vat
+      total_ttc: inv.total || 0, // total -> total_ttc
+      paid_at: inv.paid_at,
+      payment_method: inv.payment_method,
+      invoice_items: inv.invoice_items?.map((item: { description: string; quantity: number; unit_price: number; total: number }) => ({
+        description: item.description,
+        quantity: item.quantity,
+        unit_price_ht: item.unit_price || 0, // unit_price -> unit_price_ht
+        vat_rate: 20, // Valeur par défaut
+      })) || [],
+    }))
 
     // Générer le fichier Excel
     const workbook = generateInvoicesExcel(invoices, { includeItems })
