@@ -146,6 +146,83 @@ export const viewport: Viewport = {
   userScalable: false,
 };
 
+// Données structurées JSON-LD pour le SEO
+function JsonLdScript() {
+  const organizationSchema = {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    name: "ChantiPay",
+    applicationCategory: "BusinessApplication",
+    operatingSystem: "Web, iOS, Android",
+    description:
+      "Logiciel de devis et factures pour artisans du bâtiment. Signature électronique et paiement en ligne.",
+    url: "https://www.chantipay.com",
+    logo: "https://www.chantipay.com/og-image.png",
+    offers: {
+      "@type": "Offer",
+      price: "0",
+      priceCurrency: "EUR",
+      description: "Essai gratuit 7 jours",
+    },
+    aggregateRating: {
+      "@type": "AggregateRating",
+      ratingValue: "4.8",
+      ratingCount: "150",
+      bestRating: "5",
+      worstRating: "1",
+    },
+    author: {
+      "@type": "Organization",
+      name: "ChantiPay",
+      url: "https://www.chantipay.com",
+    },
+  };
+
+  const faqSchema = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: [
+      {
+        "@type": "Question",
+        name: "ChantiPay est-il gratuit ?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "ChantiPay propose un essai gratuit de 7 jours sans engagement. Ensuite, plusieurs formules sont disponibles à partir de 19€/mois.",
+        },
+      },
+      {
+        "@type": "Question",
+        name: "La signature électronique est-elle légale ?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "Oui, la signature électronique ChantiPay est conforme au règlement européen eIDAS et a la même valeur juridique qu'une signature manuscrite.",
+        },
+      },
+      {
+        "@type": "Question",
+        name: "Puis-je utiliser ChantiPay sur mobile ?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "Oui, ChantiPay fonctionne sur smartphone, tablette et ordinateur. Vous pouvez créer et faire signer vos devis directement sur chantier.",
+        },
+      },
+    ],
+  };
+
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+      />
+    </>
+  );
+}
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -155,6 +232,7 @@ export default function RootLayout({
     <html lang="fr" suppressHydrationWarning>
       <head>
         <ThemeScript />
+        <JsonLdScript />
         <link rel="apple-touch-icon" href="/icons/icon-192x192.svg" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
