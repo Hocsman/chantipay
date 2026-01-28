@@ -130,8 +130,7 @@ export const metadata: Metadata = {
     },
   },
   verification: {
-    // Ajouter ici le code de vérification Google Search Console quand disponible
-    // google: "votre-code-verification-google",
+    google: "Y0MnUNExWuqSx6dyjbQO51_7lt_hSJgBWO0gwwe-6nA",
   },
   other: {
     "google-site-verification": "", // À remplir avec le code Google Search Console
