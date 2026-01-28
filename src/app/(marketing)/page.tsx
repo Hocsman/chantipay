@@ -10,69 +10,198 @@ import { ThemeToggle } from '@/components/theme/ThemeToggle';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Check, Sparkles, Building2 } from 'lucide-react';
 
-// JSON-LD Structured Data
+// JSON-LD Structured Data for SEO
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://www.chantipay.com';
 
+// Schema.org SoftwareApplication
 const softwareApplicationJsonLd = {
   '@context': 'https://schema.org',
   '@type': 'SoftwareApplication',
   name: 'ChantiPay',
   applicationCategory: 'BusinessApplication',
-  operatingSystem: 'Web',
-  description: 'Application mobile-first pour artisans : créez des devis professionnels, faites signer au doigt, générez des PDF et encaissez l\'acompte instantanément.',
+  applicationSubCategory: 'Invoice Software',
+  operatingSystem: 'Web, iOS, Android',
+  description: 'Logiciel de devis et factures pour artisans du bâtiment. Créez vos devis professionnels sur mobile, faites signer électroniquement et encaissez l\'acompte instantanément. Idéal pour plombiers, électriciens, peintres, menuisiers.',
   url: BASE_URL,
+  downloadUrl: BASE_URL,
+  screenshot: `${BASE_URL}/og-image.png`,
+  softwareVersion: '2.0',
+  datePublished: '2024-01-01',
+  inLanguage: 'fr-FR',
   offers: [
     {
       '@type': 'Offer',
       name: 'Artisan Solo',
       price: '19',
       priceCurrency: 'EUR',
-      priceValidUntil: '2025-12-31',
-      description: 'Pour les artisans indépendants - Devis illimités, signature électronique, paiement en ligne',
+      priceValidUntil: '2026-12-31',
+      availability: 'https://schema.org/InStock',
+      description: 'Pour les artisans indépendants - Devis et factures illimités, signature électronique, paiement en ligne, Factur-X',
+      url: `${BASE_URL}/register`,
     },
     {
       '@type': 'Offer',
       name: 'Petite équipe',
       price: '39',
       priceCurrency: 'EUR',
-      priceValidUntil: '2025-12-31',
-      description: 'Jusqu\'à 5 utilisateurs - Toutes les fonctionnalités + tableau de bord équipe',
+      priceValidUntil: '2026-12-31',
+      availability: 'https://schema.org/InStock',
+      description: 'Jusqu\'à 5 utilisateurs - Toutes les fonctionnalités + tableau de bord équipe + support prioritaire',
+      url: `${BASE_URL}/register`,
     },
   ],
   aggregateRating: {
     '@type': 'AggregateRating',
     ratingValue: '4.8',
-    ratingCount: '127',
+    reviewCount: '127',
     bestRating: '5',
     worstRating: '1',
   },
   featureList: [
-    'Devis sur mobile',
-    'Signature électronique au doigt',
-    'Génération PDF professionnelle',
-    'Paiement d\'acompte en ligne',
-    'Génération Factur-X',
+    'Création de devis sur mobile en 2 minutes',
+    'Signature électronique légale au doigt',
+    'Génération PDF professionnelle automatique',
+    'Paiement d\'acompte en ligne par carte bancaire',
+    'Factures conformes Factur-X',
+    'Relances automatiques',
+    'Export comptable',
+    'IA pour suggestions de devis',
   ],
+  author: {
+    '@type': 'Organization',
+    name: 'ChantiPay',
+  },
 };
 
+// Schema.org Organization
 const organizationJsonLd = {
   '@context': 'https://schema.org',
   '@type': 'Organization',
   name: 'ChantiPay',
+  legalName: 'ChantiPay SAS',
   url: BASE_URL,
-  logo: `${BASE_URL}/icons/icon-512x512.svg`,
-  contactPoint: {
-    '@type': 'ContactPoint',
-    email: 'contact@chantipay.com',
-    contactType: 'customer service',
-    availableLanguage: 'French',
+  logo: {
+    '@type': 'ImageObject',
+    url: `${BASE_URL}/icons/icon-512x512.svg`,
+    width: 512,
+    height: 512,
   },
+  image: `${BASE_URL}/og-image.png`,
+  description: 'ChantiPay est le logiciel de devis et factures n°1 pour les artisans du bâtiment en France.',
+  foundingDate: '2024',
+  founders: [
+    {
+      '@type': 'Person',
+      name: 'ChantiPay Team',
+    },
+  ],
+  address: {
+    '@type': 'PostalAddress',
+    addressCountry: 'FR',
+  },
+  contactPoint: [
+    {
+      '@type': 'ContactPoint',
+      email: 'contact@chantipay.com',
+      contactType: 'customer service',
+      availableLanguage: ['French'],
+      areaServed: 'FR',
+    },
+    {
+      '@type': 'ContactPoint',
+      email: 'support@chantipay.com',
+      contactType: 'technical support',
+      availableLanguage: ['French'],
+    },
+  ],
+  sameAs: [
+    // Ajouter les liens réseaux sociaux quand disponibles
+    // 'https://www.linkedin.com/company/chantipay',
+    // 'https://twitter.com/chantipay',
+  ],
+};
+
+// Schema.org WebSite avec SearchAction pour Google Sitelinks
+const websiteJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: 'ChantiPay',
+  alternateName: 'ChantiPay - Devis artisan',
+  url: BASE_URL,
+  description: 'Logiciel de devis et factures pour artisans du bâtiment',
+  inLanguage: 'fr-FR',
+  publisher: {
+    '@type': 'Organization',
+    name: 'ChantiPay',
+  },
+};
+
+// Schema.org FAQPage pour les questions fréquentes
+const faqJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: [
+    {
+      '@type': 'Question',
+      name: 'Comment créer un devis avec ChantiPay ?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'Avec ChantiPay, créez un devis professionnel en moins de 2 minutes directement depuis votre smartphone. Ajoutez vos prestations, le client peut signer au doigt sur l\'écran et vous pouvez encaisser l\'acompte immédiatement.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'La signature électronique est-elle légale ?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'Oui, la signature électronique de ChantiPay est conforme au règlement européen eIDAS. Elle a la même valeur juridique qu\'une signature manuscrite et est horodatée pour garantir l\'intégrité du document.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'Combien coûte ChantiPay ?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'ChantiPay propose un plan Artisan Solo à 19€/mois avec devis et factures illimités, signature électronique et paiement en ligne. Un essai gratuit de 7 jours est disponible sans engagement.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'ChantiPay est-il compatible avec ma comptabilité ?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'Oui, ChantiPay génère des factures au format Factur-X, le standard français de facturation électronique. Vous pouvez exporter vos données au format Excel pour votre comptable.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'Quels métiers peuvent utiliser ChantiPay ?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'ChantiPay est conçu pour tous les artisans du bâtiment : plombiers, électriciens, peintres, menuisiers, maçons, carreleurs, couvreurs, chauffagistes, et plus encore.',
+      },
+    },
+  ],
+};
+
+// Schema.org BreadcrumbList pour la navigation
+const breadcrumbJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    {
+      '@type': 'ListItem',
+      position: 1,
+      name: 'Accueil',
+      item: BASE_URL,
+    },
+  ],
 };
 
 export default function MarketingPage() {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-50">
-      {/* JSON-LD Structured Data */}
+      {/* JSON-LD Structured Data for SEO */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
@@ -83,6 +212,24 @@ export default function MarketingPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{
           __html: JSON.stringify(organizationJsonLd),
+        }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(websiteJsonLd),
+        }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(faqJsonLd),
+        }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(breadcrumbJsonLd),
         }}
       />
 

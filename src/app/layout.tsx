@@ -22,29 +22,54 @@ const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://www.chantipay.com";
 export const metadata: Metadata = {
   metadataBase: new URL(BASE_URL),
   title: {
-    default: "ChantiPay - Devis mobile, signature au doigt, acompte instantané pour artisans",
-    template: "%s | ChantiPay",
+    default: "ChantiPay - Logiciel devis factures artisan | Signature électronique & paiement",
+    template: "%s | ChantiPay - Devis artisan",
   },
   description:
-    "Application mobile-first pour artisans : créez des devis professionnels sur le terrain, faites signer au doigt, générez des PDF pro et encaissez l'acompte en quelques secondes. Plombiers, électriciens, peintres, menuisiers.",
+    "Logiciel de devis et factures pour artisans du bâtiment. Créez vos devis sur mobile, faites signer électroniquement et encaissez l'acompte instantanément. Idéal plombier, électricien, peintre, menuisier, maçon. Essai gratuit 7 jours.",
   keywords: [
-    "devis artisan",
-    "application devis mobile",
-    "signature électronique artisan",
-    "acompte chantier",
-    "devis plombier",
+    // Mots-clés principaux
+    "logiciel devis artisan",
+    "logiciel facturation artisan",
+    "application devis bâtiment",
+    "devis en ligne artisan",
+    // Signature électronique
+    "signature électronique devis",
+    "signature numérique artisan",
+    "signer devis sur tablette",
+    // Par métier
+    "devis plombier gratuit",
     "devis électricien",
-    "PDF devis",
-    "paiement artisan",
+    "devis peintre bâtiment",
+    "devis menuisier",
+    "devis maçon",
+    "devis carreleur",
+    // Fonctionnalités
+    "acompte chantier en ligne",
+    "paiement devis artisan",
+    "facture électronique artisan",
+    "Factur-X artisan",
+    "PDF devis professionnel",
+    // Mobile
+    "application mobile artisan",
+    "devis sur smartphone",
+    "gestion chantier mobile",
+    // Marque
     "ChantiPay",
   ],
-  authors: [{ name: "ChantiPay" }],
+  authors: [{ name: "ChantiPay", url: BASE_URL }],
   creator: "ChantiPay",
   publisher: "ChantiPay",
   manifest: "/manifest.json",
   icons: {
-    icon: [{ url: "/favicon.svg", type: "image/svg+xml" }],
-    apple: [{ url: "/apple-touch-icon.svg", type: "image/svg+xml" }],
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/favicon.ico", sizes: "32x32" },
+    ],
+    apple: [
+      { url: "/apple-touch-icon.svg", type: "image/svg+xml" },
+      { url: "/icons/icon-192x192.svg", sizes: "192x192" },
+    ],
   },
   appleWebApp: {
     capable: true,
@@ -53,37 +78,46 @@ export const metadata: Metadata = {
   },
   formatDetection: {
     telephone: true,
+    email: true,
+    address: true,
   },
+  category: "business",
+  classification: "Business Software",
   openGraph: {
     type: "website",
     locale: "fr_FR",
     url: BASE_URL,
     siteName: "ChantiPay",
-    title: "ChantiPay - Devis et acomptes pour artisans",
+    title: "ChantiPay - Logiciel devis & factures pour artisans du bâtiment",
     description:
-      "Devis signé, acompte encaissé, chantier sécurisé. L'application mobile-first pour les artisans.",
+      "Créez vos devis professionnels en 2 minutes, faites signer sur mobile et encaissez l'acompte instantanément. L'application n°1 des artisans du bâtiment.",
     images: [
       {
         url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: "ChantiPay - Devis et acomptes pour artisans",
+        alt: "ChantiPay - Logiciel devis et factures pour artisans",
+        type: "image/png",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "ChantiPay - Devis et acomptes pour artisans",
+    site: "@chantipay",
+    creator: "@chantipay",
+    title: "ChantiPay - Devis & factures pour artisans",
     description:
-      "Devis signé, acompte encaissé, chantier sécurisé. L'application mobile-first pour les artisans.",
+      "Logiciel de devis pour artisans. Signature électronique, paiement en ligne, Factur-X. Essai gratuit 7 jours.",
     images: ["/og-image.png"],
   },
   robots: {
     index: true,
     follow: true,
+    nocache: false,
     googleBot: {
       index: true,
       follow: true,
+      noimageindex: false,
       "max-video-preview": -1,
       "max-image-preview": "large",
       "max-snippet": -1,
@@ -91,6 +125,17 @@ export const metadata: Metadata = {
   },
   alternates: {
     canonical: BASE_URL,
+    languages: {
+      "fr-FR": BASE_URL,
+    },
+  },
+  verification: {
+    // Ajouter ici le code de vérification Google Search Console quand disponible
+    // google: "votre-code-verification-google",
+  },
+  other: {
+    "google-site-verification": "", // À remplir avec le code Google Search Console
+    "msvalidate.01": "", // À remplir si validation Bing
   },
 };
 
