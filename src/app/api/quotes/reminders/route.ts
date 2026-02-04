@@ -265,7 +265,7 @@ export async function POST(request: NextRequest) {
                     <p>Vous pouvez consulter et signer votre devis en ligne en cliquant sur le bouton ci-dessous :</p>
 
                     <div style="text-align: center;">
-                      <a href="${process.env.NEXT_PUBLIC_APP_URL}/quotes/${quote.id}" class="button">
+                      <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://www.chantipay.com'}/quotes/${quote.id}" class="button">
                         Voir et signer le devis
                       </a>
                     </div>

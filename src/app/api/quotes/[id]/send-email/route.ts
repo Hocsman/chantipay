@@ -140,7 +140,7 @@ export async function POST(
                 </table>
 
                 <p>Pour consulter et signer votre devis en ligne :</p>
-                <a href="${process.env.NEXT_PUBLIC_APP_URL}/quotes/${quote.id}" class="button">
+                <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://www.chantipay.com'}/quotes/${quote.id}" class="button">
                   Voir le devis
                 </a>
 

@@ -298,7 +298,7 @@ export async function POST(request: NextRequest) {
                     <p>Nous vous remercions de bien vouloir procéder au règlement dans les meilleurs délais.</p>
 
                     <div style="text-align: center;">
-                      <a href="${process.env.NEXT_PUBLIC_APP_URL}/invoices/${invoice.id}" class="button">
+                      <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://www.chantipay.com'}/invoices/${invoice.id}" class="button">
                         Voir la facture
                       </a>
                     </div>
