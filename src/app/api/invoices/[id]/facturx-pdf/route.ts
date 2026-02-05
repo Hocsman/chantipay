@@ -84,6 +84,15 @@ export async function GET(
     })),
   }
 
+  // Récupérer le logo si disponible
+  const { data: logoData } = await supabase.storage
+    .from('logos')
+    .list(user.id, { limit: 1 })
+
+  const logoUrl = logoData && logoData.length > 0
+    ? supabase.storage.from('logos').getPublicUrl(`${user.id}/${logoData[0].name}`).data.publicUrl
+    : undefined
+
   // Données du vendeur
   const companyInfo = {
     name: profile.company_name || profile.full_name || 'Mon Entreprise',
@@ -91,6 +100,7 @@ export async function GET(
     phone: profile.phone || '',
     email: profile.email || user.email || '',
     siret: profile.siret || '',
+    logo: logoUrl,
   }
 
   const seller = {

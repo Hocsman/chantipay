@@ -38,6 +38,32 @@ interface CompanyInfo {
 }
 
 /**
+ * Charger une image depuis une URL et la convertir en data URL base64
+ */
+async function loadImageAsBase64(url: string): Promise<{ dataUrl: string; width: number; height: number } | null> {
+  try {
+    const response = await fetch(url)
+    if (!response.ok) return null
+
+    const arrayBuffer = await response.arrayBuffer()
+    const uint8Array = new Uint8Array(arrayBuffer)
+    let binary = ''
+    for (let i = 0; i < uint8Array.length; i++) {
+      binary += String.fromCharCode(uint8Array[i])
+    }
+    const base64 = btoa(binary)
+
+    const contentType = response.headers.get('Content-Type') || 'image/png'
+    const dataUrl = `data:${contentType};base64,${base64}`
+
+    return { dataUrl, width: 100, height: 100 }
+  } catch (error) {
+    console.error('Erreur chargement logo:', error)
+    return null
+  }
+}
+
+/**
  * Générer un PDF de facture
  */
 export async function generateInvoicePDF(
@@ -62,21 +88,40 @@ export async function generateInvoicePDF(
   // EN-TÊTE - Bandeau noir professionnel
   // ============================================
 
+  // Charger le logo si disponible
+  let logoImage: { dataUrl: string; width: number; height: number } | null = null
+  if (companyInfo.logo) {
+    logoImage = await loadImageAsBase64(companyInfo.logo)
+  }
+
   // Bandeau de couleur en haut (noir)
   doc.setFillColor(...primaryColor)
   doc.rect(0, 0, pageWidth, 45, 'F')
 
-  // Nom de l'entreprise (à gauche dans le bandeau)
+  // Position du texte de l'entreprise (décalé si logo présent)
+  let companyTextX = margin
+
+  // Afficher le logo dans le bandeau (à gauche)
+  if (logoImage) {
+    const logoHeight = 30
+    const logoY = 7.5 // centré verticalement dans le bandeau de 45px
+    // Calculer la largeur proportionnelle (ratio carré par défaut)
+    const logoWidth = logoHeight
+    doc.addImage(logoImage.dataUrl, 'PNG', margin, logoY, logoWidth, logoHeight)
+    companyTextX = margin + logoWidth + 5
+  }
+
+  // Nom de l'entreprise (à gauche dans le bandeau, après le logo)
   doc.setFontSize(22)
   doc.setFont('helvetica', 'bold')
   doc.setTextColor(255, 255, 255)
-  doc.text(companyInfo.name || 'Mon Entreprise', margin, 20)
+  doc.text(companyInfo.name || 'Mon Entreprise', companyTextX, 20)
 
   // Sous-titre (type d'activité)
   doc.setFontSize(10)
   doc.setFont('helvetica', 'normal')
   doc.setTextColor(209, 213, 219) // gray-300
-  doc.text('Artisan professionnel', margin, 28)
+  doc.text('Artisan professionnel', companyTextX, 28)
 
   // Numéro de facture (à droite dans le bandeau)
   doc.setFontSize(10)

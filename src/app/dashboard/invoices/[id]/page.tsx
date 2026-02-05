@@ -429,6 +429,7 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
                         phone: userProfile?.phone || '',
                         email: userProfile?.email || '',
                         siret: userProfile?.siret || '',
+                        logo: userProfile?.logo_url || undefined,
                       }
                     )
                     toast.success('PDF téléchargé')
