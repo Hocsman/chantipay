@@ -421,7 +421,7 @@ export default function TechnicianDetailPage({
                 Pointage
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className="space-y-4">
               <Link href={`/dashboard/technicians/${id}/pointage`}>
                 <Button variant="default" className="w-full">
                   <Clock className="h-4 w-4 mr-2" />
