@@ -28,7 +28,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
-import { ArrowLeft, Loader2, Save, Trash2, User, Wrench, FileText, Mail, Phone } from 'lucide-react'
+import { ArrowLeft, Loader2, Save, Trash2, User, Wrench, FileText, Mail, Phone, Clock, History, Timer } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
@@ -245,6 +245,30 @@ export default function TechnicianDetailMobilePage({
                   Email
                 </Button>
               )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Actions de pointage */}
+        <Card className="mb-4">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Timer className="h-5 w-5 text-primary" />
+              <h3 className="font-semibold">Pointage</h3>
+            </div>
+            <div className="flex gap-2">
+              <Link href={`/mobile/technicians/${id}/pointage`} className="flex-1">
+                <Button className="w-full">
+                  <Clock className="h-4 w-4 mr-2" />
+                  Pointer
+                </Button>
+              </Link>
+              <Link href={`/mobile/technicians/${id}/historique`} className="flex-1">
+                <Button variant="outline" className="w-full">
+                  <History className="h-4 w-4 mr-2" />
+                  Historique
+                </Button>
+              </Link>
             </div>
           </CardContent>
         </Card>

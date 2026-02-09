@@ -29,7 +29,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
-import { ArrowLeft, Loader2, Save, Trash2, Mail, Phone, User } from 'lucide-react'
+import { ArrowLeft, Loader2, Save, Trash2, Mail, Phone, User, Clock, History, Timer } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
 
@@ -410,6 +410,30 @@ export default function TechnicianDetailPage({
                   Créé le {new Date(technician.created_at).toLocaleDateString('fr-FR')}
                 </p>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Actions de pointage */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Timer className="h-5 w-5" />
+                Pointage
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <Link href={`/dashboard/technicians/${id}/pointage`}>
+                <Button variant="default" className="w-full">
+                  <Clock className="h-4 w-4 mr-2" />
+                  Nouveau pointage
+                </Button>
+              </Link>
+              <Link href={`/dashboard/technicians/${id}/historique`}>
+                <Button variant="outline" className="w-full">
+                  <History className="h-4 w-4 mr-2" />
+                  Historique
+                </Button>
+              </Link>
             </CardContent>
           </Card>
         </div>
