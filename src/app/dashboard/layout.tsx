@@ -34,6 +34,7 @@ import {
   HelpCircle,
   Users2,
   Landmark,
+  Bell,
 } from 'lucide-react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
@@ -68,6 +69,7 @@ export default function DashboardLayout({
     { href: '/dashboard/tasks', label: 'Tâches', icon: CheckSquare },
     { href: '/dashboard/visit-reports', label: 'Rapports de visite', icon: ClipboardList },
     { href: '/dashboard/technicians', label: 'Techniciens', icon: Users2 },
+    { href: '/dashboard/relances', label: 'Relances', icon: Bell },
     { href: '/dashboard/banking', label: 'Bancaire', icon: Landmark },
     { href: '/dashboard/settings', label: 'Paramètres', icon: Settings },
     { href: '/dashboard/settings/billing', label: 'Abonnement', icon: CreditCard },
