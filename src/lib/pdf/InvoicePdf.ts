@@ -37,10 +37,34 @@ interface CompanyInfo {
   logo?: string
 }
 
+// ============================================
+// Couleurs uniformisées avec le devis
+// ============================================
+const COLORS = {
+  // Couleurs principales
+  primary: [31, 41, 55] as [number, number, number],       // gray-800 (#1F2937)
+  accent: [249, 115, 22] as [number, number, number],      // orange-500 (#F97316)
+
+  // Texte
+  textDark: [15, 23, 42] as [number, number, number],      // slate-900 (#0F172A)
+  textPrimary: [51, 65, 85] as [number, number, number],   // slate-700 (#334155)
+  textSecondary: [100, 116, 139] as [number, number, number], // slate-500 (#64748B)
+  textMuted: [148, 163, 184] as [number, number, number],  // slate-400 (#94A3B8)
+
+  // Fonds
+  bgLight: [248, 250, 252] as [number, number, number],    // slate-50 (#F8FAFC)
+  border: [226, 232, 240] as [number, number, number],     // slate-200 (#E2E8F0)
+
+  // Statuts
+  green: [5, 150, 105] as [number, number, number],        // green-600 (#059669)
+  blue: [29, 78, 216] as [number, number, number],         // blue-700 (#1D4ED8)
+  red: [220, 38, 38] as [number, number, number],          // red-600 (#DC2626)
+}
+
 /**
  * Charger une image depuis une URL et la convertir en data URL base64
  */
-async function loadImageAsBase64(url: string): Promise<{ dataUrl: string; width: number; height: number } | null> {
+async function loadImageAsBase64(url: string): Promise<string | null> {
   try {
     const response = await fetch(url)
     if (!response.ok) return null
@@ -54,9 +78,7 @@ async function loadImageAsBase64(url: string): Promise<{ dataUrl: string; width:
     const base64 = btoa(binary)
 
     const contentType = response.headers.get('Content-Type') || 'image/png'
-    const dataUrl = `data:${contentType};base64,${base64}`
-
-    return { dataUrl, width: 100, height: 100 }
+    return `data:${contentType};base64,${base64}`
   } catch (error) {
     console.error('Erreur chargement logo:', error)
     return null
@@ -64,7 +86,7 @@ async function loadImageAsBase64(url: string): Promise<{ dataUrl: string; width:
 }
 
 /**
- * Générer un PDF de facture
+ * Générer un PDF de facture (style uniformisé avec le devis)
  */
 export async function generateInvoicePDF(
   invoice: Invoice,
@@ -73,160 +95,150 @@ export async function generateInvoicePDF(
   const doc = new jsPDF()
   const pageWidth = doc.internal.pageSize.getWidth()
   const pageHeight = doc.internal.pageSize.getHeight()
-  const margin = 20
+  const margin = 35
   const rightCol = pageWidth - margin
 
-  // Couleurs du thème - Noir, Blanc, Orange (ChantiPay)
-  const primaryColor: [number, number, number] = [31, 41, 55] // gray-800 (noir)
-  const accentColor: [number, number, number] = [249, 115, 22] // orange-500
-  const secondaryColor: [number, number, number] = [107, 114, 128] // gray-500
-  const darkColor: [number, number, number] = [31, 41, 55] // gray-800
-
-  let yPos = margin
+  let yPos = 30
 
   // ============================================
-  // EN-TÊTE - Bandeau noir professionnel
+  // EN-TÊTE (style devis : fond blanc, bordure orange)
   // ============================================
 
   // Charger le logo si disponible
-  let logoImage: { dataUrl: string; width: number; height: number } | null = null
+  let logoDataUrl: string | null = null
   if (companyInfo.logo) {
-    logoImage = await loadImageAsBase64(companyInfo.logo)
+    logoDataUrl = await loadImageAsBase64(companyInfo.logo)
   }
 
-  // Bandeau de couleur en haut (noir)
-  doc.setFillColor(...primaryColor)
-  doc.rect(0, 0, pageWidth, 45, 'F')
+  // Partie gauche : Logo + Infos entreprise
+  let leftY = yPos
 
-  // Position du texte de l'entreprise (décalé si logo présent)
-  let companyTextX = margin
-
-  // Afficher le logo dans le bandeau (à gauche)
-  if (logoImage) {
-    const logoHeight = 30
-    const logoY = 7.5 // centré verticalement dans le bandeau de 45px
-    // Calculer la largeur proportionnelle (ratio carré par défaut)
-    const logoWidth = logoHeight
-    doc.addImage(logoImage.dataUrl, 'PNG', margin, logoY, logoWidth, logoHeight)
-    companyTextX = margin + logoWidth + 5
+  // Logo (si disponible)
+  if (logoDataUrl) {
+    doc.addImage(logoDataUrl, 'PNG', margin, leftY, 35, 17.5)
+    leftY += 22
   }
 
-  // Nom de l'entreprise (à gauche dans le bandeau, après le logo)
-  doc.setFontSize(22)
+  // Nom de l'entreprise
+  doc.setFontSize(14)
   doc.setFont('helvetica', 'bold')
-  doc.setTextColor(255, 255, 255)
-  doc.text(companyInfo.name || 'Mon Entreprise', companyTextX, 20)
+  doc.setTextColor(...COLORS.primary)
+  doc.text(companyInfo.name || 'Mon Entreprise', margin, leftY)
+  leftY += 5
 
-  // Sous-titre (type d'activité)
-  doc.setFontSize(10)
-  doc.setFont('helvetica', 'normal')
-  doc.setTextColor(209, 213, 219) // gray-300
-  doc.text('Artisan professionnel', companyTextX, 28)
-
-  // Numéro de facture (à droite dans le bandeau)
-  doc.setFontSize(10)
-  doc.setTextColor(209, 213, 219) // gray-300
-  doc.text('FACTURE', rightCol, 15, { align: 'right' })
-  doc.setFontSize(16)
-  doc.setFont('helvetica', 'bold')
-  doc.setTextColor(255, 255, 255)
-  doc.text(invoice.invoice_number, rightCol, 25, { align: 'right' })
-
-  // Statut de paiement (badge dans le bandeau)
-  const statusInfo = getPaymentStatusInfo(invoice.payment_status)
-  doc.setFillColor(...statusInfo.color)
-  doc.roundedRect(rightCol - 35, 31, 35, 8, 2, 2, 'F')
+  // Infos entreprise
   doc.setFontSize(8)
-  doc.setFont('helvetica', 'bold')
-  doc.setTextColor(255, 255, 255)
-  doc.text(statusInfo.label, rightCol - 17.5, 36.5, { align: 'center' })
-
-  // ============================================
-  // INFORMATIONS ENTREPRISE (sous le bandeau, à droite)
-  // ============================================
-
-  yPos = 55
-  doc.setFontSize(9)
   doc.setFont('helvetica', 'normal')
-  doc.setTextColor(...secondaryColor)
+  doc.setTextColor(...COLORS.textSecondary)
 
-  if (companyInfo.address) {
-    doc.text(companyInfo.address, rightCol, yPos, { align: 'right' })
-    yPos += 5
+  if (companyInfo.email) {
+    doc.text(companyInfo.email, margin, leftY)
+    leftY += 4
   }
   if (companyInfo.phone) {
-    doc.text(`Tél : ${companyInfo.phone}`, rightCol, yPos, { align: 'right' })
-    yPos += 5
+    doc.text(companyInfo.phone, margin, leftY)
+    leftY += 4
   }
-  if (companyInfo.email) {
-    doc.text(companyInfo.email, rightCol, yPos, { align: 'right' })
-    yPos += 5
+  if (companyInfo.address) {
+    doc.text(companyInfo.address, margin, leftY)
+    leftY += 4
   }
   if (companyInfo.siret) {
-    doc.text(`SIRET : ${companyInfo.siret}`, rightCol, yPos, { align: 'right' })
-    yPos += 5
+    doc.text(`SIRET : ${companyInfo.siret}`, margin, leftY)
+    leftY += 4
   }
 
-  // ============================================
-  // DATES (à gauche, sous le bandeau)
-  // ============================================
+  // Partie droite : Titre FACTURE + infos
+  let rightY = yPos
 
-  let leftY = 55
-  doc.setFontSize(10)
+  // Titre FACTURE
+  doc.setFontSize(20)
+  doc.setFont('helvetica', 'bold')
+  doc.setTextColor(...COLORS.primary)
+  doc.text('FACTURE', rightCol, rightY, { align: 'right' })
+  rightY += 8
+
+  // Numéro de facture
+  doc.setFontSize(9)
   doc.setFont('helvetica', 'normal')
-  doc.setTextColor(...darkColor)
-  doc.text(`Date d'émission : ${formatDate(invoice.issue_date)}`, margin, leftY)
-  leftY += 6
+  doc.setTextColor(...COLORS.textPrimary)
+  doc.text(`N° ${invoice.invoice_number}`, rightCol, rightY, { align: 'right' })
+  rightY += 5
 
+  // Date d'émission
+  doc.text(`Date : ${formatDate(invoice.issue_date)}`, rightCol, rightY, { align: 'right' })
+  rightY += 5
+
+  // Date d'échéance
   if (invoice.due_date) {
-    doc.setTextColor(234, 88, 12) // orange-600
-    doc.text(`Date d'échéance : ${formatDate(invoice.due_date)}`, margin, leftY)
-    leftY += 6
+    doc.text(`Échéance : ${formatDate(invoice.due_date)}`, rightCol, rightY, { align: 'right' })
+    rightY += 5
   }
 
-  yPos = Math.max(yPos, leftY) + 12
+  // Badge statut
+  rightY += 3
+  const statusInfo = getPaymentStatusInfo(invoice.payment_status)
+  const badgeWidth = doc.getTextWidth(statusInfo.label) + 10
+  const badgeX = rightCol - badgeWidth
+
+  doc.setFillColor(...statusInfo.bgColor)
+  doc.roundedRect(badgeX, rightY - 4, badgeWidth, 7, 1.5, 1.5, 'F')
+  doc.setFontSize(8)
+  doc.setFont('helvetica', 'bold')
+  doc.setTextColor(...statusInfo.textColor)
+  doc.text(statusInfo.label, badgeX + badgeWidth / 2, rightY, { align: 'center' })
+
+  // Ligne de séparation orange (comme le devis)
+  yPos = Math.max(leftY, rightY) + 8
+  doc.setDrawColor(...COLORS.accent)
+  doc.setLineWidth(1)
+  doc.line(margin, yPos, rightCol, yPos)
+
+  yPos += 12
 
   // ============================================
-  // INFORMATIONS CLIENT (encadré gris)
+  // SECTION CLIENT (encadré gris comme le devis)
   // ============================================
 
   const clientBoxY = yPos
-  const clientBoxHeight = 35
+  const clientBoxHeight = 38
 
-  doc.setFillColor(249, 250, 251) // gray-50
-  doc.setDrawColor(229, 231, 235) // gray-200
+  doc.setFillColor(...COLORS.bgLight)
+  doc.setDrawColor(...COLORS.border)
   doc.setLineWidth(0.5)
-  doc.roundedRect(margin, clientBoxY, pageWidth - 2 * margin, clientBoxHeight, 3, 3, 'FD')
+  doc.roundedRect(margin, clientBoxY, pageWidth - 2 * margin, clientBoxHeight, 2, 2, 'FD')
 
   yPos = clientBoxY + 8
 
-  doc.setFontSize(9)
+  // Titre "Client"
+  doc.setFontSize(10)
   doc.setFont('helvetica', 'bold')
-  doc.setTextColor(...secondaryColor)
-  doc.text('FACTURÉ À', margin + 5, yPos)
-  yPos += 6
+  doc.setTextColor(...COLORS.accent)
+  doc.text('CLIENT', margin + 8, yPos)
+  yPos += 7
 
+  // Nom du client
+  doc.setFontSize(10)
   doc.setFont('helvetica', 'bold')
-  doc.setFontSize(12)
-  doc.setTextColor(...darkColor)
-  doc.text(invoice.client_name, margin + 5, yPos)
-  yPos += 6
+  doc.setTextColor(...COLORS.textDark)
+  doc.text(invoice.client_name, margin + 8, yPos)
+  yPos += 5
 
+  // Adresse et contact
+  doc.setFontSize(8)
   doc.setFont('helvetica', 'normal')
-  doc.setFontSize(9)
-  doc.setTextColor(...secondaryColor)
+  doc.setTextColor(...COLORS.textSecondary)
 
   if (invoice.client_address) {
-    doc.text(invoice.client_address, margin + 5, yPos)
-    yPos += 5
+    doc.text(invoice.client_address, margin + 8, yPos)
+    yPos += 4
   }
 
-  // Email et téléphone sur la même ligne
-  const clientDetails: string[] = []
-  if (invoice.client_phone) clientDetails.push(`Tél : ${invoice.client_phone}`)
-  if (invoice.client_email) clientDetails.push(invoice.client_email)
-  if (clientDetails.length > 0) {
-    doc.text(clientDetails.join('  •  '), margin + 5, yPos)
+  const clientContact: string[] = []
+  if (invoice.client_email) clientContact.push(invoice.client_email)
+  if (invoice.client_phone) clientContact.push(`Tél : ${invoice.client_phone}`)
+  if (clientContact.length > 0) {
+    doc.text(clientContact.join('  •  '), margin + 8, yPos)
   }
 
   yPos = clientBoxY + clientBoxHeight + 10
@@ -245,163 +257,103 @@ export async function generateInvoicePDF(
 
   autoTable(doc, {
     startY: yPos,
-    head: [['Description', 'Qté', 'Prix unitaire HT', 'TVA', 'Total HT']],
+    head: [['Désignation', 'Qté', 'PU HT', 'TVA', 'Total HT']],
     body: tableData,
     theme: 'plain',
     headStyles: {
-      fillColor: primaryColor,
+      fillColor: COLORS.primary,
       textColor: [255, 255, 255],
       fontStyle: 'bold',
-      fontSize: 9,
+      fontSize: 8,
       halign: 'left',
       cellPadding: 4,
     },
     bodyStyles: {
       fontSize: 9,
-      textColor: darkColor,
+      textColor: COLORS.textPrimary,
       cellPadding: 4,
     },
     alternateRowStyles: {
-      fillColor: [249, 250, 251], // gray-50
+      fillColor: COLORS.bgLight,
     },
     columnStyles: {
       0: { cellWidth: 'auto', halign: 'left' },
-      1: { cellWidth: 18, halign: 'center' },
-      2: { cellWidth: 35, halign: 'right' },
-      3: { cellWidth: 20, halign: 'center' },
-      4: { cellWidth: 35, halign: 'right', fontStyle: 'bold' },
+      1: { cellWidth: 15, halign: 'center' },
+      2: { cellWidth: 28, halign: 'right' },
+      3: { cellWidth: 18, halign: 'center' },
+      4: { cellWidth: 30, halign: 'right', fontStyle: 'bold' },
     },
     margin: { left: margin, right: margin },
-    didParseCell: function (data) {
-      // Colorier les cellules TVA selon le taux
-      if (data.column.index === 3 && data.section === 'body') {
-        const vatRate = parseFloat(data.cell.text[0])
-        if (vatRate === 20) {
-          data.cell.styles.fillColor = [219, 234, 254] // blue-100
-          data.cell.styles.textColor = [29, 78, 216] // blue-700
-        } else if (vatRate === 10) {
-          data.cell.styles.fillColor = [220, 252, 231] // green-100
-          data.cell.styles.textColor = [21, 128, 61] // green-700
-        } else if (vatRate === 5.5) {
-          data.cell.styles.fillColor = [254, 243, 199] // yellow-100
-          data.cell.styles.textColor = [161, 98, 7] // yellow-700
-        } else {
-          data.cell.styles.fillColor = [243, 244, 246] // gray-100
-          data.cell.styles.textColor = [55, 65, 81] // gray-700
-        }
-        data.cell.styles.fontStyle = 'bold'
-      }
-    },
   })
 
   // @ts-ignore - autoTable modifie lastAutoTable
   yPos = doc.lastAutoTable.finalY + 10
 
   // ============================================
-  // RÉCAPITULATIF TVA (si taux multiples)
+  // TOTAUX (encadré à droite, style devis)
   // ============================================
 
-  // Calculer les groupes de TVA
-  const vatGroups: Record<number, { base: number; tax: number }> = {}
-  invoice.items.forEach((item) => {
-    const rate = item.vat_rate ?? invoice.tax_rate
-    if (!vatGroups[rate]) {
-      vatGroups[rate] = { base: 0, tax: 0 }
-    }
-    vatGroups[rate].base += item.total
-    vatGroups[rate].tax += item.total * (rate / 100)
-  })
-
-  const vatRates = Object.keys(vatGroups)
-
-  // Afficher le récapitulatif si plusieurs taux de TVA
-  if (vatRates.length > 1) {
-    const boxHeight = 10 + vatRates.length * 6
-    doc.setFillColor(254, 243, 199) // amber-100
-    doc.setDrawColor(251, 191, 36) // amber-400
-    doc.setLineWidth(0.5)
-    doc.roundedRect(margin, yPos, pageWidth / 2 - margin - 5, boxHeight, 3, 3, 'FD')
-
-    doc.setFontSize(8)
-    doc.setFont('helvetica', 'bold')
-    doc.setTextColor(146, 64, 14) // amber-800
-    doc.text('Détail TVA (taux multiples)', margin + 4, yPos + 6)
-
-    let vatY = yPos + 12
-    doc.setFont('helvetica', 'normal')
-    Object.entries(vatGroups).forEach(([rate, values]) => {
-      doc.setTextColor(107, 114, 128)
-      doc.text(`TVA ${rate}% (base: ${formatCurrency(values.base)})`, margin + 4, vatY)
-      doc.setTextColor(60, 60, 60)
-      doc.text(formatCurrency(values.tax), pageWidth / 2 - margin - 8, vatY, { align: 'right' })
-      vatY += 6
-    })
-  }
-
-  // ============================================
-  // TOTAUX (encadré à droite)
-  // ============================================
-
-  const totalsBoxWidth = pageWidth / 2 - margin - 5
-  const totalsBoxX = pageWidth / 2 + 5
-  
-  // Calculer la hauteur en fonction de si on a un acompte ou non
+  const totalsBoxWidth = 110
+  const totalsBoxX = rightCol - totalsBoxWidth
   const hasDeposit = invoice.paid_amount && invoice.paid_amount > 0
-  const totalsBoxHeight = hasDeposit ? 72 : 48
+  const totalsBoxHeight = hasDeposit ? 65 : 48
 
-  // Cadre pour les totaux
-  doc.setFillColor(249, 250, 251) // gray-50
-  doc.setDrawColor(229, 231, 235) // gray-200
+  doc.setFillColor(...COLORS.bgLight)
+  doc.setDrawColor(...COLORS.border)
   doc.setLineWidth(0.5)
-  doc.roundedRect(totalsBoxX, yPos, totalsBoxWidth, totalsBoxHeight, 3, 3, 'FD')
+  doc.roundedRect(totalsBoxX, yPos, totalsBoxWidth, totalsBoxHeight, 2, 2, 'FD')
 
   let totalsY = yPos + 10
   const labelX = totalsBoxX + 8
   const valueX = totalsBoxX + totalsBoxWidth - 8
 
-  // Sous-total HT
-  doc.setFontSize(10)
+  // Total HT
+  doc.setFontSize(9)
   doc.setFont('helvetica', 'normal')
-  doc.setTextColor(...secondaryColor)
-  doc.text('Sous-total HT', labelX, totalsY)
-  doc.setTextColor(...darkColor)
+  doc.setTextColor(...COLORS.textSecondary)
+  doc.text('Total HT', labelX, totalsY)
+  doc.setFont('helvetica', 'bold')
+  doc.setTextColor(...COLORS.textPrimary)
   doc.text(formatCurrency(invoice.subtotal), valueX, totalsY, { align: 'right' })
-  totalsY += 8
+  totalsY += 7
 
   // TVA
-  doc.setTextColor(...secondaryColor)
-  doc.text(`TVA (${invoice.tax_rate}%)`, labelX, totalsY)
-  doc.setTextColor(...darkColor)
-  doc.text(formatCurrency(invoice.tax_amount), valueX, totalsY, { align: 'right' })
-  totalsY += 10
-
-  // Ligne de séparation (orange)
-  doc.setDrawColor(...accentColor)
-  doc.setLineWidth(1)
-  doc.line(labelX, totalsY - 3, valueX, totalsY - 3)
-
-  // Total TTC (orange)
-  doc.setFontSize(12)
+  doc.setFont('helvetica', 'normal')
+  doc.setTextColor(...COLORS.textSecondary)
+  doc.text('TVA', labelX, totalsY)
   doc.setFont('helvetica', 'bold')
-  doc.setTextColor(...accentColor)
-  doc.text('Total TTC', labelX, totalsY + 5)
-  doc.text(formatCurrency(invoice.total), valueX, totalsY + 5, { align: 'right' })
-  totalsY += 12
+  doc.setTextColor(...COLORS.textPrimary)
+  doc.text(formatCurrency(invoice.tax_amount), valueX, totalsY, { align: 'right' })
+  totalsY += 9
 
-  // Acompte déjà versé (si applicable)
+  // Ligne de séparation orange
+  doc.setDrawColor(...COLORS.accent)
+  doc.setLineWidth(1)
+  doc.line(labelX, totalsY - 2, valueX, totalsY - 2)
+
+  // Total TTC
+  totalsY += 5
+  doc.setFontSize(11)
+  doc.setFont('helvetica', 'bold')
+  doc.setTextColor(...COLORS.primary)
+  doc.text('Total TTC', labelX, totalsY)
+  doc.setFontSize(12)
+  doc.setTextColor(...COLORS.accent)
+  doc.text(formatCurrency(invoice.total), valueX, totalsY, { align: 'right' })
+
+  // Acompte (si applicable)
   if (hasDeposit) {
-    totalsY += 3
-    doc.setFontSize(10)
+    totalsY += 10
+    doc.setFontSize(8)
     doc.setFont('helvetica', 'normal')
-    doc.setTextColor(22, 163, 74) // green-600
+    doc.setTextColor(...COLORS.green)
     doc.text('Acompte versé', labelX, totalsY)
-    doc.text(`- ${formatCurrency(invoice.paid_amount!)}`, valueX, totalsY, { align: 'right' })
-    totalsY += 8
-
-    // Reste à payer (en gras, orange)
-    doc.setFontSize(11)
     doc.setFont('helvetica', 'bold')
-    doc.setTextColor(234, 88, 12) // orange-600
+    doc.text(`- ${formatCurrency(invoice.paid_amount!)}`, valueX, totalsY, { align: 'right' })
+
+    totalsY += 6
+    doc.setFontSize(9)
+    doc.setTextColor(...COLORS.accent)
     doc.text('RESTE À PAYER', labelX, totalsY)
     const remainingAmount = invoice.total - invoice.paid_amount!
     doc.text(formatCurrency(remainingAmount), valueX, totalsY, { align: 'right' })
@@ -414,11 +366,11 @@ export async function generateInvoicePDF(
   // ============================================
 
   if (invoice.payment_terms) {
-    doc.setFontSize(9)
+    doc.setFontSize(8)
     doc.setFont('helvetica', 'italic')
-    doc.setTextColor(...secondaryColor)
+    doc.setTextColor(...COLORS.textSecondary)
     doc.text(`Conditions : ${invoice.payment_terms}`, margin, yPos)
-    yPos += 8
+    yPos += 6
   }
 
   // ============================================
@@ -426,39 +378,38 @@ export async function generateInvoicePDF(
   // ============================================
 
   if (invoice.notes) {
-    doc.setFontSize(9)
+    doc.setFontSize(8)
     doc.setFont('helvetica', 'bold')
-    doc.setTextColor(...darkColor)
+    doc.setTextColor(...COLORS.textPrimary)
     doc.text('Notes :', margin, yPos)
-    yPos += 5
+    yPos += 4
     doc.setFont('helvetica', 'italic')
-    doc.setTextColor(...secondaryColor)
+    doc.setTextColor(...COLORS.textSecondary)
     const splitNotes = doc.splitTextToSize(invoice.notes, pageWidth - 2 * margin)
     doc.text(splitNotes, margin, yPos)
-    yPos += splitNotes.length * 5
   }
 
   // ============================================
-  // PIED DE PAGE
+  // PIED DE PAGE (style devis)
   // ============================================
 
-  const footerY = pageHeight - 15
+  const footerY = pageHeight - 20
 
   // Ligne de séparation
-  doc.setDrawColor(229, 231, 235) // gray-200
+  doc.setDrawColor(...COLORS.border)
   doc.setLineWidth(0.5)
-  doc.line(margin, footerY - 5, pageWidth - margin, footerY - 5)
+  doc.line(margin, footerY - 6, rightCol, footerY - 6)
 
-  doc.setFontSize(8)
-  doc.setTextColor(...secondaryColor)
-  doc.setFont('helvetica', 'normal')
-  doc.text('Merci de votre confiance', pageWidth / 2, footerY, { align: 'center' })
-
+  // Texte footer
   doc.setFontSize(7)
-  const footerInfo = `${companyInfo.name}${companyInfo.siret ? ` • SIRET: ${companyInfo.siret}` : ''}`
-  doc.text(footerInfo, pageWidth / 2, footerY + 4, { align: 'center' })
+  doc.setTextColor(...COLORS.textMuted)
+  doc.setFont('helvetica', 'normal')
+  doc.text('Merci de votre confiance', pageWidth / 2, footerY - 1, { align: 'center' })
 
-  // Retourner le PDF en Blob
+  doc.setFontSize(6)
+  doc.setTextColor(...COLORS.border)
+  doc.text('Facture générée via ChantiPay • www.chantipay.com', pageWidth / 2, footerY + 3, { align: 'center' })
+
   return doc.output('blob')
 }
 
@@ -483,10 +434,9 @@ export async function downloadInvoicePDF(
  */
 
 function formatDate(dateString: string): string {
-  const date = new Date(dateString)
-  return date.toLocaleDateString('fr-FR', {
+  return new Date(dateString).toLocaleDateString('fr-FR', {
     day: '2-digit',
-    month: '2-digit',
+    month: 'long',
     year: 'numeric',
   })
 }
@@ -500,18 +450,19 @@ function formatCurrency(amount: number): string {
 
 function getPaymentStatusInfo(status: string): {
   label: string
-  color: [number, number, number]
+  bgColor: [number, number, number]
+  textColor: [number, number, number]
 } {
   const statusMap: Record<
     string,
-    { label: string; color: [number, number, number] }
+    { label: string; bgColor: [number, number, number]; textColor: [number, number, number] }
   > = {
-    draft: { label: 'Brouillon', color: [107, 114, 128] }, // gray-500
-    sent: { label: 'Envoyée', color: [59, 130, 246] }, // blue-500
-    paid: { label: 'Payée', color: [16, 185, 129] }, // green-500
-    partial: { label: 'Partiel', color: [251, 146, 60] }, // orange-400
-    overdue: { label: 'En retard', color: [239, 68, 68] }, // red-500
-    canceled: { label: 'Annulée', color: [156, 163, 175] }, // gray-400
+    draft: { label: 'Brouillon', bgColor: [241, 245, 249], textColor: [100, 116, 139] },      // slate
+    sent: { label: 'Envoyée', bgColor: [219, 234, 254], textColor: [29, 78, 216] },          // blue
+    paid: { label: 'Payée', bgColor: [209, 250, 229], textColor: [5, 150, 105] },            // green
+    partial: { label: 'Partiel', bgColor: [254, 243, 199], textColor: [217, 119, 6] },       // amber
+    overdue: { label: 'En retard', bgColor: [254, 226, 226], textColor: [220, 38, 38] },     // red
+    canceled: { label: 'Annulée', bgColor: [254, 226, 226], textColor: [220, 38, 38] },      // red
   }
   return statusMap[status] || statusMap.draft
 }
