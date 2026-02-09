@@ -176,7 +176,12 @@ export default function TechnicianPointagePage({
         }
       )
 
-      const loc = {
+      const loc: {
+        latitude: number
+        longitude: number
+        accuracy: number
+        address?: string
+      } = {
         latitude: position.coords.latitude,
         longitude: position.coords.longitude,
         accuracy: position.coords.accuracy,
@@ -196,7 +201,7 @@ export default function TechnicianPointagePage({
         // Pas grave si le geocoding échoue
       }
 
-      setLocation(loc as typeof location)
+      setLocation(loc)
       toast.success('Position GPS capturée')
     } catch (error) {
       const geoError = error as GeolocationPositionError
@@ -355,8 +360,9 @@ export default function TechnicianPointagePage({
 
   if (!technician) return null
 
-  const currentTypeConfig =
-    selectedType && entryTypeConfig[selectedType as keyof typeof entryTypeConfig]
+  const currentTypeConfig = selectedType
+    ? entryTypeConfig[selectedType as keyof typeof entryTypeConfig]
+    : undefined
 
   return (
     <MobileLayout title="Pointage" showBottomNav={false}>

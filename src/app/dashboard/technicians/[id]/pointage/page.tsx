@@ -17,14 +17,6 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-import {
   ArrowLeft,
   Loader2,
   MapPin,
@@ -189,7 +181,12 @@ export default function TechnicianPointageDesktopPage({
         }
       )
 
-      const loc = {
+      const loc: {
+        latitude: number
+        longitude: number
+        accuracy: number
+        address?: string
+      } = {
         latitude: position.coords.latitude,
         longitude: position.coords.longitude,
         accuracy: position.coords.accuracy,
@@ -208,7 +205,7 @@ export default function TechnicianPointageDesktopPage({
         // Pas grave si le geocoding échoue
       }
 
-      setLocation(loc as typeof location)
+      setLocation(loc)
       toast.success('Position GPS capturée')
     } catch (error) {
       const geoError = error as GeolocationPositionError
@@ -362,8 +359,9 @@ export default function TechnicianPointageDesktopPage({
 
   if (!technician) return null
 
-  const currentTypeConfig =
-    selectedType && entryTypeConfig[selectedType as keyof typeof entryTypeConfig]
+  const currentTypeConfig = selectedType
+    ? entryTypeConfig[selectedType as keyof typeof entryTypeConfig]
+    : undefined
 
   return (
     <LayoutContainer>
