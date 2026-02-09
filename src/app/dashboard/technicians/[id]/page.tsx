@@ -421,14 +421,14 @@ export default function TechnicianDetailPage({
                 Pointage
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <Link href={`/dashboard/technicians/${id}/pointage`}>
+            <CardContent className="space-y-3">
+              <Link href={`/dashboard/technicians/${id}/pointage`} className="block">
                 <Button variant="default" className="w-full">
                   <Clock className="h-4 w-4 mr-2" />
                   Nouveau pointage
                 </Button>
               </Link>
-              <Link href={`/dashboard/technicians/${id}/historique`}>
+              <Link href={`/dashboard/technicians/${id}/historique`} className="block">
                 <Button variant="outline" className="w-full">
                   <History className="h-4 w-4 mr-2" />
                   Historique
