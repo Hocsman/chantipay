@@ -4,11 +4,11 @@ import { MobileLayout } from '@/components/mobile/MobileLayout';
 import { Button } from '@/components/ui/button';
 import {
   Users,
-  Building,
+  Users2,
   Calendar,
-  Package,
   Receipt,
   ClipboardList,
+  Landmark,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
@@ -32,14 +32,9 @@ export default function MobileMenuPage() {
       href: '/mobile/avoirs',
     },
     {
-      label: 'Fournisseurs',
-      icon: Building,
-      href: '/mobile/suppliers',
-    },
-    {
-      label: 'Chantiers',
-      icon: Calendar,
-      href: '/mobile/projects',
+      label: 'Techniciens',
+      icon: Users2,
+      href: '/mobile/technicians',
     },
     {
       label: 'Rapports de visite',
@@ -47,9 +42,14 @@ export default function MobileMenuPage() {
       href: '/mobile/visit-reports',
     },
     {
-      label: 'Stocks',
-      icon: Package,
-      href: '/mobile/inventory',
+      label: 'Bancaire',
+      icon: Landmark,
+      href: '/mobile/banking',
+    },
+    {
+      label: 'Chantiers',
+      icon: Calendar,
+      href: '/mobile/planning',
     },
   ];
 
