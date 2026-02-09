@@ -115,6 +115,8 @@ export async function POST(request: Request) {
       issue_date: body.issue_date,
       notes: body.notes || null,
       payment_terms: body.payment_terms || null,
+      work_location: body.work_location || null,
+      is_subcontracting: body.is_subcontracting || false,
     })
     .select()
     .single()

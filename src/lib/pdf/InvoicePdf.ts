@@ -26,6 +26,9 @@ interface Invoice {
   payment_terms?: string | null
   notes?: string | null
   items: InvoiceItem[]
+  // Nouveaux champs
+  work_location?: string | null
+  is_subcontracting?: boolean
 }
 
 interface CompanyInfo {
@@ -35,6 +38,13 @@ interface CompanyInfo {
   email?: string
   siret?: string
   logo?: string
+  // Nouveaux champs légaux
+  rcs?: string
+  vat_number?: string
+  ape_code?: string
+  share_capital?: string
+  tax_status?: 'standard' | 'auto_entrepreneur' | 'micro_entreprise'
+  is_subcontractor?: boolean
 }
 
 // ============================================
@@ -147,6 +157,22 @@ export async function generateInvoicePDF(
     doc.text(`SIRET : ${companyInfo.siret}`, margin, leftY)
     leftY += 4
   }
+  if (companyInfo.rcs) {
+    doc.text(`RCS : ${companyInfo.rcs}`, margin, leftY)
+    leftY += 4
+  }
+  if (companyInfo.vat_number) {
+    doc.text(`TVA : ${companyInfo.vat_number}`, margin, leftY)
+    leftY += 4
+  }
+  if (companyInfo.ape_code) {
+    doc.text(`Code APE : ${companyInfo.ape_code}`, margin, leftY)
+    leftY += 4
+  }
+  if (companyInfo.share_capital) {
+    doc.text(`Capital : ${companyInfo.share_capital}`, margin, leftY)
+    leftY += 4
+  }
 
   // Partie droite : Titre FACTURE + infos
   let rightY = yPos
@@ -242,6 +268,34 @@ export async function generateInvoicePDF(
   }
 
   yPos = clientBoxY + clientBoxHeight + 10
+
+  // ============================================
+  // LIEU D'INTERVENTION (si différent de l'adresse client)
+  // ============================================
+
+  if (invoice.work_location) {
+    const workLocationBoxHeight = 22
+
+    // Fond orange clair avec bordure orange
+    doc.setFillColor(255, 247, 237) // #FFF7ED
+    doc.setDrawColor(253, 186, 116) // #FDBA74
+    doc.setLineWidth(0.5)
+    doc.roundedRect(margin, yPos, pageWidth - 2 * margin, workLocationBoxHeight, 2, 2, 'FD')
+
+    // Titre
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(234, 88, 12) // #EA580C
+    doc.text("LIEU D'INTERVENTION", margin + 8, yPos + 8)
+
+    // Adresse
+    doc.setFontSize(9)
+    doc.setFont('helvetica', 'normal')
+    doc.setTextColor(154, 52, 18) // #9A3412
+    doc.text(invoice.work_location, margin + 8, yPos + 15)
+
+    yPos += workLocationBoxHeight + 8
+  }
 
   // ============================================
   // TABLEAU DES ARTICLES
@@ -399,6 +453,26 @@ export async function generateInvoicePDF(
   doc.setDrawColor(...COLORS.border)
   doc.setLineWidth(0.5)
   doc.line(margin, footerY - 6, rightCol, footerY - 6)
+
+  // Mentions légales (auto-entrepreneur et sous-traitant)
+  let legalY = footerY - 12
+
+  // Mention auto-entrepreneur
+  if (companyInfo.tax_status === 'auto_entrepreneur') {
+    doc.setFontSize(7)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(...COLORS.red)
+    doc.text('TVA non applicable, article 293B du CGI', pageWidth / 2, legalY, { align: 'center' })
+    legalY += 4
+  }
+
+  // Mention sous-traitance (autoliquidation)
+  if (companyInfo.is_subcontractor || invoice.is_subcontracting) {
+    doc.setFontSize(7)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(...COLORS.red)
+    doc.text('Autoliquidation de la TVA - Article 283-2 nonies du CGI', pageWidth / 2, legalY, { align: 'center' })
+  }
 
   // Texte footer
   doc.setFontSize(7)

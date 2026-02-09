@@ -128,6 +128,28 @@ const styles = StyleSheet.create({
     marginBottom: 1.5,
   },
 
+  // Work location section
+  workLocationSection: {
+    marginBottom: 12,
+    padding: 10,
+    backgroundColor: '#FFF7ED',
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: '#FDBA74',
+  },
+  workLocationTitle: {
+    fontSize: 10,
+    fontFamily: 'Helvetica-Bold',
+    color: '#EA580C',
+    marginBottom: 6,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  workLocationText: {
+    fontSize: 9,
+    color: '#9A3412',
+  },
+
   // Table styles
   table: {
     marginBottom: 12,
@@ -308,6 +330,14 @@ const styles = StyleSheet.create({
     color: '#CBD5E1',
     marginTop: 3,
   },
+  // Legal mentions
+  legalMention: {
+    fontSize: 7,
+    color: '#DC2626',
+    fontFamily: 'Helvetica-Bold',
+    marginBottom: 3,
+    textAlign: 'center',
+  },
 })
 
 // ============================================
@@ -416,9 +446,33 @@ export const QuotePdfDocument = ({
               <Text style={styles.companyInfo}>{profile.address}</Text>
             )}
             {/* SIRET number */}
-            {(profile as Profile & { siret?: string | null })?.siret && (
+            {profile?.siret && (
               <Text style={styles.companyInfo}>
-                SIRET : {(profile as Profile & { siret?: string | null }).siret}
+                SIRET : {profile.siret}
+              </Text>
+            )}
+            {/* RCS */}
+            {profile?.rcs && (
+              <Text style={styles.companyInfo}>
+                RCS : {profile.rcs}
+              </Text>
+            )}
+            {/* VAT Number */}
+            {profile?.vat_number && (
+              <Text style={styles.companyInfo}>
+                TVA : {profile.vat_number}
+              </Text>
+            )}
+            {/* APE Code */}
+            {profile?.ape_code && (
+              <Text style={styles.companyInfo}>
+                Code APE : {profile.ape_code}
+              </Text>
+            )}
+            {/* Share Capital */}
+            {profile?.share_capital && (
+              <Text style={styles.companyInfo}>
+                Capital : {profile.share_capital}
               </Text>
             )}
           </View>
@@ -471,6 +525,16 @@ export const QuotePdfDocument = ({
             <Text style={styles.clientInfo}>Tél : {client.phone}</Text>
           )}
         </View>
+
+        {/* ============================================ */}
+        {/* Work Location (if different from client address) */}
+        {/* ============================================ */}
+        {quote.work_location && (
+          <View style={styles.workLocationSection}>
+            <Text style={styles.workLocationTitle}>Lieu d&apos;intervention</Text>
+            <Text style={styles.workLocationText}>{quote.work_location}</Text>
+          </View>
+        )}
 
         {/* ============================================ */}
         {/* Items Table */}
@@ -602,6 +666,18 @@ export const QuotePdfDocument = ({
         {/* Footer */}
         {/* ============================================ */}
         <View style={styles.footer} fixed>
+          {/* Auto-entrepreneur VAT exemption mention */}
+          {profile?.tax_status === 'auto_entrepreneur' && (
+            <Text style={styles.legalMention}>
+              TVA non applicable, article 293B du CGI
+            </Text>
+          )}
+          {/* Subcontractor reverse charge mention */}
+          {profile?.is_subcontractor && (
+            <Text style={styles.legalMention}>
+              Autoliquidation de la TVA - Article 283-2 nonies du CGI
+            </Text>
+          )}
           {settings?.pdf_footer_text && (
             <Text style={styles.footerText}>{settings.pdf_footer_text}</Text>
           )}

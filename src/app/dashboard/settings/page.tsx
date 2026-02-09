@@ -18,7 +18,8 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
-import { Loader2, Save, Upload, Building2, CreditCard, X, Image as ImageIcon, Palette, BookOpen } from 'lucide-react'
+import { Switch } from '@/components/ui/switch'
+import { Loader2, Save, Upload, Building2, CreditCard, X, Palette, BookOpen, AlertCircle } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { uploadCompanyLogo, deleteCompanyLogo } from '@/lib/uploadLogo'
@@ -27,38 +28,107 @@ import { createClient } from '@/lib/supabase/client'
 
 export default function SettingsPage() {
   const [isLoading, setIsLoading] = useState(false)
+  const [isLoadingData, setIsLoadingData] = useState(true)
   const [isUploadingLogo, setIsUploadingLogo] = useState(false)
   const [logoUrl, setLogoUrl] = useState<string | null>(null)
   const [userId, setUserId] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // Récupérer l'utilisateur authentifié
-  useEffect(() => {
-    const getUser = async () => {
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        setUserId(user.id)
-      }
-    }
-    getUser()
-  }, [])
-  
-  // État du formulaire (pré-rempli avec des données de démo)
+  // État du formulaire
   const [formData, setFormData] = useState({
-    companyName: 'Dupont Plomberie',
-    fullName: 'Jean Dupont',
-    email: 'jean.dupont@example.com',
-    phone: '06 12 34 56 78',
-    address: '15 Rue de la République, 75001 Paris',
-    siret: '123 456 789 00012',
-    vatNumber: 'FR12345678901',
-    defaultVatRate: '10',
+    // Infos entreprise (profiles)
+    companyName: '',
+    fullName: '',
+    email: '',
+    phone: '',
+    address: '',
+    siret: '',
+    vatNumber: '',
+    taxStatus: 'standard' as 'standard' | 'auto_entrepreneur' | 'micro_entreprise',
+    isSubcontractor: false,
+    rcs: '',
+    apeCode: '',
+    shareCapital: '',
+    // Paramètres (settings)
+    defaultVatRate: '20',
     defaultDepositPercent: '30',
-    pdfFooterText: 'Merci pour votre confiance. Règlement à réception de facture.',
+    pdfFooterText: '',
   })
 
-  const handleChange = (field: string, value: string) => {
+  // Charger les données utilisateur
+  useEffect(() => {
+    const loadUserData = async () => {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+
+      if (!user) {
+        setIsLoadingData(false)
+        return
+      }
+
+      setUserId(user.id)
+
+      // Charger le profil
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single()
+
+      // Charger les settings
+      const { data: settings } = await supabase
+        .from('settings')
+        .select('*')
+        .eq('user_id', user.id)
+        .single()
+
+      // Charger le logo
+      const { data: logoData } = await supabase.storage
+        .from('logos')
+        .list(user.id, { limit: 1 })
+
+      if (logoData && logoData.length > 0) {
+        const { data: { publicUrl } } = supabase.storage
+          .from('logos')
+          .getPublicUrl(`${user.id}/${logoData[0].name}`)
+        setLogoUrl(publicUrl)
+      }
+
+      // Remplir le formulaire
+      if (profile) {
+        setFormData(prev => ({
+          ...prev,
+          companyName: profile.company_name || '',
+          fullName: profile.full_name || '',
+          email: profile.email || '',
+          phone: profile.phone || '',
+          address: profile.address || '',
+          siret: profile.siret || '',
+          vatNumber: profile.vat_number || '',
+          taxStatus: profile.tax_status || 'standard',
+          isSubcontractor: profile.is_subcontractor || false,
+          rcs: profile.rcs || '',
+          apeCode: profile.ape_code || '',
+          shareCapital: profile.share_capital || '',
+        }))
+      }
+
+      if (settings) {
+        setFormData(prev => ({
+          ...prev,
+          defaultVatRate: String(settings.default_vat_rate || 20),
+          defaultDepositPercent: String(settings.default_deposit_percent || 30),
+          pdfFooterText: settings.pdf_footer_text || '',
+        }))
+      }
+
+      setIsLoadingData(false)
+    }
+
+    loadUserData()
+  }, [])
+
+  const handleChange = (field: string, value: string | boolean) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
   }
 
@@ -74,7 +144,7 @@ export default function SettingsPage() {
     setIsUploadingLogo(true)
     try {
       const url = await uploadCompanyLogo(file, userId)
-      
+
       if (url) {
         setLogoUrl(url)
         toast.success('Logo téléversé avec succès')
@@ -104,7 +174,7 @@ export default function SettingsPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
-    
+
     try {
       const response = await fetch('/api/settings', {
         method: 'PATCH',
@@ -116,7 +186,7 @@ export default function SettingsPage() {
       })
 
       if (!response.ok) throw new Error('Erreur lors de la sauvegarde')
-      
+
       toast.success('Paramètres sauvegardés avec succès')
     } catch (error) {
       console.error('Erreur:', error)
@@ -124,6 +194,16 @@ export default function SettingsPage() {
     } finally {
       setIsLoading(false)
     }
+  }
+
+  if (isLoadingData) {
+    return (
+      <LayoutContainer>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </LayoutContainer>
+    )
   }
 
   return (
@@ -142,7 +222,7 @@ export default function SettingsPage() {
               Informations de l&apos;entreprise
             </CardTitle>
             <CardDescription>
-              Ces informations apparaîtront sur vos devis
+              Ces informations apparaîtront sur vos devis et factures
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -200,6 +280,9 @@ export default function SettingsPage() {
               />
             </div>
 
+            <Separator />
+
+            {/* Informations légales */}
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="siret">N° SIRET</Label>
@@ -217,8 +300,111 @@ export default function SettingsPage() {
                   value={formData.vatNumber}
                   onChange={(e) => handleChange('vatNumber', e.target.value)}
                   placeholder="FR12345678901"
+                  disabled={formData.taxStatus === 'auto_entrepreneur'}
+                />
+                {formData.taxStatus === 'auto_entrepreneur' && (
+                  <p className="text-xs text-muted-foreground">Non applicable pour les auto-entrepreneurs</p>
+                )}
+              </div>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="space-y-2">
+                <Label htmlFor="rcs">N° RCS (optionnel)</Label>
+                <Input
+                  id="rcs"
+                  value={formData.rcs}
+                  onChange={(e) => handleChange('rcs', e.target.value)}
+                  placeholder="Paris B 123 456 789"
                 />
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="apeCode">Code APE/NAF</Label>
+                <Input
+                  id="apeCode"
+                  value={formData.apeCode}
+                  onChange={(e) => handleChange('apeCode', e.target.value)}
+                  placeholder="4321A"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="shareCapital">Capital social</Label>
+                <Input
+                  id="shareCapital"
+                  value={formData.shareCapital}
+                  onChange={(e) => handleChange('shareCapital', e.target.value)}
+                  placeholder="10 000 €"
+                />
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Statut fiscal */}
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="taxStatus">Statut fiscal</Label>
+                <Select
+                  value={formData.taxStatus}
+                  onValueChange={(value) => handleChange('taxStatus', value)}
+                >
+                  <SelectTrigger id="taxStatus">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="standard">Entreprise avec TVA</SelectItem>
+                    <SelectItem value="auto_entrepreneur">Auto-entrepreneur (franchise TVA)</SelectItem>
+                    <SelectItem value="micro_entreprise">Micro-entreprise avec TVA</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Alerte auto-entrepreneur */}
+              {formData.taxStatus === 'auto_entrepreneur' && (
+                <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-900 dark:bg-amber-950/30">
+                  <AlertCircle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+                  <div className="text-sm">
+                    <p className="font-medium text-amber-800 dark:text-amber-200">
+                      Mention légale auto-entrepreneur
+                    </p>
+                    <p className="text-amber-700 dark:text-amber-300 mt-1">
+                      La mention &quot;TVA non applicable, article 293B du CGI&quot; sera automatiquement ajoutée sur vos devis et factures.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Sous-traitance */}
+              <div className="flex items-center justify-between rounded-lg border p-4">
+                <div className="space-y-0.5">
+                  <Label htmlFor="isSubcontractor" className="text-base">
+                    Activité de sous-traitance
+                  </Label>
+                  <p className="text-sm text-muted-foreground">
+                    Cochez si vous travaillez en sous-traitance (autoliquidation de la TVA)
+                  </p>
+                </div>
+                <Switch
+                  id="isSubcontractor"
+                  checked={formData.isSubcontractor}
+                  onCheckedChange={(checked) => handleChange('isSubcontractor', checked)}
+                />
+              </div>
+
+              {/* Alerte sous-traitance */}
+              {formData.isSubcontractor && (
+                <div className="flex items-start gap-3 rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-900 dark:bg-blue-950/30">
+                  <AlertCircle className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
+                  <div className="text-sm">
+                    <p className="font-medium text-blue-800 dark:text-blue-200">
+                      Mention légale sous-traitance
+                    </p>
+                    <p className="text-blue-700 dark:text-blue-300 mt-1">
+                      La mention &quot;Autoliquidation de la TVA - Article 283-2 nonies du CGI&quot; sera automatiquement ajoutée sur vos factures de sous-traitance.
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
 
             <Separator />
@@ -240,7 +426,7 @@ export default function SettingsPage() {
                     <Building2 className="h-8 w-8 text-muted-foreground" />
                   </div>
                 )}
-                
+
                 <div className="flex items-center gap-2">
                   <input
                     ref={fileInputRef}
@@ -250,8 +436,8 @@ export default function SettingsPage() {
                     className="hidden"
                     id="logo-upload"
                   />
-                  <Button 
-                    type="button" 
+                  <Button
+                    type="button"
                     variant="outline"
                     onClick={() => fileInputRef.current?.click()}
                     disabled={isUploadingLogo}
@@ -259,7 +445,7 @@ export default function SettingsPage() {
                     <Upload className="h-4 w-4 mr-2" />
                     {isUploadingLogo ? 'Téléversement...' : logoUrl ? 'Changer le logo' : 'Téléverser un logo'}
                   </Button>
-                  
+
                   {logoUrl && (
                     <Button
                       type="button"
@@ -295,16 +481,21 @@ export default function SettingsPage() {
                 <Select
                   value={formData.defaultVatRate}
                   onValueChange={(value) => handleChange('defaultVatRate', value)}
+                  disabled={formData.taxStatus === 'auto_entrepreneur'}
                 >
                   <SelectTrigger id="defaultVatRate">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="0">0% (Exonéré)</SelectItem>
                     <SelectItem value="5.5">5,5%</SelectItem>
                     <SelectItem value="10">10%</SelectItem>
                     <SelectItem value="20">20%</SelectItem>
                   </SelectContent>
                 </Select>
+                {formData.taxStatus === 'auto_entrepreneur' && (
+                  <p className="text-xs text-muted-foreground">TVA non applicable pour les auto-entrepreneurs</p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="defaultDepositPercent">Acompte par défaut</Label>
@@ -440,7 +631,7 @@ export default function SettingsPage() {
 // Theme preview component
 function ThemePreview() {
   const { theme, resolvedTheme } = useTheme()
-  
+
   const themeLabels: Record<string, string> = {
     light: 'Clair',
     dark: 'Sombre',

@@ -16,7 +16,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Loader2, ArrowLeft, Plus, Trash2, Calendar } from 'lucide-react'
+import { Loader2, ArrowLeft, Plus, Trash2, Calendar, MapPin } from 'lucide-react'
+import { Switch } from '@/components/ui/switch'
 import { toast } from 'sonner'
 
 interface Client {
@@ -50,6 +51,8 @@ export default function NewInvoicePage() {
     payment_terms: 'Paiement à 30 jours',
     tax_rate: 20.0,
     notes: '',
+    work_location: '',
+    is_subcontracting: false,
   })
 
   useEffect(() => {
@@ -147,6 +150,8 @@ export default function NewInvoicePage() {
           total,
           payment_status: 'draft',
           notes: formData.notes || null,
+          work_location: formData.work_location.trim() || null,
+          is_subcontracting: formData.is_subcontracting,
           items: items.filter(item => item.description.trim()),
         }),
       })
@@ -254,6 +259,46 @@ export default function NewInvoicePage() {
                   value={formData.payment_terms}
                   onChange={(e) => setFormData({ ...formData, payment_terms: e.target.value })}
                   placeholder="Ex: Paiement à 30 jours"
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Lieu d'intervention */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MapPin className="h-5 w-5" />
+                Lieu d&apos;intervention
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="work_location">
+                  Adresse du chantier (si différente de l&apos;adresse du client)
+                </Label>
+                <Textarea
+                  id="work_location"
+                  value={formData.work_location}
+                  onChange={(e) => setFormData({ ...formData, work_location: e.target.value })}
+                  placeholder="Ex: 15 rue de la Paix, 75002 Paris"
+                  rows={2}
+                />
+              </div>
+
+              <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                <div className="space-y-0.5">
+                  <Label htmlFor="is_subcontracting" className="font-medium">
+                    Facture en sous-traitance
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Active l&apos;autoliquidation de la TVA (Article 283-2 nonies du CGI)
+                  </p>
+                </div>
+                <Switch
+                  id="is_subcontracting"
+                  checked={formData.is_subcontracting}
+                  onCheckedChange={(checked) => setFormData({ ...formData, is_subcontracting: checked })}
                 />
               </div>
             </CardContent>

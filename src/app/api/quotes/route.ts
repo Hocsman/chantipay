@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { client_id, vat_rate, deposit_percent, items } = body
+    const { client_id, vat_rate, deposit_percent, work_location, items } = body
 
     // Validation
     if (!client_id) {
@@ -148,6 +148,7 @@ export async function POST(request: NextRequest) {
           deposit_amount: depositAmount,
           deposit_status: 'pending',
           expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 jours
+          work_location: work_location || null,
         })
         .select()
         .single()

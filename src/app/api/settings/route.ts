@@ -4,13 +4,19 @@
  * ===========================================
  * PATCH /api/settings
  *
- * Updates user settings including company logo URL.
+ * Updates user profile and settings including company info, tax status, etc.
  *
  * Request Body:
+ * Profile fields:
+ * - companyName, fullName, email, phone, address
+ * - siret, vatNumber, taxStatus, isSubcontractor
+ * - rcs, apeCode, shareCapital
+ *
+ * Settings fields:
  * - company_logo_url: string | null
- * - default_vat_rate: string
- * - default_deposit_percent: string
- * - pdf_footer_text: string
+ * - defaultVatRate: string
+ * - defaultDepositPercent: string
+ * - pdfFooterText: string
  *
  * Response:
  * - 200: Success - Settings updated
@@ -46,6 +52,20 @@ export async function PATCH(request: NextRequest) {
     // ============================================
     const body = await request.json()
     const {
+      // Profile fields
+      companyName,
+      fullName,
+      email,
+      phone,
+      address,
+      siret,
+      vatNumber,
+      taxStatus,
+      isSubcontractor,
+      rcs,
+      apeCode,
+      shareCapital,
+      // Settings fields
       company_logo_url,
       defaultVatRate,
       defaultDepositPercent,
@@ -53,7 +73,38 @@ export async function PATCH(request: NextRequest) {
     } = body
 
     // ============================================
-    // 3. Mettre à jour les settings
+    // 3. Mettre à jour le profil
+    // ============================================
+    const profileData = {
+      company_name: companyName || null,
+      full_name: fullName || null,
+      email: email || user.email,
+      phone: phone || null,
+      address: address || null,
+      siret: siret || null,
+      vat_number: vatNumber || null,
+      tax_status: taxStatus || 'standard',
+      is_subcontractor: isSubcontractor || false,
+      rcs: rcs || null,
+      ape_code: apeCode || null,
+      share_capital: shareCapital || null,
+    }
+
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .update(profileData)
+      .eq('id', user.id)
+
+    if (profileError) {
+      console.error('[Settings API] Error updating profile:', profileError)
+      return NextResponse.json(
+        { error: 'Erreur lors de la sauvegarde du profil', details: profileError.message },
+        { status: 500 }
+      )
+    }
+
+    // ============================================
+    // 4. Mettre à jour les settings
     // ============================================
     const settingsData = {
       user_id: user.id,
@@ -64,7 +115,7 @@ export async function PATCH(request: NextRequest) {
       updated_at: new Date().toISOString(),
     }
 
-    const { data, error } = await supabase
+    const { data, error: settingsError } = await supabase
       .from('settings')
       .upsert(settingsData, {
         onConflict: 'user_id',
@@ -72,10 +123,10 @@ export async function PATCH(request: NextRequest) {
       .select()
       .maybeSingle()
 
-    if (error) {
-      console.error('[Settings API] Error updating settings:', error)
+    if (settingsError) {
+      console.error('[Settings API] Error updating settings:', settingsError)
       return NextResponse.json(
-        { error: 'Erreur lors de la sauvegarde', details: error.message },
+        { error: 'Erreur lors de la sauvegarde des paramètres', details: settingsError.message },
         { status: 500 }
       )
     }

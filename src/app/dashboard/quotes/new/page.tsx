@@ -162,6 +162,7 @@ export default function NewQuotePage() {
   const [depositPercent, setDepositPercent] = useState('30')
   const [aiDescription, setAiDescription] = useState('')
   const [selectedTrade, setSelectedTrade] = useState('')
+  const [workLocation, setWorkLocation] = useState('')
   const [selectedAgent, setSelectedAgent] = useState<QuoteAgentType>('auto')
   const [pricingRegionOverride, setPricingRegionOverride] = useState('auto')
   const [pricingSeasonOverride, setPricingSeasonOverride] = useState('auto')
@@ -522,6 +523,7 @@ export default function NewQuotePage() {
           client_id: selectedClientId,
           vat_rate: parseFloat(vatRate),
           deposit_percent: parseFloat(depositPercent),
+          work_location: workLocation.trim() || null,
           items: cleanedItems,
         }),
       })
@@ -593,10 +595,26 @@ export default function NewQuotePage() {
           </CardContent>
         </Card>
 
-        {/* Étape 2: Paramètres */}
+        {/* Étape 2: Lieu d'intervention */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">2. Paramètres</CardTitle>
+            <CardTitle className="text-lg">2. Lieu d&apos;intervention</CardTitle>
+            <CardDescription>Adresse du chantier (si différente de l&apos;adresse du client)</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Textarea
+              value={workLocation}
+              onChange={(e) => setWorkLocation(e.target.value)}
+              placeholder="Ex: 15 rue de la Paix, 75002 Paris (laisser vide si identique à l'adresse du client)"
+              rows={2}
+            />
+          </CardContent>
+        </Card>
+
+        {/* Étape 3: Paramètres */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">3. Paramètres</CardTitle>
             <CardDescription>Configurez le taux de TVA et l&apos;acompte</CardDescription>
           </CardHeader>
           <CardContent>
@@ -633,10 +651,10 @@ export default function NewQuotePage() {
           </CardContent>
         </Card>
 
-        {/* Étape 3: Lignes du devis */}
+        {/* Étape 4: Lignes du devis */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">3. Lignes du devis</CardTitle>
+            <CardTitle className="text-lg">4. Lignes du devis</CardTitle>
             <CardDescription>Ajoutez les prestations et fournitures</CardDescription>
           </CardHeader>
           <CardContent>
