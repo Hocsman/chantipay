@@ -5,7 +5,7 @@ import { LayoutContainer } from '@/components/LayoutContainer'
 import { PageHeader } from '@/components/PageHeader'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Loader2, Calendar as CalendarIcon } from 'lucide-react'
+import { Loader2, Plus } from 'lucide-react'
 import { toast } from 'sonner'
 import FullCalendar from '@fullcalendar/react'
 import dayGridPlugin from '@fullcalendar/daygrid'
@@ -14,31 +14,30 @@ import interactionPlugin from '@fullcalendar/interaction'
 import frLocale from '@fullcalendar/core/locales/fr'
 import { useRouter } from 'next/navigation'
 
-interface Intervention {
+interface Task {
   id: string
   title: string
-  intervention_type: string
-  scheduled_date: string
-  scheduled_time?: string
-  status: string
-  client_name?: string
+  description?: string
+  due_date?: string
+  status: 'todo' | 'in-progress' | 'done'
+  priority: 'low' | 'medium' | 'high'
 }
 
 export default function CalendarPage() {
   const router = useRouter()
-  const [interventions, setInterventions] = useState<Intervention[]>([])
+  const [tasks, setTasks] = useState<Task[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    loadInterventions()
+    loadTasks()
   }, [])
 
-  const loadInterventions = async () => {
+  const loadTasks = async () => {
     try {
-      const response = await fetch('/api/interventions')
+      const response = await fetch('/api/tasks')
       if (response.ok) {
         const data = await response.json()
-        setInterventions(data.interventions)
+        setTasks(data.tasks || [])
       }
     } catch (error) {
       console.error('Erreur:', error)
@@ -48,61 +47,65 @@ export default function CalendarPage() {
     }
   }
 
-  // Convertir les interventions en événements FullCalendar
-  const calendarEvents = interventions.map((intervention) => {
-    const startDate = intervention.scheduled_date
-    const startTime = intervention.scheduled_time || '09:00'
-    const start = `${startDate}T${startTime}`
+  // Convertir les tâches en événements FullCalendar
+  const calendarEvents = tasks
+    .filter((task) => task.due_date) // Seulement les tâches avec une date
+    .map((task) => {
+      // Couleur selon le statut et la priorité
+      let backgroundColor = '#3B82F6' // blue-500 par défaut
+      let borderColor = '#2563EB' // blue-600
 
-    // Couleur selon le statut
-    let backgroundColor = '#3B82F6' // blue-500 par défaut
-    let borderColor = '#2563EB' // blue-600
-
-    switch (intervention.status) {
-      case 'scheduled':
-        backgroundColor = '#3B82F6' // blue
-        borderColor = '#2563EB'
-        break
-      case 'in_progress':
-        backgroundColor = '#F59E0B' // amber
-        borderColor = '#D97706'
-        break
-      case 'completed':
+      if (task.status === 'done') {
         backgroundColor = '#10B981' // green
         borderColor = '#059669'
-        break
-      case 'canceled':
-        backgroundColor = '#6B7280' // gray
-        borderColor = '#4B5563'
-        break
-    }
+      } else if (task.status === 'in-progress') {
+        backgroundColor = '#F59E0B' // amber
+        borderColor = '#D97706'
+      } else {
+        // todo - couleur selon priorité
+        switch (task.priority) {
+          case 'high':
+            backgroundColor = '#EF4444' // red
+            borderColor = '#DC2626'
+            break
+          case 'medium':
+            backgroundColor = '#3B82F6' // blue
+            borderColor = '#2563EB'
+            break
+          case 'low':
+            backgroundColor = '#6B7280' // gray
+            borderColor = '#4B5563'
+            break
+        }
+      }
 
-    return {
-      id: intervention.id,
-      title: `${intervention.intervention_type} - ${intervention.client_name || 'Client'}`,
-      start,
-      backgroundColor,
-      borderColor,
-      extendedProps: {
-        intervention,
-      },
-    }
-  })
+      return {
+        id: task.id,
+        title: task.title,
+        start: task.due_date,
+        allDay: true,
+        backgroundColor,
+        borderColor,
+        extendedProps: {
+          task,
+        },
+      }
+    })
 
   const handleEventClick = (info: any) => {
-    const interventionId = info.event.id
-    router.push(`/dashboard/interventions/${interventionId}`)
+    const taskId = info.event.id
+    router.push(`/dashboard/tasks/${taskId}`)
   }
 
   const handleDateClick = (info: any) => {
-    // Rediriger vers la création d'intervention avec la date pré-remplie
-    router.push(`/dashboard/interventions/new?date=${info.dateStr}`)
+    // Rediriger vers la création de tâche avec la date pré-remplie
+    router.push(`/dashboard/tasks/new?date=${info.dateStr}`)
   }
 
   if (isLoading) {
     return (
       <LayoutContainer>
-        <PageHeader title="Calendrier Planning" description="Vue calendrier de vos interventions" />
+        <PageHeader title="Calendrier" description="Vue calendrier de vos tâches" />
         <div className="flex items-center justify-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
@@ -110,20 +113,30 @@ export default function CalendarPage() {
     )
   }
 
+  const tasksWithDates = tasks.filter((t) => t.due_date).length
+
   return (
     <LayoutContainer>
-      <PageHeader 
-        title="Calendrier Planning" 
-        description={`${interventions.length} intervention${interventions.length > 1 ? 's' : ''} planifiée${interventions.length > 1 ? 's' : ''}`}
+      <PageHeader
+        title="Calendrier"
+        description={`${tasksWithDates} tâche${tasksWithDates > 1 ? 's' : ''} planifiée${tasksWithDates > 1 ? 's' : ''}`}
       />
 
       <Card>
         <CardContent className="p-6">
           <div className="mb-4 flex justify-between items-center">
-            <div className="flex gap-2 text-sm">
+            <div className="flex flex-wrap gap-3 text-sm">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded bg-red-500"></div>
+                <span>Priorité haute</span>
+              </div>
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 rounded bg-blue-500"></div>
-                <span>Planifiée</span>
+                <span>Priorité moyenne</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded bg-gray-500"></div>
+                <span>Priorité basse</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 rounded bg-amber-500"></div>
@@ -133,14 +146,10 @@ export default function CalendarPage() {
                 <div className="w-3 h-3 rounded bg-green-500"></div>
                 <span>Terminée</span>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded bg-gray-500"></div>
-                <span>Annulée</span>
-              </div>
             </div>
-            <Button onClick={() => router.push('/dashboard/interventions/new')}>
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              Nouvelle intervention
+            <Button onClick={() => router.push('/dashboard/tasks/new')}>
+              <Plus className="mr-2 h-4 w-4" />
+              Nouvelle tâche
             </Button>
           </div>
 

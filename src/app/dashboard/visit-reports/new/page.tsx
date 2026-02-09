@@ -25,6 +25,8 @@ import {
   FileText,
   AlertTriangle,
   Save,
+  Send,
+  Link as LinkIcon,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import type {
@@ -79,76 +81,59 @@ function NewVisitReportContent() {
   const [clientName, setClientName] = useState('')
   const [location, setLocation] = useState('')
   const [visitDate, setVisitDate] = useState('')
+  const [quoteId, setQuoteId] = useState('')
+  const [invoiceId, setInvoiceId] = useState('')
+  const [quotes, setQuotes] = useState<Array<{ id: string; quote_number: string; client_name?: string }>>([])
+  const [invoices, setInvoices] = useState<Array<{ id: string; invoice_number: string; client_name: string }>>([])
+  const [isLoadingRelations, setIsLoadingRelations] = useState(true)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [isDownloading, setIsDownloading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [report, setReport] = useState<GenerateVisitReportResponse | null>(null)
-  const [isPrefilling, setIsPrefilling] = useState(false)
   const hasPrefilled = useRef(false)
 
+  // Charger les devis et factures pour les sélecteurs
   useEffect(() => {
-    const interventionId = searchParams.get('interventionId')
-    if (!interventionId || hasPrefilled.current) return
-
-    hasPrefilled.current = true
-    setIsPrefilling(true)
-
-    const normalizeText = (value: string) =>
-      value
-        .toLowerCase()
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-
-    const mapTradeFromType = (type?: string) => {
-      const normalized = normalizeText(type || '')
-      if (normalized.includes('plomb')) return 'plomberie'
-      if (normalized.includes('elect')) return 'electricite'
-      if (normalized.includes('renov')) return 'renovation'
-      if (normalized.includes('peint')) return 'peinture'
-      if (normalized.includes('menuis')) return 'menuiserie'
-      return ''
-    }
-
-    const loadIntervention = async () => {
+    async function loadRelations() {
       try {
-        const response = await fetch(`/api/interventions/${interventionId}`)
-        if (!response.ok) {
-          const data = await response.json().catch(() => ({}))
-          throw new Error(data.error || 'Intervention non trouvée')
+        const [quotesRes, invoicesRes] = await Promise.all([
+          fetch('/api/quotes'),
+          fetch('/api/invoices'),
+        ])
+
+        if (quotesRes.ok) {
+          const data = await quotesRes.json()
+          setQuotes(data.quotes?.map((q: any) => ({
+            id: q.id,
+            quote_number: q.quote_number,
+            client_name: q.clients?.name,
+          })) || [])
         }
 
-        const data = await response.json()
-        const intervention = data.intervention
-
-        if (!intervention) {
-          throw new Error('Intervention non trouvée')
-        }
-
-        setClientName((prev) => prev || intervention.client_name || '')
-        setLocation((prev) => prev || intervention.address || '')
-        setVisitDate((prev) => prev || intervention.date || '')
-
-        const mappedTrade = mapTradeFromType(intervention.type)
-        setTrade((prev) => prev || mappedTrade)
-
-        const contextParts: string[] = []
-        if (intervention.description) contextParts.push(`Description: ${intervention.description}`)
-        if (intervention.notes) contextParts.push(`Notes: ${intervention.notes}`)
-        if (intervention.time) contextParts.push(`Horaire prévu: ${intervention.time}`)
-        if (intervention.duration) contextParts.push(`Durée estimée: ${intervention.duration} min`)
-        const combinedContext = contextParts.join('\n')
-        if (combinedContext) {
-          setContext((prev) => prev || combinedContext)
+        if (invoicesRes.ok) {
+          const data = await invoicesRes.json()
+          setInvoices(data.invoices?.map((i: any) => ({
+            id: i.id,
+            invoice_number: i.invoice_number,
+            client_name: i.client_name,
+          })) || [])
         }
       } catch (error) {
-        console.error('Erreur pré-remplissage intervention:', error)
-        toast.error(error instanceof Error ? error.message : 'Erreur lors du chargement de l\'intervention')
+        console.error('Erreur chargement relations:', error)
       } finally {
-        setIsPrefilling(false)
+        setIsLoadingRelations(false)
       }
     }
+    loadRelations()
+  }, [])
 
-    loadIntervention()
+  // Pré-remplir la date si fournie en paramètre
+  useEffect(() => {
+    const date = searchParams.get('date')
+    if (date && !hasPrefilled.current) {
+      hasPrefilled.current = true
+      setVisitDate(date)
+    }
   }, [searchParams])
 
   const fileToBase64 = (file: File) => {
@@ -312,6 +297,8 @@ function NewVisitReportContent() {
           recommendations: report.recommendations,
           photoAnnotations: report.photoAnnotations,
           photos: photos.map((photo) => photo.base64),
+          quoteId: quoteId || null,
+          invoiceId: invoiceId || null,
         }),
       })
 
@@ -344,7 +331,6 @@ function NewVisitReportContent() {
             <CardTitle>Informations de visite</CardTitle>
             <CardDescription>
               Contexte et données client pour le rapport.
-              {isPrefilling && ' Pré-remplissage depuis l\'intervention...'}
             </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4 md:grid-cols-2">
@@ -399,6 +385,53 @@ function NewVisitReportContent() {
                 placeholder="Ex: visite suite à fuite, état général, contraintes d'accès..."
                 rows={3}
               />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Rattachement à un devis ou une facture */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <LinkIcon className="h-5 w-5" />
+              Rattachement (optionnel)
+            </CardTitle>
+            <CardDescription>
+              Associez ce rapport à un devis ou une facture existant.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-4 md:grid-cols-2">
+            <div>
+              <Label htmlFor="quoteId">Devis associé</Label>
+              <Select value={quoteId} onValueChange={setQuoteId} disabled={isLoadingRelations}>
+                <SelectTrigger id="quoteId">
+                  <SelectValue placeholder={isLoadingRelations ? "Chargement..." : "Aucun devis"} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Aucun</SelectItem>
+                  {quotes.map((quote) => (
+                    <SelectItem key={quote.id} value={quote.id}>
+                      {quote.quote_number} {quote.client_name ? `- ${quote.client_name}` : ''}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="invoiceId">Facture associée</Label>
+              <Select value={invoiceId} onValueChange={setInvoiceId} disabled={isLoadingRelations}>
+                <SelectTrigger id="invoiceId">
+                  <SelectValue placeholder={isLoadingRelations ? "Chargement..." : "Aucune facture"} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Aucune</SelectItem>
+                  {invoices.map((invoice) => (
+                    <SelectItem key={invoice.id} value={invoice.id}>
+                      {invoice.invoice_number} - {invoice.client_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </CardContent>
         </Card>

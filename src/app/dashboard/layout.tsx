@@ -29,10 +29,11 @@ import {
   Wrench,
   ClipboardList,
   CheckSquare,
-  ClipboardCheck,
   CreditCard,
   ChevronDown,
   HelpCircle,
+  Users2,
+  Landmark,
 } from 'lucide-react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
@@ -64,9 +65,10 @@ export default function DashboardLayout({
 
   const moreItems = [
     { href: '/dashboard/planning', label: 'Chantiers', icon: Wrench },
-    { href: '/dashboard/interventions', label: 'Interventions', icon: ClipboardCheck },
     { href: '/dashboard/tasks', label: 'Tâches', icon: CheckSquare },
     { href: '/dashboard/visit-reports', label: 'Rapports de visite', icon: ClipboardList },
+    { href: '/dashboard/technicians', label: 'Techniciens', icon: Users2 },
+    { href: '/dashboard/banking', label: 'Bancaire', icon: Landmark },
     { href: '/dashboard/settings', label: 'Paramètres', icon: Settings },
     { href: '/dashboard/settings/billing', label: 'Abonnement', icon: CreditCard },
     { href: '/dashboard/help', label: 'Aide', icon: HelpCircle },

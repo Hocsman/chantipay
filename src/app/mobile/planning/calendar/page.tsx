@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button'
 import { FloatingActionButton } from '@/components/FloatingActionButton'
 import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { createClient } from '@/lib/supabase/client'
 
 // Jours de la semaine
 const DAYS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']
@@ -25,60 +24,44 @@ interface CalendarDay {
   hasEvents: boolean
 }
 
-interface Intervention {
+interface Task {
   id: string
-  client_name: string
-  type: string
-  date: string
-  time: string
-  address: string
-  status: string
+  title: string
+  description?: string
+  due_date?: string
+  status: 'todo' | 'in-progress' | 'done'
+  priority: 'low' | 'medium' | 'high'
 }
 
 export default function MobileCalendarPage() {
   const router = useRouter()
   const [currentDate, setCurrentDate] = useState(new Date())
-  const [interventions, setInterventions] = useState<Intervention[]>([])
+  const [tasks, setTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
 
-  // Charger les interventions
+  // Charger les tâches
   useEffect(() => {
-    const loadInterventions = async () => {
+    const loadTasks = async () => {
       setLoading(true)
-      const supabase = createClient()
-      const { data: { session } } = await supabase.auth.getSession()
-
-      if (!session) {
-        router.push('/mobile/auth')
-        return
+      try {
+        const response = await fetch('/api/tasks')
+        if (response.ok) {
+          const data = await response.json()
+          setTasks(data.tasks || [])
+        }
+      } catch (error) {
+        console.error('Erreur:', error)
+      } finally {
+        setLoading(false)
       }
-
-      // Charger les interventions du mois en cours
-      const firstDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1)
-      const lastDay = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0)
-
-      const { data, error } = await supabase
-        .from('interventions')
-        .select('*')
-        .eq('user_id', session.user.id)
-        .gte('date', firstDay.toISOString().split('T')[0])
-        .lte('date', lastDay.toISOString().split('T')[0])
-        .order('date')
-        .order('time')
-
-      if (!error && data) {
-        setInterventions(data)
-      }
-      setLoading(false)
     }
 
-    loadInterventions()
-  }, [currentDate, router])
+    loadTasks()
+  }, [])
 
-  // Obtenir le premier et dernier jour du mois
+  // Obtenir le premier jour du mois
   const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1)
-  const lastDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0)
 
   // Calculer les jours à afficher (incluant les jours des mois précédent/suivant)
   const getCalendarDays = (): CalendarDay[] => {
@@ -96,10 +79,10 @@ export default function MobileCalendarPage() {
     for (let i = 0; i < 42; i++) {
       const date = new Date(startDay)
       date.setDate(date.getDate() + i)
-      
+
       const dateStr = date.toISOString().split('T')[0]
-      const hasEvents = interventions.some(int => int.date === dateStr)
-      
+      const hasEvents = tasks.some(t => t.due_date === dateStr)
+
       days.push({
         date,
         isCurrentMonth: date.getMonth() === currentDate.getMonth(),
@@ -113,9 +96,9 @@ export default function MobileCalendarPage() {
 
   const calendarDays = getCalendarDays()
 
-  // Interventions du jour sélectionné
-  const selectedDateInterventions = selectedDate
-    ? interventions.filter(int => int.date === selectedDate.toISOString().split('T')[0])
+  // Tâches du jour sélectionné
+  const selectedDateTasks = selectedDate
+    ? tasks.filter(t => t.due_date === selectedDate.toISOString().split('T')[0])
     : []
 
   // Navigation mois précédent/suivant
@@ -131,9 +114,20 @@ export default function MobileCalendarPage() {
     setCurrentDate(new Date())
   }
 
+  const getPriorityColor = (priority: string, status: string) => {
+    if (status === 'done') return 'text-green-600 dark:text-green-400'
+    if (status === 'in-progress') return 'text-orange-600 dark:text-orange-400'
+    switch (priority) {
+      case 'high': return 'text-red-600 dark:text-red-400'
+      case 'medium': return 'text-blue-600 dark:text-blue-400'
+      case 'low': return 'text-gray-600 dark:text-gray-400'
+      default: return 'text-primary'
+    }
+  }
+
   return (
-    <MobileLayout 
-      title="Calendrier" 
+    <MobileLayout
+      title="Calendrier"
       subtitle={`${MONTHS[currentDate.getMonth()]} ${currentDate.getFullYear()}`}
     >
       <div className="p-4 space-y-4">
@@ -221,48 +215,47 @@ export default function MobileCalendarPage() {
           </div>
           <div className="flex items-center gap-1.5">
             <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-            <span>Interventions</span>
+            <span>Tâches</span>
           </div>
         </div>
 
-        {/* Interventions du jour sélectionné */}
+        {/* Tâches du jour sélectionné */}
         {selectedDate && (
           <div className="space-y-3">
             <h3 className="font-semibold">
-              Interventions du {selectedDate.toLocaleDateString('fr-FR', { 
-                weekday: 'long', 
-                day: 'numeric', 
-                month: 'long' 
+              Tâches du {selectedDate.toLocaleDateString('fr-FR', {
+                weekday: 'long',
+                day: 'numeric',
+                month: 'long'
               })}
             </h3>
             {loading ? (
               <div className="bg-muted/30 rounded-xl p-8 flex justify-center">
                 <Loader2 className="h-6 w-6 animate-spin text-primary" />
               </div>
-            ) : selectedDateInterventions.length === 0 ? (
+            ) : selectedDateTasks.length === 0 ? (
               <div className="bg-muted/30 rounded-xl p-4 text-center text-sm text-muted-foreground">
-                Aucune intervention prévue ce jour
+                Aucune tâche prévue ce jour
               </div>
             ) : (
               <div className="space-y-2">
-                {selectedDateInterventions.map((intervention) => (
+                {selectedDateTasks.map((task) => (
                   <div
-                    key={intervention.id}
-                    onClick={() => router.push(`/mobile/planning/${intervention.id}`)}
+                    key={task.id}
+                    onClick={() => router.push(`/dashboard/tasks/${task.id}`)}
                     className="bg-card rounded-xl p-4 shadow-sm border transition-transform active:scale-98"
                   >
                     <div className="flex items-start justify-between mb-2">
                       <div>
-                        <h4 className="font-semibold">{intervention.client_name}</h4>
-                        <p className="text-sm text-muted-foreground">{intervention.type}</p>
+                        <h4 className="font-semibold">{task.title}</h4>
+                        {task.description && (
+                          <p className="text-sm text-muted-foreground line-clamp-2">{task.description}</p>
+                        )}
                       </div>
-                      <span className="text-sm font-medium text-primary">
-                        {intervention.time.substring(0, 5)}
+                      <span className={cn('text-sm font-medium', getPriorityColor(task.priority, task.status))}>
+                        {task.status === 'done' ? '✓' : task.priority === 'high' ? '!' : ''}
                       </span>
                     </div>
-                    <p className="text-sm text-muted-foreground line-clamp-1">
-                      📍 {intervention.address}
-                    </p>
                   </div>
                 ))}
               </div>
@@ -271,10 +264,10 @@ export default function MobileCalendarPage() {
         )}
       </div>
 
-      {/* FAB pour créer une intervention */}
-      <FloatingActionButton 
-        href="/mobile/planning/new"
-        label="Nouvelle intervention"
+      {/* FAB pour créer une tâche */}
+      <FloatingActionButton
+        href="/mobile/tasks/new"
+        label="Nouvelle tâche"
       />
     </MobileLayout>
   )

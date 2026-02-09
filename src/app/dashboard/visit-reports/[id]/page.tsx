@@ -29,6 +29,9 @@ import {
     User,
     Wrench,
     AlertTriangle,
+    Send,
+    Link as LinkIcon,
+    CheckCircle,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -57,6 +60,10 @@ interface VisitReport {
     photo_urls: string[]
     signedPhotoUrls: string[]
     created_at: string
+    quote_id?: string | null
+    invoice_id?: string | null
+    sent_to_email?: string | null
+    sent_at?: string | null
 }
 
 const tradeLabels: Record<string, string> = {
@@ -95,6 +102,9 @@ export default function ViewVisitReportPage({
     const [isDeleting, setIsDeleting] = useState(false)
     const [showDeleteDialog, setShowDeleteDialog] = useState(false)
     const [isDownloading, setIsDownloading] = useState(false)
+    const [showEmailDialog, setShowEmailDialog] = useState(false)
+    const [emailTo, setEmailTo] = useState('')
+    const [isSendingEmail, setIsSendingEmail] = useState(false)
 
     useEffect(() => {
         loadReport()
@@ -187,6 +197,37 @@ export default function ViewVisitReportPage({
         }
     }
 
+    const handleSendEmail = async () => {
+        if (!emailTo || !emailTo.includes('@')) {
+            toast.error('Veuillez entrer un email valide')
+            return
+        }
+
+        setIsSendingEmail(true)
+        try {
+            const response = await fetch(`/api/visit-reports/${id}/send-email`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: emailTo }),
+            })
+
+            if (!response.ok) {
+                const data = await response.json()
+                throw new Error(data.error || 'Erreur lors de l\'envoi')
+            }
+
+            toast.success(`Rapport envoyé à ${emailTo}`)
+            setShowEmailDialog(false)
+            setEmailTo('')
+            loadReport() // Recharger pour afficher le statut d'envoi
+        } catch (error) {
+            console.error('Erreur envoi email:', error)
+            toast.error(error instanceof Error ? error.message : 'Erreur lors de l\'envoi')
+        } finally {
+            setIsSendingEmail(false)
+        }
+    }
+
     if (isLoading) {
         return (
             <LayoutContainer>
@@ -218,6 +259,10 @@ export default function ViewVisitReportPage({
                     description={`Créé le ${formatDate(report.created_at)}`}
                     action={
                         <div className="flex items-center gap-2">
+                            <Button variant="outline" onClick={() => setShowEmailDialog(true)}>
+                                <Send className="h-4 w-4 mr-2" />
+                                Envoyer par email
+                            </Button>
                             <Button variant="outline" onClick={handleDownloadPdf} disabled={isDownloading}>
                                 {isDownloading ? (
                                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -244,6 +289,46 @@ export default function ViewVisitReportPage({
                     <ArrowLeft className="h-4 w-4" />
                     Retour à la liste
                 </Link>
+
+                {/* Statut d'envoi */}
+                {report.sent_at && (
+                    <div className="flex items-center gap-2 p-3 bg-green-50 dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-800">
+                        <CheckCircle className="h-5 w-5 text-green-600" />
+                        <span className="text-sm text-green-700 dark:text-green-400">
+                            Envoyé à {report.sent_to_email} le {formatDate(report.sent_at)}
+                        </span>
+                    </div>
+                )}
+
+                {/* Relations */}
+                {(report.quote_id || report.invoice_id) && (
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <LinkIcon className="h-5 w-5" />
+                                Documents associés
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="flex gap-4">
+                            {report.quote_id && (
+                                <Link href={`/dashboard/quotes/${report.quote_id}`}>
+                                    <Button variant="outline" size="sm">
+                                        <FileText className="h-4 w-4 mr-2" />
+                                        Voir le devis
+                                    </Button>
+                                </Link>
+                            )}
+                            {report.invoice_id && (
+                                <Link href={`/dashboard/invoices/${report.invoice_id}`}>
+                                    <Button variant="outline" size="sm">
+                                        <FileText className="h-4 w-4 mr-2" />
+                                        Voir la facture
+                                    </Button>
+                                </Link>
+                            )}
+                        </CardContent>
+                    </Card>
+                )}
 
                 {/* Metadata Card */}
                 <Card>
@@ -449,6 +534,48 @@ export default function ViewVisitReportPage({
                                 </>
                             ) : (
                                 'Supprimer'
+                            )}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            {/* Email Send Dialog */}
+            <AlertDialog open={showEmailDialog} onOpenChange={setShowEmailDialog}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Envoyer le rapport par email</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Le rapport sera envoyé au client avec un résumé des diagnostics et recommandations.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <div className="py-4">
+                        <Label htmlFor="emailTo">Email du destinataire</Label>
+                        <input
+                            id="emailTo"
+                            type="email"
+                            value={emailTo}
+                            onChange={(e) => setEmailTo(e.target.value)}
+                            placeholder="client@exemple.com"
+                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 mt-2"
+                        />
+                    </div>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel onClick={() => setEmailTo('')}>Annuler</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={handleSendEmail}
+                            disabled={isSendingEmail || !emailTo}
+                        >
+                            {isSendingEmail ? (
+                                <>
+                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                    Envoi...
+                                </>
+                            ) : (
+                                <>
+                                    <Send className="h-4 w-4 mr-2" />
+                                    Envoyer
+                                </>
                             )}
                         </AlertDialogAction>
                     </AlertDialogFooter>

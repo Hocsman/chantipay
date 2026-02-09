@@ -58,6 +58,8 @@ export async function POST(request: NextRequest) {
             recommendations,
             photoAnnotations,
             photos, // Array of base64 images
+            quoteId,
+            invoiceId,
         } = body
 
         if (!summary) {
@@ -124,6 +126,8 @@ export async function POST(request: NextRequest) {
                 recommendations: recommendations || [],
                 photo_annotations: photoAnnotations || [],
                 photo_urls: photoUrls,
+                quote_id: quoteId || null,
+                invoice_id: invoiceId || null,
             })
             .select()
             .single()

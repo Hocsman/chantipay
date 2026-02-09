@@ -149,19 +149,6 @@ export async function PATCH(
       console.warn('Avertissement: Impossible de mettre à jour les avoirs existants:', creditNotesUpdateError);
     }
 
-    // Synchroniser les informations client sur toutes les interventions existantes
-    const { error: interventionsUpdateError } = await supabase
-      .from('interventions')
-      .update({
-        client_name: name.trim(),
-      })
-      .eq('client_id', id)
-      .eq('user_id', user.id);
-
-    if (interventionsUpdateError) {
-      console.warn('Avertissement: Impossible de mettre à jour les interventions existantes:', interventionsUpdateError);
-    }
-
     return NextResponse.json({ client, message: 'Client mis à jour avec succès' });
   } catch (error) {
     console.error('Erreur API client:', error);

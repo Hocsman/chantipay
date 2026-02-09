@@ -3,88 +3,82 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { MobileLayout } from '@/components/mobile/MobileLayout'
-import { Calendar, ChevronRight, Lightbulb, MapPin, Clock } from 'lucide-react'
+import { Calendar, ChevronRight, Lightbulb } from 'lucide-react'
 import { EmptyState } from '@/components/mobile/EmptyState'
 import { FloatingActionButton } from '@/components/FloatingActionButton'
 import { cn } from '@/lib/utils'
-import { createClient } from '@/lib/supabase/client'
 import { Loader2 } from 'lucide-react'
 
 const tabs = ['Aujourd\'hui', 'En retard', 'À venir'] as const
 type Tab = typeof tabs[number]
 
-interface Intervention {
+interface Task {
   id: string
-  client_name: string
-  type: string
-  date: string
-  time: string
-  address: string
-  status: string
+  title: string
   description?: string
+  due_date?: string
+  status: 'todo' | 'in-progress' | 'done'
+  priority: 'low' | 'medium' | 'high'
 }
 
 export default function MobilePlanningPage() {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState<Tab>("Aujourd'hui")
-  const [interventions, setInterventions] = useState<Intervention[]>([])
+  const [tasks, setTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const loadInterventions = async () => {
-      const supabase = createClient()
-      const { data: { session } } = await supabase.auth.getSession()
-
-      if (!session) {
-        router.push('/mobile/auth')
-        return
+    const loadTasks = async () => {
+      try {
+        const response = await fetch('/api/tasks')
+        if (response.ok) {
+          const data = await response.json()
+          setTasks(data.tasks || [])
+        }
+      } catch (error) {
+        console.error('Erreur:', error)
+      } finally {
+        setLoading(false)
       }
-
-      const { data, error } = await supabase
-        .from('interventions')
-        .select('*')
-        .eq('user_id', session.user.id)
-        .order('date')
-        .order('time')
-
-      if (!error && data) {
-        setInterventions(data)
-      }
-      setLoading(false)
     }
 
-    loadInterventions()
-  }, [router])
+    loadTasks()
+  }, [])
 
-  // Filtrer les interventions selon l'onglet actif
+  // Filtrer les tâches selon l'onglet actif
   const today = new Date().toISOString().split('T')[0]
-  
-  const todayInterventions = interventions.filter(int => int.date === today && int.status === 'planned')
-  const lateInterventions = interventions.filter(int => int.date < today && int.status !== 'completed' && int.status !== 'canceled')
-  const upcomingInterventions = interventions.filter(int => int.date > today && int.status === 'planned')
 
-  const currentInterventions = 
-    activeTab === "Aujourd'hui" ? todayInterventions :
-    activeTab === 'En retard' ? lateInterventions :
-    upcomingInterventions
+  const todayTasks = tasks.filter(t => t.due_date === today && t.status !== 'done')
+  const lateTasks = tasks.filter(t => t.due_date && t.due_date < today && t.status !== 'done')
+  const upcomingTasks = tasks.filter(t => t.due_date && t.due_date > today && t.status !== 'done')
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'planned':
-        return { label: 'Planifié', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' }
-      case 'in-progress':
-        return { label: 'En cours', color: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' }
-      case 'completed':
-        return { label: 'Terminé', color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' }
-      case 'canceled':
-        return { label: 'Annulé', color: 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400' }
+  const currentTasks =
+    activeTab === "Aujourd'hui" ? todayTasks :
+    activeTab === 'En retard' ? lateTasks :
+    upcomingTasks
+
+  const getStatusBadge = (status: string, priority: string) => {
+    if (status === 'done') {
+      return { label: 'Terminée', color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' }
+    }
+    if (status === 'in-progress') {
+      return { label: 'En cours', color: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' }
+    }
+    // Status todo - couleur selon priorité
+    switch (priority) {
+      case 'high':
+        return { label: 'Haute', color: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' }
+      case 'medium':
+        return { label: 'Moyenne', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' }
+      case 'low':
+        return { label: 'Basse', color: 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400' }
       default:
-        return { label: status, color: 'bg-muted text-muted-foreground' }
+        return { label: 'À faire', color: 'bg-muted text-muted-foreground' }
     }
   }
 
   return (
-    <MobileLayout title="Planning" subtitle="Organisez vos interventions">
+    <MobileLayout title="Planning" subtitle="Organisez vos tâches">
       <div className="p-4 space-y-4">
         {/* Accès rapide au calendrier */}
         <button
@@ -111,7 +105,7 @@ export default function MobilePlanningPage() {
               Conseil du jour
             </p>
             <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
-              Planifiez vos interventions à l'avance pour optimiser vos déplacements
+              Planifiez vos tâches à l'avance pour optimiser votre journée
             </p>
           </div>
         </div>
@@ -140,12 +134,12 @@ export default function MobilePlanningPage() {
             <div className="flex min-h-[300px] items-center justify-center">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
-          ) : currentInterventions.length === 0 ? (
+          ) : currentTasks.length === 0 ? (
             <>
               {activeTab === "Aujourd'hui" && (
                 <EmptyState
                   icon={Calendar}
-                  title="Aucune intervention aujourd'hui"
+                  title="Aucune tâche aujourd'hui"
                   description="Profitez de cette journée pour préparer vos prochains chantiers ou contacter vos prospects."
                   variant="colorful"
                 />
@@ -155,7 +149,7 @@ export default function MobilePlanningPage() {
                 <EmptyState
                   icon={Calendar}
                   title="Tout est à jour !"
-                  description="Excellent ! Toutes vos interventions sont à jour."
+                  description="Excellent ! Toutes vos tâches sont à jour."
                   variant="colorful"
                 />
               )}
@@ -163,61 +157,49 @@ export default function MobilePlanningPage() {
               {activeTab === 'À venir' && (
                 <EmptyState
                   icon={Calendar}
-                  title="Aucune intervention planifiée"
-                  description="Commencez à planifier vos prochaines interventions pour mieux organiser votre semaine."
+                  title="Aucune tâche planifiée"
+                  description="Commencez à planifier vos prochaines tâches pour mieux organiser votre semaine."
                   variant="colorful"
                 />
               )}
             </>
           ) : (
             <div className="space-y-3">
-              {currentInterventions.map((intervention) => {
-                const statusInfo = getStatusBadge(intervention.status)
+              {currentTasks.map((task) => {
+                const statusInfo = getStatusBadge(task.status, task.priority)
                 return (
                   <div
-                    key={intervention.id}
-                    onClick={() => router.push(`/mobile/planning/${intervention.id}`)}
+                    key={task.id}
+                    onClick={() => router.push(`/dashboard/tasks/${task.id}`)}
                     className="bg-card rounded-xl p-4 shadow-sm border transition-transform active:scale-98"
                   >
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex-1">
                         <h3 className="font-semibold text-foreground mb-1">
-                          {intervention.client_name}
+                          {task.title}
                         </h3>
-                        <p className="text-sm text-muted-foreground">
-                          {intervention.type}
-                        </p>
+                        {task.description && (
+                          <p className="text-sm text-muted-foreground line-clamp-2">
+                            {task.description}
+                          </p>
+                        )}
                       </div>
-                      <span className={cn('rounded-full px-3 py-1 text-xs font-medium', statusInfo.color)}>
+                      <span className={cn('rounded-full px-3 py-1 text-xs font-medium ml-2', statusInfo.color)}>
                         {statusInfo.label}
                       </span>
                     </div>
 
-                    <div className="space-y-2 text-sm">
-                      <div className="flex items-center gap-2 text-muted-foreground">
+                    {task.due_date && (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <Calendar className="h-4 w-4" />
                         <span>
-                          {new Date(intervention.date).toLocaleDateString('fr-FR', {
+                          {new Date(task.due_date).toLocaleDateString('fr-FR', {
                             weekday: 'long',
                             day: 'numeric',
                             month: 'long'
                           })}
                         </span>
                       </div>
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <Clock className="h-4 w-4" />
-                        <span>{intervention.time.substring(0, 5)}</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <MapPin className="h-4 w-4" />
-                        <span className="line-clamp-1">{intervention.address}</span>
-                      </div>
-                    </div>
-
-                    {intervention.description && (
-                      <p className="mt-3 text-sm text-muted-foreground line-clamp-2">
-                        {intervention.description}
-                      </p>
                     )}
                   </div>
                 )
@@ -227,10 +209,10 @@ export default function MobilePlanningPage() {
         </div>
       </div>
 
-      {/* FAB pour créer une intervention */}
-      <FloatingActionButton 
-        href="/mobile/planning/new"
-        label="Nouvelle intervention"
+      {/* FAB pour créer une tâche */}
+      <FloatingActionButton
+        href="/mobile/tasks/new"
+        label="Nouvelle tâche"
       />
     </MobileLayout>
   )
