@@ -9,6 +9,7 @@ import {
   Receipt,
   ClipboardList,
   Landmark,
+  Bell,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
@@ -30,6 +31,11 @@ export default function MobileMenuPage() {
       label: 'Avoirs',
       icon: Receipt,
       href: '/mobile/avoirs',
+    },
+    {
+      label: 'Relances',
+      icon: Bell,
+      href: '/mobile/relances',
     },
     {
       label: 'Techniciens',
