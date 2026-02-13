@@ -84,6 +84,15 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     marginBottom: 4,
     textAlign: 'right',
+    maxWidth: 250,
+  },
+  companyAddress: {
+    fontSize: 9,
+    color: '#6B7280',
+    marginBottom: 8,
+    textAlign: 'right',
+    maxWidth: 250,
+    lineHeight: 1.4,
   },
   title: {
     fontSize: 24,
@@ -351,7 +360,7 @@ export const InvoicePdfDocument: React.FC<InvoicePdfProps> = ({
           <View style={styles.companyInfo}>
             <Text style={styles.companyName}>{companyInfo.name}</Text>
             {companyInfo.address && (
-              <Text style={styles.companyDetail}>{companyInfo.address}</Text>
+              <Text style={styles.companyAddress}>{companyInfo.address}</Text>
             )}
             {companyInfo.phone && (
               <Text style={styles.companyDetail}>{companyInfo.phone}</Text>

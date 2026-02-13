@@ -68,6 +68,14 @@ const styles = StyleSheet.create({
     fontSize: 8,
     color: '#64748B',
     marginBottom: 1.5,
+    maxWidth: 200,
+  },
+  companyAddress: {
+    fontSize: 8,
+    color: '#64748B',
+    marginBottom: 4,
+    maxWidth: 200,
+    lineHeight: 1.3,
   },
   logo: {
     width: 70,
@@ -447,7 +455,7 @@ export const QuotePdfDocument = ({
               <Text style={styles.companyInfo}>{profile.phone}</Text>
             )}
             {profile?.address && (
-              <Text style={styles.companyInfo}>{profile.address}</Text>
+              <Text style={styles.companyAddress}>{profile.address}</Text>
             )}
             {/* SIRET number */}
             {profile?.siret && (
