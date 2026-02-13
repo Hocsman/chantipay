@@ -403,6 +403,109 @@ export type Database = {
           created_at?: string;
         };
       };
+      team_members: {
+        Row: {
+          id: string;
+          owner_id: string;
+          member_user_id: string | null;
+          email: string;
+          invitation_token: string | null;
+          invitation_status: 'pending' | 'accepted' | 'expired' | 'revoked';
+          invited_at: string | null;
+          accepted_at: string | null;
+          expires_at: string | null;
+          first_name: string | null;
+          last_name: string | null;
+          phone: string | null;
+          role_title: string | null;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_id: string;
+          member_user_id?: string | null;
+          email: string;
+          invitation_token?: string | null;
+          invitation_status?: 'pending' | 'accepted' | 'expired' | 'revoked';
+          invited_at?: string | null;
+          accepted_at?: string | null;
+          expires_at?: string | null;
+          first_name?: string | null;
+          last_name?: string | null;
+          phone?: string | null;
+          role_title?: string | null;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          owner_id?: string;
+          member_user_id?: string | null;
+          email?: string;
+          invitation_token?: string | null;
+          invitation_status?: 'pending' | 'accepted' | 'expired' | 'revoked';
+          invited_at?: string | null;
+          accepted_at?: string | null;
+          expires_at?: string | null;
+          first_name?: string | null;
+          last_name?: string | null;
+          phone?: string | null;
+          role_title?: string | null;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      team_member_permissions: {
+        Row: {
+          id: string;
+          team_member_id: string;
+          view_assigned_jobs: boolean;
+          edit_pointage: boolean;
+          view_clients: boolean;
+          create_visit_reports: boolean;
+          view_quotes: boolean;
+          edit_quotes: boolean;
+          view_invoices: boolean;
+          edit_invoices: boolean;
+          manage_technicians: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          team_member_id: string;
+          view_assigned_jobs?: boolean;
+          edit_pointage?: boolean;
+          view_clients?: boolean;
+          create_visit_reports?: boolean;
+          view_quotes?: boolean;
+          edit_quotes?: boolean;
+          view_invoices?: boolean;
+          edit_invoices?: boolean;
+          manage_technicians?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          team_member_id?: string;
+          view_assigned_jobs?: boolean;
+          edit_pointage?: boolean;
+          view_clients?: boolean;
+          create_visit_reports?: boolean;
+          view_quotes?: boolean;
+          edit_quotes?: boolean;
+          view_invoices?: boolean;
+          edit_invoices?: boolean;
+          manage_technicians?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
     };
     Views: {
       [_ in never]: never;
@@ -425,6 +528,8 @@ export type Payment = Database['public']['Tables']['payments']['Row'];
 export type Settings = Database['public']['Tables']['settings']['Row'];
 export type Invoice = Database['public']['Tables']['invoices']['Row'];
 export type InvoiceItem = Database['public']['Tables']['invoice_items']['Row'];
+export type TeamMemberRow = Database['public']['Tables']['team_members']['Row'];
+export type TeamMemberPermissionsRow = Database['public']['Tables']['team_member_permissions']['Row'];
 
 export type InsertProfile = Database['public']['Tables']['profiles']['Insert'];
 export type InsertClient = Database['public']['Tables']['clients']['Insert'];
@@ -434,6 +539,8 @@ export type InsertPayment = Database['public']['Tables']['payments']['Insert'];
 export type InsertSettings = Database['public']['Tables']['settings']['Insert'];
 export type InsertInvoice = Database['public']['Tables']['invoices']['Insert'];
 export type InsertInvoiceItem = Database['public']['Tables']['invoice_items']['Insert'];
+export type InsertTeamMember = Database['public']['Tables']['team_members']['Insert'];
+export type InsertTeamMemberPermissions = Database['public']['Tables']['team_member_permissions']['Insert'];
 
 export type UpdateProfile = Database['public']['Tables']['profiles']['Update'];
 export type UpdateClient = Database['public']['Tables']['clients']['Update'];
@@ -443,6 +550,8 @@ export type UpdatePayment = Database['public']['Tables']['payments']['Update'];
 export type UpdateSettings = Database['public']['Tables']['settings']['Update'];
 export type UpdateInvoice = Database['public']['Tables']['invoices']['Update'];
 export type UpdateInvoiceItem = Database['public']['Tables']['invoice_items']['Update'];
+export type UpdateTeamMember = Database['public']['Tables']['team_members']['Update'];
+export type UpdateTeamMemberPermissions = Database['public']['Tables']['team_member_permissions']['Update'];
 
 // Quote status type for convenience
 export type QuoteStatus = Quote['status'];
