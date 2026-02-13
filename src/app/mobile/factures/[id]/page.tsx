@@ -9,7 +9,6 @@ import { Loader2, FileText, Euro, Calendar, Send, CheckCircle2, ArrowLeft, Downl
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { downloadInvoicePDF } from '@/lib/pdf/InvoicePdf'
-import { downloadFacturXML } from '@/lib/facturx'
 import { createClient } from '@/lib/supabase/client'
 import Image from 'next/image'
 
@@ -567,14 +566,21 @@ export default function InvoiceDetailMobilePage({ params }: { params: Promise<{ 
             variant="outline"
             onClick={async () => {
               try {
-                const response = await fetch(`/api/invoices/${invoice.id}/facturx`)
+                const response = await fetch(`/api/invoices/${invoice.id}/facturx-pdf`)
                 if (!response.ok) {
                   throw new Error('Erreur lors de la génération')
                 }
-                const data = await response.json()
-                downloadFacturXML(data.xml, invoice.invoice_number)
-                toast.success('✅ Factur-X XML téléchargé', {
-                  description: 'Format conforme EN 16931'
+                const blob = await response.blob()
+                const url = URL.createObjectURL(blob)
+                const link = document.createElement('a')
+                link.href = url
+                link.download = `facture-${invoice.invoice_number}-facturx.pdf`
+                document.body.appendChild(link)
+                link.click()
+                document.body.removeChild(link)
+                URL.revokeObjectURL(url)
+                toast.success('✅ PDF Factur-X téléchargé', {
+                  description: 'Format conforme EN 16931 avec XML embarqué'
                 })
               } catch (error) {
                 console.error(error)
@@ -584,7 +590,7 @@ export default function InvoiceDetailMobilePage({ params }: { params: Promise<{ 
             className="w-full"
           >
             <FileCode className="mr-2 h-4 w-4" />
-            Télécharger Factur-X (XML)
+            Factur-X (PDF)
           </Button>
         </div>
       </div>
