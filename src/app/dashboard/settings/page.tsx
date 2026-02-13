@@ -19,7 +19,7 @@ import {
 } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { Switch } from '@/components/ui/switch'
-import { Loader2, Save, Upload, Building2, CreditCard, X, Palette, BookOpen, AlertCircle } from 'lucide-react'
+import { Loader2, Save, Upload, Building2, CreditCard, X, Palette, BookOpen, AlertCircle, Users } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { uploadCompanyLogo, deleteCompanyLogo } from '@/lib/uploadLogo'
@@ -575,6 +575,32 @@ export default function SettingsPage() {
               <Link href="/dashboard/settings/library">
                 <Button variant="outline">
                   Gérer ma bibliothèque
+                </Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Gestion d'équipe */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5" />
+              Gestion d&apos;équipe
+            </CardTitle>
+            <CardDescription>
+              Invitez des membres et gérez leurs permissions d&apos;accès
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium">Membres de l&apos;équipe</p>
+                <p className="text-sm text-muted-foreground">Techniciens • Permissions configurables</p>
+              </div>
+              <Link href="/dashboard/settings/team">
+                <Button variant="outline">
+                  Gérer l&apos;équipe
                 </Button>
               </Link>
             </div>
