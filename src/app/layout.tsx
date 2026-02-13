@@ -6,7 +6,7 @@ import { ExternalLinkHandler } from "@/components/ExternalLinkHandler";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import "./globals.css";
 
-const GA_MEASUREMENT_ID = "G-YBKQP6Y2BV";
+const GA_MEASUREMENT_ID = "G-M4JQYRGE7M";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
