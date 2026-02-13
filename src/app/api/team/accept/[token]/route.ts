@@ -53,11 +53,11 @@ export async function GET(
   }
 
   // Récupérer les infos du propriétaire
-  const { data: owner } = await adminClient
+  const { data: owner } = await (adminClient as any)
     .from('profiles')
     .select('company_name, full_name')
     .eq('id', invitation.owner_id)
-    .single()
+    .single() as { data: { company_name: string | null; full_name: string | null } | null; error: any }
 
   return NextResponse.json({
     invitation: {
