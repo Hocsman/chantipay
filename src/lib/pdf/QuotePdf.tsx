@@ -346,12 +346,16 @@ const styles = StyleSheet.create({
 
 /**
  * Format a number as currency (EUR)
+ * Utilise un espace normal au lieu de l'espace insécable qui cause
+ * des problèmes d'affichage dans react-pdf
  */
 function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('fr-FR', {
-    style: 'currency',
-    currency: 'EUR',
+  const formatted = new Intl.NumberFormat('fr-FR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
   }).format(amount)
+  // Remplacer les espaces insécables par des espaces normaux
+  return formatted.replace(/\u00A0/g, ' ') + ' €'
 }
 
 /**

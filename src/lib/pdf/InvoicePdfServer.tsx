@@ -67,19 +67,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 30,
+    alignItems: 'flex-start',
   },
   companyInfo: {
     alignItems: 'flex-end',
+    maxWidth: 250,
   },
   companyName: {
     fontSize: 14,
     fontWeight: 'bold',
-    marginBottom: 4,
+    marginBottom: 6,
+    textAlign: 'right',
   },
   companyDetail: {
     fontSize: 9,
     color: '#6B7280',
-    marginBottom: 2,
+    marginBottom: 4,
+    textAlign: 'right',
   },
   title: {
     fontSize: 24,
@@ -128,85 +132,88 @@ const styles = StyleSheet.create({
   col3: { width: '20%', textAlign: 'right' },
   col4: { width: '15%', textAlign: 'right' },
   totals: {
-    marginTop: 20,
+    marginTop: 30,
     alignItems: 'flex-end',
+    padding: 15,
+    backgroundColor: '#FAFAFA',
+    borderRadius: 6,
   },
   totalRow: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    marginBottom: 5,
+    marginBottom: 8,
   },
   totalLabel: {
-    width: 100,
+    width: 120,
     textAlign: 'right',
-    marginRight: 20,
-    fontSize: 9,
+    marginRight: 25,
+    fontSize: 10,
   },
   totalValue: {
-    width: 80,
+    width: 100,
     textAlign: 'right',
-    fontSize: 9,
+    fontSize: 10,
   },
   totalFinal: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    marginTop: 10,
-    paddingTop: 10,
-    borderTopWidth: 2,
+    marginTop: 15,
+    paddingTop: 15,
+    borderTopWidth: 3,
     borderTopColor: '#F97316',
   },
   totalFinalLabel: {
-    width: 100,
+    width: 120,
     textAlign: 'right',
-    marginRight: 20,
-    fontSize: 12,
+    marginRight: 25,
+    fontSize: 14,
     fontWeight: 'bold',
   },
   totalFinalValue: {
-    width: 80,
+    width: 100,
     textAlign: 'right',
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: 'bold',
     color: '#F97316',
   },
   depositRow: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    marginTop: 8,
+    marginTop: 10,
   },
   depositLabel: {
-    width: 100,
+    width: 120,
     textAlign: 'right',
-    marginRight: 20,
-    fontSize: 10,
+    marginRight: 25,
+    fontSize: 11,
     color: '#16A34A', // green-600
   },
   depositValue: {
-    width: 80,
+    width: 100,
     textAlign: 'right',
-    fontSize: 10,
+    fontSize: 11,
     color: '#16A34A',
   },
   remainingRow: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    marginTop: 8,
-    paddingTop: 8,
-    borderTopWidth: 1,
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 2,
     borderTopColor: '#EA580C', // orange-600
   },
   remainingLabel: {
-    width: 100,
+    width: 120,
     textAlign: 'right',
-    marginRight: 20,
-    fontSize: 11,
+    marginRight: 25,
+    fontSize: 13,
     fontWeight: 'bold',
     color: '#EA580C',
   },
   remainingValue: {
-    width: 80,
+    width: 100,
     textAlign: 'right',
-    fontSize: 11,
+    fontSize: 13,
     fontWeight: 'bold',
     color: '#EA580C',
   },
@@ -288,10 +295,19 @@ export const InvoicePdfDocument: React.FC<InvoicePdfProps> = ({
   }
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('fr-FR', {
-      style: 'currency',
-      currency: 'EUR',
+    // Utiliser un espace normal au lieu de l'espace insécable de Intl.NumberFormat
+    // qui cause des problèmes d'affichage dans react-pdf (slash au lieu d'espace)
+    const formatted = new Intl.NumberFormat('fr-FR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
     }).format(amount)
+    // Remplacer les espaces insécables par des espaces normaux
+    return formatted.replace(/\u00A0/g, ' ') + ' €'
+  }
+
+  const formatPercent = (rate: number) => {
+    // Formater le taux de TVA correctement
+    return rate % 1 === 0 ? `${rate}` : rate.toFixed(2).replace('.', ',')
   }
 
   const getStatusLabel = (status: string) => {
@@ -423,7 +439,7 @@ export const InvoicePdfDocument: React.FC<InvoicePdfProps> = ({
 
           <View style={styles.totalRow}>
             <Text style={styles.totalLabel}>
-              TVA ({invoice.tax_rate}%) :
+              TVA ({formatPercent(invoice.tax_rate)} %) :
             </Text>
             <Text style={styles.totalValue}>
               {formatCurrency(invoice.tax_amount)}
