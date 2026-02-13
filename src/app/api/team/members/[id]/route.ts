@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { TeamMemberRow, TeamMemberPermissionsRow } from '@/types/database'
+
+type TeamMemberWithPermissions = TeamMemberRow & {
+  permissions: TeamMemberPermissionsRow[] | null
+}
 
 /**
  * GET /api/team/members/[id]
@@ -21,7 +26,8 @@ export async function GET(
     return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
   }
 
-  const { data: member, error } = await supabase
+  // Note: Cast nécessaire car les types Supabase ne sont pas encore régénérés
+  const { data: member, error } = await (supabase as any)
     .from('team_members')
     .select(`
       *,
@@ -29,7 +35,7 @@ export async function GET(
     `)
     .eq('id', id)
     .eq('owner_id', user.id)
-    .single()
+    .single() as { data: TeamMemberWithPermissions | null; error: any }
 
   if (error || !member) {
     return NextResponse.json({ error: 'Membre non trouvé' }, { status: 404 })
@@ -64,12 +70,12 @@ export async function PATCH(
   }
 
   // Vérifier que le membre appartient à l'utilisateur
-  const { data: existingMember, error: fetchError } = await supabase
+  const { data: existingMember, error: fetchError } = await (supabase as any)
     .from('team_members')
     .select('id, owner_id')
     .eq('id', id)
     .eq('owner_id', user.id)
-    .single()
+    .single() as { data: { id: string; owner_id: string } | null; error: any }
 
   if (fetchError || !existingMember) {
     return NextResponse.json({ error: 'Membre non trouvé' }, { status: 404 })
@@ -90,7 +96,7 @@ export async function PATCH(
     }
 
     if (Object.keys(updateData).length > 0) {
-      const { error: updateError } = await supabase
+      const { error: updateError } = await (supabase as any)
         .from('team_members')
         .update(updateData)
         .eq('id', id)
@@ -124,7 +130,7 @@ export async function PATCH(
     }
 
     if (Object.keys(permissionData).length > 0) {
-      const { error: permError } = await supabase
+      const { error: permError } = await (supabase as any)
         .from('team_member_permissions')
         .update(permissionData)
         .eq('team_member_id', id)
@@ -140,14 +146,14 @@ export async function PATCH(
   }
 
   // Récupérer le membre mis à jour
-  const { data: updatedMember } = await supabase
+  const { data: updatedMember } = await (supabase as any)
     .from('team_members')
     .select(`
       *,
       permissions:team_member_permissions(*)
     `)
     .eq('id', id)
-    .single()
+    .single() as { data: TeamMemberWithPermissions | null; error: any }
 
   return NextResponse.json({
     success: true,
@@ -181,19 +187,22 @@ export async function DELETE(
   }
 
   // Vérifier que le membre appartient à l'utilisateur
-  const { data: existingMember, error: fetchError } = await supabase
+  const { data: existingMember, error: fetchError } = await (supabase as any)
     .from('team_members')
     .select('id, owner_id')
     .eq('id', id)
     .eq('owner_id', user.id)
-    .single()
+    .single() as { data: { id: string; owner_id: string } | null; error: any }
 
   if (fetchError || !existingMember) {
     return NextResponse.json({ error: 'Membre non trouvé' }, { status: 404 })
   }
 
   // Supprimer le membre (les permissions seront supprimées en cascade)
-  const { error: deleteError } = await supabase.from('team_members').delete().eq('id', id)
+  const { error: deleteError } = await (supabase as any)
+    .from('team_members')
+    .delete()
+    .eq('id', id)
 
   if (deleteError) {
     console.error('Error deleting team member:', deleteError)

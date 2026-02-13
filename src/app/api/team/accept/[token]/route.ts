@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getSupabaseAdminClient } from '@/lib/supabaseClient'
+import { TeamMemberRow } from '@/types/database'
 
 /**
  * GET /api/team/accept/[token]
@@ -14,7 +15,8 @@ export async function GET(
   const adminClient = await getSupabaseAdminClient()
 
   // Récupérer l'invitation avec les infos du propriétaire
-  const { data: invitation, error } = await adminClient
+  // Note: Cast nécessaire car les types Supabase ne sont pas encore régénérés
+  const { data: invitation, error } = await (adminClient as any)
     .from('team_members')
     .select(`
       id,
@@ -27,7 +29,7 @@ export async function GET(
       owner_id
     `)
     .eq('invitation_token', token)
-    .single()
+    .single() as { data: Pick<TeamMemberRow, 'id' | 'email' | 'first_name' | 'last_name' | 'role_title' | 'invitation_status' | 'expires_at' | 'owner_id'> | null; error: any }
 
   if (error || !invitation) {
     return NextResponse.json({ error: 'Invitation non trouvée' }, { status: 404 })
@@ -40,9 +42,9 @@ export async function GET(
     )
   }
 
-  if (new Date(invitation.expires_at) < new Date()) {
+  if (invitation.expires_at && new Date(invitation.expires_at) < new Date()) {
     // Mettre à jour le statut en expiré
-    await adminClient
+    await (adminClient as any)
       .from('team_members')
       .update({ invitation_status: 'expired' })
       .eq('id', invitation.id)
@@ -94,11 +96,12 @@ export async function POST(
   }
 
   // Récupérer l'invitation
-  const { data: invitation, error: invError } = await adminClient
+  // Note: Cast nécessaire car les types Supabase ne sont pas encore régénérés
+  const { data: invitation, error: invError } = await (adminClient as any)
     .from('team_members')
     .select('*')
     .eq('invitation_token', token)
-    .single()
+    .single() as { data: TeamMemberRow | null; error: any }
 
   if (invError || !invitation) {
     return NextResponse.json({ error: 'Invitation non trouvée' }, { status: 404 })
@@ -111,8 +114,8 @@ export async function POST(
     )
   }
 
-  if (new Date(invitation.expires_at) < new Date()) {
-    await adminClient
+  if (invitation.expires_at && new Date(invitation.expires_at) < new Date()) {
+    await (adminClient as any)
       .from('team_members')
       .update({ invitation_status: 'expired' })
       .eq('id', invitation.id)
@@ -132,13 +135,13 @@ export async function POST(
   }
 
   // Vérifier que l'utilisateur n'est pas déjà membre d'une autre équipe
-  const { data: existingMembership } = await adminClient
+  const { data: existingMembership } = await (adminClient as any)
     .from('team_members')
     .select('id, owner_id')
     .eq('member_user_id', user.id)
     .eq('invitation_status', 'accepted')
     .eq('is_active', true)
-    .single()
+    .single() as { data: { id: string; owner_id: string } | null; error: any }
 
   if (existingMembership) {
     return NextResponse.json(
@@ -148,7 +151,7 @@ export async function POST(
   }
 
   // Accepter l'invitation
-  const { error: updateError } = await adminClient
+  const { error: updateError } = await (adminClient as any)
     .from('team_members')
     .update({
       member_user_id: user.id,

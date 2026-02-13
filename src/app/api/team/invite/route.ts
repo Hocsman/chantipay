@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { Resend } from 'resend'
 import { DEFAULT_PERMISSIONS, PermissionKey } from '@/types/team'
+import { TeamMemberRow } from '@/types/database'
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
 
@@ -38,19 +39,20 @@ export async function POST(request: NextRequest) {
   // }
 
   const body = await request.json()
-  const { email, firstName, lastName, roleTitle, permissions } = body
+  const { email, firstName, lastName, roleTitle, phone, permissions } = body
 
   if (!email) {
     return NextResponse.json({ error: 'Email requis' }, { status: 400 })
   }
 
   // Vérifier si déjà invité
-  const { data: existing } = await supabase
+  // Note: Cast nécessaire car les types Supabase ne sont pas encore régénérés
+  const { data: existing } = await (supabase as any)
     .from('team_members')
     .select('id, invitation_status')
     .eq('owner_id', user.id)
     .eq('email', email.toLowerCase())
-    .single()
+    .single() as { data: { id: string; invitation_status: string } | null; error: any }
 
   if (existing && existing.invitation_status === 'accepted') {
     return NextResponse.json(
@@ -72,6 +74,7 @@ export async function POST(request: NextRequest) {
     email: email.toLowerCase(),
     first_name: firstName || null,
     last_name: lastName || null,
+    phone: phone || null,
     role_title: roleTitle || 'Membre',
     invitation_status: 'pending' as const,
     invitation_token: invitationToken,
@@ -79,13 +82,13 @@ export async function POST(request: NextRequest) {
     invited_at: new Date().toISOString(),
   }
 
-  const { data: teamMember, error: insertError } = await supabase
+  const { data: teamMember, error: insertError } = await (supabase as any)
     .from('team_members')
     .upsert(invitationData, { onConflict: 'owner_id,email' })
     .select()
-    .single()
+    .single() as { data: TeamMemberRow | null; error: any }
 
-  if (insertError) {
+  if (insertError || !teamMember) {
     console.error('Error creating invitation:', insertError)
     return NextResponse.json(
       { error: 'Erreur lors de la création de l\'invitation' },
@@ -94,7 +97,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Créer ou mettre à jour les permissions
-  const { error: permError } = await supabase
+  const { error: permError } = await (supabase as any)
     .from('team_member_permissions')
     .upsert(
       {

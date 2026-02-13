@@ -1,5 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { TeamMemberRow, TeamMemberPermissionsRow } from '@/types/database'
+
+type TeamMemberWithPermissions = TeamMemberRow & {
+  permissions: TeamMemberPermissionsRow[] | null
+}
 
 /**
  * GET /api/team/members
@@ -18,14 +23,15 @@ export async function GET() {
   }
 
   // Récupérer les membres avec leurs permissions
-  const { data: members, error } = await supabase
+  // Note: Cast nécessaire car les types Supabase ne sont pas encore régénérés
+  const { data: members, error } = await (supabase as any)
     .from('team_members')
     .select(`
       *,
       permissions:team_member_permissions(*)
     `)
     .eq('owner_id', user.id)
-    .order('created_at', { ascending: false })
+    .order('created_at', { ascending: false }) as { data: TeamMemberWithPermissions[] | null; error: any }
 
   if (error) {
     console.error('Error fetching team members:', error)
@@ -33,7 +39,7 @@ export async function GET() {
   }
 
   // Transformer les données pour avoir permissions en objet simple
-  const transformedMembers = members.map((member) => ({
+  const transformedMembers = (members || []).map((member) => ({
     ...member,
     permissions: member.permissions?.[0] || null,
   }))
