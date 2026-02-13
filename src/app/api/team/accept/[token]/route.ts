@@ -11,7 +11,7 @@ export async function GET(
   { params }: { params: Promise<{ token: string }> }
 ) {
   const { token } = await params
-  const adminClient = getSupabaseAdminClient()
+  const adminClient = await getSupabaseAdminClient()
 
   // Récupérer l'invitation avec les infos du propriétaire
   const { data: invitation, error } = await adminClient
@@ -79,7 +79,7 @@ export async function POST(
 ) {
   const { token } = await params
   const supabase = await createClient()
-  const adminClient = getSupabaseAdminClient()
+  const adminClient = await getSupabaseAdminClient()
 
   // Vérifier si l'utilisateur est connecté
   const {
