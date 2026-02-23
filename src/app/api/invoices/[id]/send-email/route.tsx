@@ -46,8 +46,15 @@ export async function POST(
   try {
     const { id: invoiceId } = await params
     const supabase = await createClient()
-    const body = await request.json()
-    const { recipientEmail, message } = body
+    let recipientEmail: string | undefined
+    let message: string | undefined
+    try {
+      const body = await request.json()
+      recipientEmail = body.recipientEmail
+      message = body.message
+    } catch {
+      // Body vide ou invalide - on continue avec les valeurs par défaut
+    }
 
     // Récupérer l'utilisateur
     const {

@@ -391,6 +391,7 @@ export default function InvoiceDetailPage() {
       const response = await fetch(`/api/invoices/${invoice.id}/send-email`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
       })
 
       const data = await response.json()
