@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { PageHeader } from '@/components/PageHeader'
 import { LayoutContainer } from '@/components/LayoutContainer'
@@ -16,18 +16,44 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Loader2, ArrowLeft, Calendar } from 'lucide-react'
+import { Loader2, ArrowLeft, Calendar, Clock, UserCheck } from 'lucide-react'
 import { toast } from 'sonner'
+
+interface Technician {
+  id: string
+  first_name: string
+  last_name: string
+  status: string
+}
 
 export default function NewTaskPage() {
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [technicians, setTechnicians] = useState<Technician[]>([])
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     priority: 'medium' as 'low' | 'medium' | 'high',
     due_date: '',
+    scheduled_time: '',
+    assigned_to: '',
   })
+
+  // Charger les techniciens
+  useEffect(() => {
+    const fetchTechnicians = async () => {
+      try {
+        const response = await fetch('/api/technicians')
+        if (response.ok) {
+          const data = await response.json()
+          setTechnicians(data.technicians?.filter((t: Technician) => t.status === 'active') || [])
+        }
+      } catch (error) {
+        console.error('Erreur chargement techniciens:', error)
+      }
+    }
+    fetchTechnicians()
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -48,6 +74,8 @@ export default function NewTaskPage() {
           description: formData.description || undefined,
           priority: formData.priority,
           due_date: formData.due_date || undefined,
+          scheduled_time: formData.scheduled_time || undefined,
+          assigned_to: formData.assigned_to || undefined,
           status: 'todo',
         }),
       })
@@ -58,8 +86,7 @@ export default function NewTaskPage() {
         return
       }
 
-      const data = await response.json()
-      toast.success('✅ Tâche créée avec succès')
+      toast.success('Tâche créée avec succès')
       router.push('/dashboard/tasks')
     } catch (error) {
       console.error('Erreur:', error)
@@ -120,9 +147,9 @@ export default function NewTaskPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="low">🟢 Basse</SelectItem>
-                      <SelectItem value="medium">🔵 Moyenne</SelectItem>
-                      <SelectItem value="high">🔴 Haute</SelectItem>
+                      <SelectItem value="low">Basse</SelectItem>
+                      <SelectItem value="medium">Moyenne</SelectItem>
+                      <SelectItem value="high">Haute</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -131,7 +158,7 @@ export default function NewTaskPage() {
                 <div className="space-y-2">
                   <Label htmlFor="due_date" className="flex items-center gap-2">
                     <Calendar className="h-4 w-4" />
-                    Date d'échéance
+                    Date d&apos;échéance
                   </Label>
                   <Input
                     id="due_date"
@@ -139,6 +166,48 @@ export default function NewTaskPage() {
                     value={formData.due_date}
                     onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
                   />
+                </div>
+
+                {/* Horaire */}
+                <div className="space-y-2">
+                  <Label htmlFor="scheduled_time" className="flex items-center gap-2">
+                    <Clock className="h-4 w-4" />
+                    Horaire
+                  </Label>
+                  <Input
+                    id="scheduled_time"
+                    type="time"
+                    value={formData.scheduled_time}
+                    onChange={(e) => setFormData({ ...formData, scheduled_time: e.target.value })}
+                  />
+                </div>
+
+                {/* Attribuée à */}
+                <div className="space-y-2">
+                  <Label htmlFor="assigned_to" className="flex items-center gap-2">
+                    <UserCheck className="h-4 w-4" />
+                    Attribuée à
+                  </Label>
+                  <Select
+                    value={formData.assigned_to}
+                    onValueChange={(value) => setFormData({ ...formData, assigned_to: value })}
+                  >
+                    <SelectTrigger id="assigned_to">
+                      <SelectValue placeholder="Sélectionner un technicien" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {technicians.map((tech) => (
+                        <SelectItem key={tech.id} value={tech.id}>
+                          {tech.first_name} {tech.last_name}
+                        </SelectItem>
+                      ))}
+                      {technicians.length === 0 && (
+                        <SelectItem value="_none" disabled>
+                          Aucun technicien
+                        </SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 

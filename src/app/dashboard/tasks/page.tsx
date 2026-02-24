@@ -7,7 +7,7 @@ import { LayoutContainer } from '@/components/LayoutContainer'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { FloatingActionButton } from '@/components/FloatingActionButton'
-import { Loader2, Plus, CheckSquare, Circle, CheckCircle2, AlertCircle, Clock, Calendar } from 'lucide-react'
+import { Loader2, Plus, CheckSquare, Circle, CheckCircle2, Clock, Calendar, UserCheck } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 
@@ -18,6 +18,9 @@ interface Task {
   status: 'todo' | 'in-progress' | 'done'
   priority: 'low' | 'medium' | 'high'
   due_date?: string
+  scheduled_time?: string
+  assigned_to?: string
+  assigned_technician?: { id: string; first_name: string; last_name: string } | null
   completed_at?: string
 }
 
@@ -228,7 +231,7 @@ export default function TasksPage() {
                         </p>
                       )}
 
-                      <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                      <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
                         {task.due_date && (
                           <div className="flex items-center gap-1">
                             <Calendar className="h-3 w-3" />
@@ -238,6 +241,18 @@ export default function TasksPage() {
                                 month: 'short',
                               })}
                             </span>
+                          </div>
+                        )}
+                        {task.scheduled_time && (
+                          <div className="flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            <span>{task.scheduled_time.slice(0, 5)}</span>
+                          </div>
+                        )}
+                        {task.assigned_technician && (
+                          <div className="flex items-center gap-1 text-orange-600 dark:text-orange-400">
+                            <UserCheck className="h-3 w-3" />
+                            <span>{task.assigned_technician.first_name} {task.assigned_technician.last_name}</span>
                           </div>
                         )}
                         {task.completed_at && (

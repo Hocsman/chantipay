@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { MobileLayout } from '@/components/mobile/MobileLayout'
 import { EmptyState } from '@/components/mobile/EmptyState'
-import { CheckSquare, Plus, Circle, CheckCircle2, Loader2, Calendar, AlertCircle } from 'lucide-react'
+import { CheckSquare, Plus, Circle, CheckCircle2, Loader2, Calendar, AlertCircle, Clock, UserCheck } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -16,6 +16,8 @@ interface Task {
   status: 'todo' | 'in-progress' | 'done'
   priority: 'low' | 'medium' | 'high'
   dueDate?: string
+  scheduledTime?: string
+  assignedTechnician?: { id: string; first_name: string; last_name: string } | null
   createdAt: string
 }
 
@@ -53,6 +55,8 @@ export default function MobileTasksPage() {
           status: task.status,
           priority: task.priority,
           dueDate: task.due_date,
+          scheduledTime: task.scheduled_time,
+          assignedTechnician: task.assigned_technician,
           createdAt: task.created_at,
         }))
         setTasks(formattedTasks)
@@ -218,6 +222,22 @@ export default function MobileTasksPage() {
                               day: '2-digit',
                               month: 'short',
                             })}
+                          </div>
+                        )}
+
+                        {/* Scheduled time */}
+                        {task.scheduledTime && (
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <Clock className="h-3 w-3" />
+                            {task.scheduledTime.slice(0, 5)}
+                          </div>
+                        )}
+
+                        {/* Assigned technician */}
+                        {task.assignedTechnician && (
+                          <div className="flex items-center gap-1 text-xs text-orange-600 dark:text-orange-400">
+                            <UserCheck className="h-3 w-3" />
+                            {task.assignedTechnician.first_name} {task.assignedTechnician.last_name}
                           </div>
                         )}
 

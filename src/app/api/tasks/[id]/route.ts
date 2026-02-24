@@ -23,10 +23,10 @@ export async function GET(
       )
     }
 
-    // Récupérer la tâche
+    // Récupérer la tâche avec le technicien assigné
     const { data: task, error } = await supabase
       .from('tasks')
-      .select('*')
+      .select('*, assigned_technician:technicians(id, first_name, last_name)')
       .eq('id', id)
       .eq('user_id', user.id)
       .single()
@@ -86,12 +86,14 @@ export async function PATCH(
     }
 
     const body = await request.json()
-    const { 
-      title, 
-      description, 
+    const {
+      title,
+      description,
       priority,
       status,
       due_date,
+      scheduled_time,
+      assigned_to,
       related_type,
       related_id
     } = body
@@ -120,6 +122,8 @@ export async function PATCH(
       updateData.status = status
     }
     if (due_date !== undefined) updateData.due_date = due_date || null
+    if (scheduled_time !== undefined) updateData.scheduled_time = scheduled_time || null
+    if (assigned_to !== undefined) updateData.assigned_to = assigned_to || null
     if (related_type !== undefined) updateData.related_type = related_type || null
     if (related_id !== undefined) updateData.related_id = related_id || null
 
@@ -129,7 +133,7 @@ export async function PATCH(
       .update(updateData)
       .eq('id', id)
       .eq('user_id', user.id)
-      .select()
+      .select('*, assigned_technician:technicians(id, first_name, last_name)')
       .single()
 
     if (error) {

@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Loader2, ArrowLeft, Calendar } from 'lucide-react'
+import { Loader2, ArrowLeft, Calendar, Clock, UserCheck } from 'lucide-react'
 import { toast } from 'sonner'
 
 const priorityOptions = [
@@ -24,16 +24,42 @@ const priorityOptions = [
   { value: 'high', label: 'Haute', color: 'text-red-600' },
 ]
 
+interface Technician {
+  id: string
+  first_name: string
+  last_name: string
+  status: string
+}
+
 export default function NewTaskMobilePage() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
+  const [technicians, setTechnicians] = useState<Technician[]>([])
 
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     priority: 'medium',
     due_date: '',
+    scheduled_time: '',
+    assigned_to: '',
   })
+
+  // Charger les techniciens
+  useEffect(() => {
+    const fetchTechnicians = async () => {
+      try {
+        const response = await fetch('/api/technicians')
+        if (response.ok) {
+          const data = await response.json()
+          setTechnicians(data.technicians?.filter((t: Technician) => t.status === 'active') || [])
+        }
+      } catch (error) {
+        console.error('Erreur chargement techniciens:', error)
+      }
+    }
+    fetchTechnicians()
+  }, [])
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -51,7 +77,12 @@ export default function NewTaskMobilePage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ...formData,
+          title: formData.title,
+          description: formData.description || undefined,
+          priority: formData.priority,
+          due_date: formData.due_date || undefined,
+          scheduled_time: formData.scheduled_time || undefined,
+          assigned_to: formData.assigned_to || undefined,
           status: 'todo',
         }),
       })
@@ -63,7 +94,7 @@ export default function NewTaskMobilePage() {
         return
       }
 
-      toast.success('✅ Tâche créée avec succès')
+      toast.success('Tâche créée avec succès')
       router.push('/mobile/tasks')
     } catch (error) {
       console.error('Erreur:', error)
@@ -138,7 +169,7 @@ export default function NewTaskMobilePage() {
 
               {/* Date d'échéance */}
               <div className="space-y-2">
-                <Label htmlFor="due_date">Date d'échéance (optionnelle)</Label>
+                <Label htmlFor="due_date">Date d&apos;échéance (optionnelle)</Label>
                 <div className="relative">
                   <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -152,9 +183,53 @@ export default function NewTaskMobilePage() {
                 </div>
               </div>
 
+              {/* Horaire */}
+              <div className="space-y-2">
+                <Label htmlFor="scheduled_time">Horaire (optionnel)</Label>
+                <div className="relative">
+                  <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="scheduled_time"
+                    name="scheduled_time"
+                    type="time"
+                    value={formData.scheduled_time}
+                    onChange={handleChange}
+                    className="h-12 pl-10"
+                  />
+                </div>
+              </div>
+
+              {/* Attribuée à */}
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <UserCheck className="h-4 w-4" />
+                  Attribuée à
+                </Label>
+                <Select
+                  value={formData.assigned_to}
+                  onValueChange={(value) => setFormData((prev) => ({ ...prev, assigned_to: value }))}
+                >
+                  <SelectTrigger className="h-12">
+                    <SelectValue placeholder="Sélectionner un technicien" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {technicians.map((tech) => (
+                      <SelectItem key={tech.id} value={tech.id}>
+                        {tech.first_name} {tech.last_name}
+                      </SelectItem>
+                    ))}
+                    {technicians.length === 0 && (
+                      <SelectItem value="_none" disabled>
+                        Aucun technicien
+                      </SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+
               {/* Info */}
               <div className="rounded-lg bg-blue-50 dark:bg-blue-950/30 p-3 text-sm text-blue-800 dark:text-blue-200">
-                <p className="font-medium mb-1">💡 Astuce</p>
+                <p className="font-medium mb-1">Astuce</p>
                 <p className="text-xs">
                   Vous pourrez lier cette tâche à un devis, client ou intervention après sa création.
                 </p>

@@ -19,10 +19,10 @@ export async function GET() {
       )
     }
 
-    // Récupérer les tâches
+    // Récupérer les tâches avec le technicien assigné
     const { data: tasks, error } = await supabase
       .from('tasks')
-      .select('*')
+      .select('*, assigned_technician:technicians(id, first_name, last_name)')
       .eq('user_id', user.id)
       .order('due_date', { ascending: true, nullsFirst: false })
       .order('created_at', { ascending: false })
@@ -64,12 +64,14 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { 
-      title, 
-      description, 
+    const {
+      title,
+      description,
       priority = 'medium',
       status = 'todo',
       due_date,
+      scheduled_time,
+      assigned_to,
       related_type,
       related_id
     } = body
@@ -108,10 +110,12 @@ export async function POST(request: NextRequest) {
         priority,
         status,
         due_date: due_date || null,
+        scheduled_time: scheduled_time || null,
+        assigned_to: assigned_to || null,
         related_type: related_type || null,
         related_id: related_id || null,
       })
-      .select()
+      .select('*, assigned_technician:technicians(id, first_name, last_name)')
       .single()
 
     if (error) {
