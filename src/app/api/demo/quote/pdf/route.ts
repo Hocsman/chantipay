@@ -46,6 +46,10 @@ function buildClientForPdf() {
     postal_code: demoClient.postal_code,
     city: demoClient.city,
     notes: demoClient.notes,
+    client_type: 'particulier' as const,
+    company_name: null,
+    siret: null,
+    vat_number: null,
     created_at: new Date().toISOString(),
   }
 }

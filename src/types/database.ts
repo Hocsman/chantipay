@@ -88,6 +88,10 @@ export type Database = {
           postal_code: string | null;
           city: string | null;
           notes: string | null;
+          client_type: 'particulier' | 'professionnel';
+          company_name: string | null;
+          siret: string | null;
+          vat_number: string | null;
           created_at: string;
         };
         Insert: {
@@ -100,6 +104,10 @@ export type Database = {
           postal_code?: string | null;
           city?: string | null;
           notes?: string | null;
+          client_type?: 'particulier' | 'professionnel';
+          company_name?: string | null;
+          siret?: string | null;
+          vat_number?: string | null;
           created_at?: string;
         };
         Update: {
@@ -112,6 +120,10 @@ export type Database = {
           postal_code?: string | null;
           city?: string | null;
           notes?: string | null;
+          client_type?: 'particulier' | 'professionnel';
+          company_name?: string | null;
+          siret?: string | null;
+          vat_number?: string | null;
           created_at?: string;
         };
       };
@@ -291,6 +303,8 @@ export type Database = {
           client_phone: string | null;
           client_address: string | null;
           client_siret: string | null;
+          client_company_name: string | null;
+          client_vat_number: string | null;
           subtotal: number;
           tax_rate: number;
           tax_amount: number;
@@ -320,6 +334,8 @@ export type Database = {
           client_phone?: string | null;
           client_address?: string | null;
           client_siret?: string | null;
+          client_company_name?: string | null;
+          client_vat_number?: string | null;
           subtotal?: number;
           tax_rate?: number;
           tax_amount?: number;
@@ -349,6 +365,8 @@ export type Database = {
           client_phone?: string | null;
           client_address?: string | null;
           client_siret?: string | null;
+          client_company_name?: string | null;
+          client_vat_number?: string | null;
           subtotal?: number;
           tax_rate?: number;
           tax_amount?: number;

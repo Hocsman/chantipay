@@ -95,12 +95,12 @@ export async function GET(
 
   // Données de l'acheteur (client)
   const buyer = {
-    name: invoice.client_name,
+    name: invoice.client_company_name || invoice.client_name,
     address: invoice.client_address,
     email: invoice.client_email,
     phone: invoice.client_phone,
     siret: invoice.client_siret,
-    vat_number: null, // À ajouter si nécessaire
+    vat_number: invoice.client_vat_number,
   }
 
   try {

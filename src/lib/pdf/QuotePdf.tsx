@@ -521,7 +521,14 @@ export const QuotePdfDocument = ({
         {/* ============================================ */}
         <View style={styles.clientSection}>
           <Text style={styles.sectionTitle}>Client</Text>
-          <Text style={styles.clientName}>{client.name}</Text>
+          {client.client_type === 'professionnel' && client.company_name ? (
+            <>
+              <Text style={styles.clientName}>{client.company_name}</Text>
+              <Text style={styles.clientInfo}>Contact : {client.name}</Text>
+            </>
+          ) : (
+            <Text style={styles.clientName}>{client.name}</Text>
+          )}
           {client.address_line1 && (
             <Text style={styles.clientInfo}>{client.address_line1}</Text>
           )}
@@ -535,6 +542,12 @@ export const QuotePdfDocument = ({
           )}
           {client.phone && (
             <Text style={styles.clientInfo}>Tél : {client.phone}</Text>
+          )}
+          {client.siret && (
+            <Text style={styles.clientInfo}>SIRET : {client.siret}</Text>
+          )}
+          {client.vat_number && (
+            <Text style={styles.clientInfo}>TVA : {client.vat_number}</Text>
           )}
         </View>
 

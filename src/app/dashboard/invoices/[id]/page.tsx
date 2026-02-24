@@ -99,6 +99,8 @@ interface Invoice {
   client_phone?: string
   client_address?: string
   client_siret?: string
+  client_company_name?: string
+  client_vat_number?: string
   subtotal: number
   tax_rate: number
   tax_amount: number

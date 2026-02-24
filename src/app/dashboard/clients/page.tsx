@@ -16,7 +16,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Plus, Search, Users, Loader2, Mail, Phone, MapPin, UserPlus } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Plus, Search, Users, Loader2, Mail, Phone, MapPin, UserPlus, Building2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface Client {
@@ -25,6 +26,8 @@ interface Client {
   city?: string | null
   phone?: string | null
   email?: string | null
+  client_type?: 'particulier' | 'professionnel'
+  company_name?: string | null
   created_at: string
 }
 
@@ -56,7 +59,8 @@ export default function ClientsPage() {
     client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     client.city?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     client.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    client.phone?.includes(searchQuery)
+    client.phone?.includes(searchQuery) ||
+    client.company_name?.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
   // Calculer les statistiques
@@ -150,7 +154,15 @@ export default function ClientsPage() {
                       <Users className="h-5 w-5 text-primary" />
                     </div>
                     <div>
-                      <p className="font-semibold">{client.name}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-semibold">{client.client_type === 'professionnel' ? client.company_name : client.name}</p>
+                        {client.client_type === 'professionnel' && (
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0">Pro</Badge>
+                        )}
+                      </div>
+                      {client.client_type === 'professionnel' && (
+                        <p className="text-xs text-muted-foreground">{client.name}</p>
+                      )}
                       {client.city && (
                         <p className="text-sm text-muted-foreground flex items-center gap-1">
                           <MapPin className="h-3 w-3" />
@@ -204,9 +216,23 @@ export default function ClientsPage() {
                   <TableCell className="font-semibold">
                     <div className="flex items-center gap-3">
                       <div className="w-9 h-9 rounded-full bg-primary/5 group-hover:bg-primary/10 flex items-center justify-center transition-colors">
-                        <Users className="h-4 w-4 text-primary" />
+                        {client.client_type === 'professionnel' ? (
+                          <Building2 className="h-4 w-4 text-primary" />
+                        ) : (
+                          <Users className="h-4 w-4 text-primary" />
+                        )}
                       </div>
-                      {client.name}
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span>{client.client_type === 'professionnel' ? client.company_name : client.name}</span>
+                          {client.client_type === 'professionnel' && (
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0">Pro</Badge>
+                          )}
+                        </div>
+                        {client.client_type === 'professionnel' && (
+                          <p className="text-xs text-muted-foreground font-normal">{client.name}</p>
+                        )}
+                      </div>
                     </div>
                   </TableCell>
                   <TableCell className="text-muted-foreground">

@@ -124,7 +124,9 @@ export async function POST(request: NextRequest) {
     const totalTTC = totalHT + totalVAT
     const depositAmount = totalTTC * ((deposit_percent || 30) / 100)
 
-    // Créer le devis avec retry en cas de collision de numéro
+    // Créer le devis (numero genere par le trigger DB)
+    // Un retry reste en place par prudence en cas de collision/transient DB,
+    // mais on ne force jamais de numero fallback pour conserver la chronologie.
     let quote = null
     let quoteError = null
     const maxRetries = 3
@@ -135,11 +137,6 @@ export async function POST(request: NextRequest) {
         .insert({
           user_id: user.id,
           client_id,
-          // quote_number sera auto-généré par le trigger
-          // En cas de collision, le retry utilisera un numéro de fallback
-          ...(attempt > 0 && {
-            quote_number: `DEV-${new Date().getFullYear()}-${Date.now().toString().slice(-8)}`
-          }),
           status: 'draft',
           total_ht: totalHT,
           total_ttc: totalTTC,
@@ -156,8 +153,12 @@ export async function POST(request: NextRequest) {
       quote = result.data
       quoteError = result.error
 
-      // Si succès ou erreur autre que duplication, sortir de la boucle
-      if (!quoteError || !quoteError.message?.includes('duplicate key')) {
+      const isDuplicateQuoteNumber =
+        quoteError?.code === '23505' ||
+        Boolean(quoteError?.message?.toLowerCase().includes('duplicate key'))
+
+      // Si succes ou erreur autre que duplication, sortir de la boucle
+      if (!quoteError || !isDuplicateQuoteNumber) {
         break
       }
 

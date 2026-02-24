@@ -21,6 +21,13 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
   ArrowLeft,
   Mail,
   Phone,
@@ -32,6 +39,7 @@ import {
   Pencil,
   X,
   Save,
+  Building2,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -46,6 +54,10 @@ interface Client {
   city?: string | null
   country?: string | null
   notes?: string | null
+  client_type?: 'particulier' | 'professionnel'
+  company_name?: string | null
+  siret?: string | null
+  vat_number?: string | null
   created_at: string
 }
 
@@ -88,6 +100,10 @@ export default function ClientDetailPage() {
     postal_code: '',
     city: '',
     notes: '',
+    client_type: 'particulier' as 'particulier' | 'professionnel',
+    company_name: '',
+    siret: '',
+    vat_number: '',
   })
 
   useEffect(() => {
@@ -121,6 +137,10 @@ export default function ClientDetailPage() {
         postal_code: clientInfo.postal_code || '',
         city: clientInfo.city || '',
         notes: clientInfo.notes || '',
+        client_type: clientInfo.client_type || 'particulier',
+        company_name: clientInfo.company_name || '',
+        siret: clientInfo.siret || '',
+        vat_number: clientInfo.vat_number || '',
       })
 
       // Charger les devis du client
@@ -190,6 +210,10 @@ export default function ClientDetailPage() {
         postal_code: client.postal_code || '',
         city: client.city || '',
         notes: client.notes || '',
+        client_type: client.client_type || 'particulier',
+        company_name: client.company_name || '',
+        siret: client.siret || '',
+        vat_number: client.vat_number || '',
       })
     }
   }
@@ -305,6 +329,21 @@ export default function ClientDetailPage() {
               {/* Mode lecture */}
               {!isEditing && (
                 <>
+                  {client.client_type === 'professionnel' && (
+                    <div className="flex items-start gap-3">
+                      <Building2 className="text-muted-foreground mt-0.5 h-4 w-4" />
+                      <div>
+                        <p className="text-sm font-medium">Entreprise</p>
+                        <p className="text-sm">{client.company_name}</p>
+                        {client.siret && (
+                          <p className="text-muted-foreground text-xs">SIRET : {client.siret}</p>
+                        )}
+                        {client.vat_number && (
+                          <p className="text-muted-foreground text-xs">TVA : {client.vat_number}</p>
+                        )}
+                      </div>
+                    </div>
+                  )}
                   {client.email && (
                     <div className="flex items-start gap-3">
                       <Mail className="text-muted-foreground mt-0.5 h-4 w-4" />
@@ -380,8 +419,66 @@ export default function ClientDetailPage() {
                   }}
                   className="space-y-4"
                 >
+                  {/* Type de client */}
                   <div className="space-y-2">
-                    <Label htmlFor="name">Nom *</Label>
+                    <Label>Type de client</Label>
+                    <Select
+                      value={formData.client_type}
+                      onValueChange={(value: 'particulier' | 'professionnel') =>
+                        setFormData((prev) => ({ ...prev, client_type: value }))
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="particulier">Particulier</SelectItem>
+                        <SelectItem value="professionnel">Professionnel</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Champs professionnel */}
+                  {formData.client_type === 'professionnel' && (
+                    <div className="rounded-lg border border-blue-200 bg-blue-50/50 dark:border-blue-900/50 dark:bg-blue-950/20 p-3 space-y-3">
+                      <div className="space-y-2">
+                        <Label htmlFor="company_name">Raison sociale *</Label>
+                        <Input
+                          id="company_name"
+                          name="company_name"
+                          placeholder="SARL Dupont & Fils"
+                          value={formData.company_name}
+                          onChange={handleFormChange}
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="siret">SIRET</Label>
+                        <Input
+                          id="siret"
+                          name="siret"
+                          placeholder="123 456 789 00012"
+                          value={formData.siret}
+                          onChange={handleFormChange}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="vat_number">N° TVA</Label>
+                        <Input
+                          id="vat_number"
+                          name="vat_number"
+                          placeholder="FR 12 345678901"
+                          value={formData.vat_number}
+                          onChange={handleFormChange}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="space-y-2">
+                    <Label htmlFor="name">
+                      {formData.client_type === 'professionnel' ? 'Nom du contact *' : 'Nom *'}
+                    </Label>
                     <Input
                       id="name"
                       name="name"

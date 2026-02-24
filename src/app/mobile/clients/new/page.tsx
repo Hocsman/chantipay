@@ -8,7 +8,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, ArrowLeft } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Loader2, ArrowLeft, Building2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function NewClientMobilePage() {
@@ -23,6 +30,10 @@ export default function NewClientMobilePage() {
     postal_code: '',
     city: '',
     notes: '',
+    client_type: 'particulier' as 'particulier' | 'professionnel',
+    company_name: '',
+    siret: '',
+    vat_number: '',
   });
 
   const handleChange = (
@@ -76,12 +87,79 @@ export default function NewClientMobilePage() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Type de client */}
               <div className="space-y-2">
-                <Label htmlFor="name">Nom complet *</Label>
+                <Label>Type de client</Label>
+                <Select
+                  value={formData.client_type}
+                  onValueChange={(value: 'particulier' | 'professionnel') =>
+                    setFormData((prev) => ({ ...prev, client_type: value }))
+                  }
+                >
+                  <SelectTrigger className="h-12">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="particulier">Particulier</SelectItem>
+                    <SelectItem value="professionnel">
+                      <span className="flex items-center gap-2">
+                        <Building2 className="h-4 w-4" />
+                        Professionnel
+                      </span>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Champs professionnel */}
+              {formData.client_type === 'professionnel' && (
+                <div className="rounded-lg border border-blue-200 bg-blue-50/50 dark:border-blue-900/50 dark:bg-blue-950/20 p-4 space-y-4">
+                  <p className="text-sm font-medium text-blue-800 dark:text-blue-200">Informations entreprise</p>
+                  <div className="space-y-2">
+                    <Label htmlFor="company_name">Raison sociale *</Label>
+                    <Input
+                      id="company_name"
+                      name="company_name"
+                      placeholder="SARL Dupont & Fils"
+                      value={formData.company_name}
+                      onChange={handleChange}
+                      required
+                      className="h-12"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="siret">SIRET</Label>
+                    <Input
+                      id="siret"
+                      name="siret"
+                      placeholder="123 456 789 00012"
+                      value={formData.siret}
+                      onChange={handleChange}
+                      className="h-12"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="vat_number">N° TVA intracommunautaire</Label>
+                    <Input
+                      id="vat_number"
+                      name="vat_number"
+                      placeholder="FR 12 345678901"
+                      value={formData.vat_number}
+                      onChange={handleChange}
+                      className="h-12"
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <Label htmlFor="name">
+                  {formData.client_type === 'professionnel' ? 'Nom du contact *' : 'Nom complet *'}
+                </Label>
                 <Input
                   id="name"
                   name="name"
-                  placeholder="M. Jean Dupont"
+                  placeholder={formData.client_type === 'professionnel' ? 'M. Jean Dupont (contact)' : 'M. Jean Dupont'}
                   value={formData.name}
                   onChange={handleChange}
                   required

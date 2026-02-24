@@ -17,6 +17,9 @@ interface Invoice {
   client_email?: string | null
   client_phone?: string | null
   client_address?: string | null
+  client_company_name?: string | null
+  client_siret?: string | null
+  client_vat_number?: string | null
   subtotal: number
   tax_rate: number
   tax_amount: number
@@ -26,7 +29,6 @@ interface Invoice {
   payment_terms?: string | null
   notes?: string | null
   items: InvoiceItem[]
-  // Nouveaux champs
   work_location?: string | null
   is_subcontracting?: boolean
 }
@@ -229,7 +231,13 @@ export async function generateInvoicePDF(
   // ============================================
 
   const clientBoxY = yPos
-  const clientBoxHeight = 38
+  // Calculer la hauteur dynamiquement
+  let clientLines = 3 // titre + nom + espace
+  if (invoice.client_company_name) clientLines++ // raison sociale
+  if (invoice.client_address) clientLines++
+  if (invoice.client_email || invoice.client_phone) clientLines++
+  if (invoice.client_siret || invoice.client_vat_number) clientLines++
+  const clientBoxHeight = 10 + clientLines * 5
 
   doc.setFillColor(...COLORS.bgLight)
   doc.setDrawColor(...COLORS.border)
@@ -245,12 +253,28 @@ export async function generateInvoicePDF(
   doc.text('CLIENT', margin + 8, yPos)
   yPos += 7
 
-  // Nom du client
-  doc.setFontSize(10)
-  doc.setFont('helvetica', 'bold')
-  doc.setTextColor(...COLORS.textDark)
-  doc.text(invoice.client_name, margin + 8, yPos)
-  yPos += 5
+  // Raison sociale (si professionnel)
+  if (invoice.client_company_name) {
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(...COLORS.textDark)
+    doc.text(invoice.client_company_name, margin + 8, yPos)
+    yPos += 5
+
+    // Nom du contact
+    doc.setFontSize(8)
+    doc.setFont('helvetica', 'normal')
+    doc.setTextColor(...COLORS.textSecondary)
+    doc.text(`Contact : ${invoice.client_name}`, margin + 8, yPos)
+    yPos += 4
+  } else {
+    // Nom du client (particulier)
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(...COLORS.textDark)
+    doc.text(invoice.client_name, margin + 8, yPos)
+    yPos += 5
+  }
 
   // Adresse et contact
   doc.setFontSize(8)
@@ -267,6 +291,15 @@ export async function generateInvoicePDF(
   if (invoice.client_phone) clientContact.push(`Tél : ${invoice.client_phone}`)
   if (clientContact.length > 0) {
     doc.text(clientContact.join('  •  '), margin + 8, yPos)
+    yPos += 4
+  }
+
+  // SIRET et TVA du client
+  const clientLegalParts: string[] = []
+  if (invoice.client_siret) clientLegalParts.push(`SIRET : ${invoice.client_siret}`)
+  if (invoice.client_vat_number) clientLegalParts.push(`TVA : ${invoice.client_vat_number}`)
+  if (clientLegalParts.length > 0) {
+    doc.text(clientLegalParts.join('  •  '), margin + 8, yPos)
   }
 
   yPos = clientBoxY + clientBoxHeight + 10

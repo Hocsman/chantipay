@@ -63,12 +63,19 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { name, phone, email, address_line1, postal_code, city, notes } = body
+    const { name, phone, email, address_line1, postal_code, city, notes, client_type, company_name, siret, vat_number } = body
 
     // Validation
     if (!name || name.trim() === '') {
       return NextResponse.json(
         { error: 'Le nom du client est requis' },
+        { status: 400 }
+      )
+    }
+
+    if (client_type === 'professionnel' && (!company_name || company_name.trim() === '')) {
+      return NextResponse.json(
+        { error: 'La raison sociale est requise pour un client professionnel' },
         { status: 400 }
       )
     }
@@ -85,6 +92,10 @@ export async function POST(request: NextRequest) {
         postal_code: postal_code?.trim() || null,
         city: city?.trim() || null,
         notes: notes?.trim() || null,
+        client_type: client_type || 'particulier',
+        company_name: client_type === 'professionnel' ? (company_name?.trim() || null) : null,
+        siret: client_type === 'professionnel' ? (siret?.trim() || null) : null,
+        vat_number: client_type === 'professionnel' ? (vat_number?.trim() || null) : null,
       })
       .select()
       .single()

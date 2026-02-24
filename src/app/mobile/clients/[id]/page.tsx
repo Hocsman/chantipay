@@ -16,7 +16,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { ArrowLeft, Loader2, Pencil, Trash2, Mail, Phone, MapPin } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { ArrowLeft, Loader2, Pencil, Trash2, Mail, Phone, MapPin, Building2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Client {
@@ -29,6 +36,10 @@ interface Client {
   postal_code?: string | null;
   city?: string | null;
   notes?: string | null;
+  client_type?: 'particulier' | 'professionnel';
+  company_name?: string | null;
+  siret?: string | null;
+  vat_number?: string | null;
   created_at: string;
 }
 
@@ -50,6 +61,10 @@ export default function ClientDetailMobilePage() {
     postal_code: '',
     city: '',
     notes: '',
+    client_type: 'particulier' as 'particulier' | 'professionnel',
+    company_name: '',
+    siret: '',
+    vat_number: '',
   });
 
   const loadClient = useCallback(async () => {
@@ -75,6 +90,10 @@ export default function ClientDetailMobilePage() {
         postal_code: data.client.postal_code || '',
         city: data.client.city || '',
         notes: data.client.notes || '',
+        client_type: data.client.client_type || 'particulier',
+        company_name: data.client.company_name || '',
+        siret: data.client.siret || '',
+        vat_number: data.client.vat_number || '',
       });
     } catch (error) {
       console.error('Erreur:', error);
@@ -191,6 +210,22 @@ export default function ClientDetailMobilePage() {
                   <p className="text-lg font-semibold text-foreground">{client.name}</p>
                 </div>
 
+                {client.client_type === 'professionnel' && (
+                  <div className="flex items-start gap-3">
+                    <Building2 className="h-5 w-5 text-muted-foreground mt-0.5" />
+                    <div>
+                      <p className="text-sm text-muted-foreground">Entreprise</p>
+                      <p className="text-foreground font-medium">{client.company_name}</p>
+                      {client.siret && (
+                        <p className="text-muted-foreground text-xs">SIRET : {client.siret}</p>
+                      )}
+                      {client.vat_number && (
+                        <p className="text-muted-foreground text-xs">TVA : {client.vat_number}</p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 {client.email && (
                   <div className="flex items-center gap-3">
                     <Mail className="h-5 w-5 text-muted-foreground" />
@@ -287,12 +322,74 @@ export default function ClientDetailMobilePage() {
             </CardHeader>
             <CardContent>
               <form className="space-y-6" onSubmit={(e) => { e.preventDefault(); handleSave(); }}>
+                {/* Type de client */}
                 <div className="space-y-2">
-                  <Label htmlFor="name">Nom complet *</Label>
+                  <Label>Type de client</Label>
+                  <Select
+                    value={formData.client_type}
+                    onValueChange={(value: 'particulier' | 'professionnel') =>
+                      setFormData((prev) => ({ ...prev, client_type: value }))
+                    }
+                  >
+                    <SelectTrigger className="h-12">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="particulier">Particulier</SelectItem>
+                      <SelectItem value="professionnel">Professionnel</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Champs professionnel */}
+                {formData.client_type === 'professionnel' && (
+                  <div className="rounded-lg border border-blue-200 bg-blue-50/50 dark:border-blue-900/50 dark:bg-blue-950/20 p-4 space-y-4">
+                    <p className="text-sm font-medium text-blue-800 dark:text-blue-200">Informations entreprise</p>
+                    <div className="space-y-2">
+                      <Label htmlFor="company_name">Raison sociale *</Label>
+                      <Input
+                        id="company_name"
+                        name="company_name"
+                        placeholder="SARL Dupont & Fils"
+                        value={formData.company_name}
+                        onChange={handleChange}
+                        required
+                        className="h-12"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="siret">SIRET</Label>
+                      <Input
+                        id="siret"
+                        name="siret"
+                        placeholder="123 456 789 00012"
+                        value={formData.siret}
+                        onChange={handleChange}
+                        className="h-12"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="vat_number">N° TVA intracommunautaire</Label>
+                      <Input
+                        id="vat_number"
+                        name="vat_number"
+                        placeholder="FR 12 345678901"
+                        value={formData.vat_number}
+                        onChange={handleChange}
+                        className="h-12"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <Label htmlFor="name">
+                    {formData.client_type === 'professionnel' ? 'Nom du contact *' : 'Nom complet *'}
+                  </Label>
                   <Input
                     id="name"
                     name="name"
-                    placeholder="M. Jean Dupont"
+                    placeholder={formData.client_type === 'professionnel' ? 'M. Jean Dupont (contact)' : 'M. Jean Dupont'}
                     value={formData.name}
                     onChange={handleChange}
                     required
@@ -390,6 +487,10 @@ export default function ClientDetailMobilePage() {
                         postal_code: client.postal_code || '',
                         city: client.city || '',
                         notes: client.notes || '',
+                        client_type: client.client_type || 'particulier',
+                        company_name: client.company_name || '',
+                        siret: client.siret || '',
+                        vat_number: client.vat_number || '',
                       });
                     }}
                     className="flex-1 h-12 text-base"

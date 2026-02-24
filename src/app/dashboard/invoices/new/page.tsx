@@ -27,6 +27,9 @@ interface Client {
   phone?: string
   address?: string
   siret?: string
+  client_type?: 'particulier' | 'professionnel'
+  company_name?: string
+  vat_number?: string
 }
 
 interface InvoiceItem {
@@ -141,6 +144,8 @@ export default function NewInvoicePage() {
           client_phone: selectedClient.phone || null,
           client_address: selectedClient.address || null,
           client_siret: selectedClient.siret || null,
+          client_company_name: selectedClient.company_name || null,
+          client_vat_number: selectedClient.vat_number || null,
           issue_date: formData.issue_date,
           due_date: formData.due_date || null,
           payment_terms: formData.payment_terms || null,
@@ -210,10 +215,14 @@ export default function NewInvoicePage() {
 
               {selectedClient && (
                 <div className="p-3 bg-muted rounded-lg space-y-1 text-sm">
+                  {selectedClient.client_type === 'professionnel' && selectedClient.company_name && (
+                    <p><strong>Entreprise :</strong> {selectedClient.company_name}</p>
+                  )}
                   <p><strong>Email :</strong> {selectedClient.email || 'Non renseigné'}</p>
                   <p><strong>Téléphone :</strong> {selectedClient.phone || 'Non renseigné'}</p>
                   {selectedClient.address && <p><strong>Adresse :</strong> {selectedClient.address}</p>}
                   {selectedClient.siret && <p><strong>SIRET :</strong> {selectedClient.siret}</p>}
+                  {selectedClient.vat_number && <p><strong>TVA :</strong> {selectedClient.vat_number}</p>}
                 </div>
               )}
             </CardContent>

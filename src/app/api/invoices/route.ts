@@ -104,6 +104,8 @@ export async function POST(request: Request) {
       client_phone: body.client_phone || null,
       client_address: body.client_address || null,
       client_siret: body.client_siret || null,
+      client_company_name: body.client_company_name || null,
+      client_vat_number: body.client_vat_number || null,
       subtotal: finalSubtotal,
       tax_rate: body.tax_rate || 20.0,
       tax_amount: finalTaxAmount,

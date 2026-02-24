@@ -32,6 +32,9 @@ interface Invoice {
   client_email?: string | null
   client_phone?: string | null
   client_address?: string | null
+  client_company_name?: string | null
+  client_siret?: string | null
+  client_vat_number?: string | null
   subtotal: number
   tax_rate: number
   tax_amount: number
@@ -388,8 +391,13 @@ export const InvoicePdfDocument: React.FC<InvoicePdfProps> = ({
         <View style={styles.invoiceDetails}>
           <View style={styles.detailsBox}>
             <Text style={styles.detailsTitle}>Facture à :</Text>
-            <Text style={[styles.detailsText, { fontWeight: 'bold', color: '#374151' }]}>
-              {invoice.client_name}
+            {invoice.client_company_name && (
+              <Text style={[styles.detailsText, { fontWeight: 'bold', color: '#374151' }]}>
+                {invoice.client_company_name}
+              </Text>
+            )}
+            <Text style={[styles.detailsText, invoice.client_company_name ? {} : { fontWeight: 'bold', color: '#374151' }]}>
+              {invoice.client_company_name ? `Contact : ${invoice.client_name}` : invoice.client_name}
             </Text>
             {invoice.client_address && (
               <Text style={styles.detailsText}>{invoice.client_address}</Text>
@@ -399,6 +407,12 @@ export const InvoicePdfDocument: React.FC<InvoicePdfProps> = ({
             )}
             {invoice.client_phone && (
               <Text style={styles.detailsText}>{invoice.client_phone}</Text>
+            )}
+            {invoice.client_siret && (
+              <Text style={styles.detailsText}>SIRET : {invoice.client_siret}</Text>
+            )}
+            {invoice.client_vat_number && (
+              <Text style={styles.detailsText}>TVA : {invoice.client_vat_number}</Text>
             )}
           </View>
 

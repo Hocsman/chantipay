@@ -15,6 +15,8 @@ interface Client {
   city?: string | null;
   phone?: string | null;
   email?: string | null;
+  client_type?: 'particulier' | 'professionnel';
+  company_name?: string | null;
   created_at: string;
 }
 
@@ -46,7 +48,8 @@ export default function MobileClientsPage() {
     (client) =>
       client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       client.city?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      client.email?.toLowerCase().includes(searchQuery.toLowerCase())
+      client.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      client.company_name?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
@@ -92,7 +95,17 @@ export default function MobileClientsPage() {
               >
                 <CardContent className="flex items-center justify-between p-4">
                   <div className="flex-1">
-                    <p className="font-semibold text-foreground">{client.name}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="font-semibold text-foreground">
+                        {client.client_type === 'professionnel' ? client.company_name : client.name}
+                      </p>
+                      {client.client_type === 'professionnel' && (
+                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">Pro</span>
+                      )}
+                    </div>
+                    {client.client_type === 'professionnel' && (
+                      <p className="text-muted-foreground text-xs">{client.name}</p>
+                    )}
                     {client.city && (
                       <p className="text-muted-foreground text-sm">{client.city}</p>
                     )}

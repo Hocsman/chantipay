@@ -23,6 +23,9 @@ interface Client {
   postal_code?: string | null
   city?: string | null
   siret?: string | null
+  client_type?: 'particulier' | 'professionnel'
+  company_name?: string | null
+  vat_number?: string | null
 }
 
 interface Quote {
@@ -44,6 +47,8 @@ interface InvoiceData {
   client_phone: string
   client_address: string
   client_siret: string
+  client_company_name: string
+  client_vat_number: string
   subtotal: number
   tax_rate: number
   tax_amount: number
@@ -189,7 +194,9 @@ export function prepareInvoiceDataFromQuote(
     client_email: client.email || '',
     client_phone: client.phone || '',
     client_address: formatClientAddress(client),
-    client_siret: client.siret || '', // ✅ Récupéré depuis le client
+    client_siret: client.siret || '',
+    client_company_name: client.company_name || '',
+    client_vat_number: client.vat_number || '',
     subtotal: calculated.subtotal,
     tax_rate: taxRate,
     tax_amount: calculated.taxAmount,

@@ -65,12 +65,19 @@ export async function PATCH(
     }
 
     const body = await request.json();
-    const { name, phone, email, address_line1, postal_code, city, notes } = body;
+    const { name, phone, email, address_line1, postal_code, city, notes, client_type, company_name, siret, vat_number } = body;
 
     // Validation
     if (!name || name.trim() === '') {
       return NextResponse.json(
         { error: 'Le nom du client est requis' },
+        { status: 400 }
+      );
+    }
+
+    if (client_type === 'professionnel' && (!company_name || company_name.trim() === '')) {
+      return NextResponse.json(
+        { error: 'La raison sociale est requise pour un client professionnel' },
         { status: 400 }
       );
     }
@@ -87,6 +94,8 @@ export async function PATCH(
       return NextResponse.json({ error: 'Client introuvable' }, { status: 404 });
     }
 
+    const isPro = client_type === 'professionnel';
+
     // Mettre à jour le client
     const { data: client, error } = await supabase
       .from('clients')
@@ -98,6 +107,10 @@ export async function PATCH(
         postal_code: postal_code?.trim() || null,
         city: city?.trim() || null,
         notes: notes?.trim() || null,
+        client_type: client_type || 'particulier',
+        company_name: isPro ? (company_name?.trim() || null) : null,
+        siret: isPro ? (siret?.trim() || null) : null,
+        vat_number: isPro ? (vat_number?.trim() || null) : null,
       })
       .eq('id', id)
       .select()
@@ -125,13 +138,15 @@ export async function PATCH(
         client_name: name.trim(),
         client_email: email?.trim() || null,
         client_address: fullAddress,
+        client_company_name: isPro ? (company_name?.trim() || null) : null,
+        client_siret: isPro ? (siret?.trim() || null) : null,
+        client_vat_number: isPro ? (vat_number?.trim() || null) : null,
       })
       .eq('client_id', id)
       .eq('user_id', user.id);
 
     if (invoicesUpdateError) {
       console.warn('Avertissement: Impossible de mettre à jour les factures existantes:', invoicesUpdateError);
-      // On ne bloque pas, c'est un avertissement
     }
 
     // Synchroniser les informations client sur tous les avoirs existants
@@ -141,6 +156,9 @@ export async function PATCH(
         client_name: name.trim(),
         client_email: email?.trim() || null,
         client_address: fullAddress,
+        client_company_name: isPro ? (company_name?.trim() || null) : null,
+        client_siret: isPro ? (siret?.trim() || null) : null,
+        client_vat_number: isPro ? (vat_number?.trim() || null) : null,
       })
       .eq('client_id', id)
       .eq('user_id', user.id);
