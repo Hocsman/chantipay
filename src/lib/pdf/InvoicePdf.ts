@@ -150,8 +150,10 @@ export async function generateInvoicePDF(
     leftY += 4
   }
   if (companyInfo.address) {
-    doc.text(companyInfo.address, margin, leftY)
-    leftY += 4
+    const maxAddressWidth = pageWidth / 2 - margin - 10
+    const addressLines = doc.splitTextToSize(companyInfo.address, maxAddressWidth)
+    doc.text(addressLines, margin, leftY)
+    leftY += addressLines.length * 4
   }
   if (companyInfo.siret) {
     doc.text(`SIRET : ${companyInfo.siret}`, margin, leftY)
