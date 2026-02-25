@@ -19,6 +19,7 @@ import {
 import { Loader2, ArrowLeft, Plus, Trash2, Calendar, MapPin } from 'lucide-react'
 import { Switch } from '@/components/ui/switch'
 import { toast } from 'sonner'
+import { formatCurrency } from '@/lib/utils'
 
 interface Client {
   id: string
@@ -375,7 +376,7 @@ export default function NewInvoicePage() {
               <div className="border-t pt-4 space-y-2">
                 <div className="flex justify-between text-sm">
                   <span>Sous-total HT :</span>
-                  <span className="font-medium">{calculateSubtotal().toFixed(2)} €</span>
+                  <span className="font-medium">{formatCurrency(calculateSubtotal())}</span>
                 </div>
                 <div className="flex justify-between text-sm items-center gap-2">
                   <span>TVA :</span>
@@ -389,12 +390,12 @@ export default function NewInvoicePage() {
                       step="0.1"
                     />
                     <span className="text-sm">%</span>
-                    <span className="font-medium">{calculateTaxAmount().toFixed(2)} €</span>
+                    <span className="font-medium">{formatCurrency(calculateTaxAmount())}</span>
                   </div>
                 </div>
                 <div className="flex justify-between text-lg font-bold border-t pt-2">
                   <span>Total TTC :</span>
-                  <span>{calculateTotal().toFixed(2)} €</span>
+                  <span>{formatCurrency(calculateTotal())}</span>
                 </div>
               </div>
             </CardContent>

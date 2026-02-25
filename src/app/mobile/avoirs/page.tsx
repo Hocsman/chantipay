@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
 import { Loader2, Plus, FileText, TrendingDown, Search } from 'lucide-react'
 import { toast } from 'sonner'
-import { cn } from '@/lib/utils'
+import { cn, formatCurrency } from '@/lib/utils'
 import { EmptyState } from '@/components/mobile/EmptyState'
 
 interface CreditNoteItem {
@@ -240,7 +240,7 @@ export default function MobileCreditNotesPage() {
                       })}
                     </span>
                     <div className="font-bold text-base text-red-600">
-                      -{Math.abs(creditNote.total).toFixed(2)} €
+                      -{formatCurrency(Math.abs(creditNote.total))}
                     </div>
                   </div>
                 </CardContent>

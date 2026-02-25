@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/select'
 import { Loader2, ArrowLeft, Plus, Trash2, Calendar } from 'lucide-react'
 import { toast } from 'sonner'
+import { formatCurrency } from '@/lib/utils'
 
 interface Client {
   id: string
@@ -248,7 +249,7 @@ export default function NewCreditNotePage() {
                     <SelectItem value="">Aucune</SelectItem>
                     {invoices.map((invoice) => (
                       <SelectItem key={invoice.id} value={invoice.id}>
-                        {invoice.invoice_number} - {invoice.client_name} ({invoice.total.toFixed(2)} €)
+                        {invoice.invoice_number} - {invoice.client_name} ({formatCurrency(invoice.total)})
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -355,7 +356,7 @@ export default function NewCreditNotePage() {
               <div className="border-t pt-4 space-y-2">
                 <div className="flex justify-between text-sm">
                   <span>Sous-total HT :</span>
-                  <span className="font-medium text-red-600">-{calculateSubtotal().toFixed(2)} €</span>
+                  <span className="font-medium text-red-600">-{formatCurrency(calculateSubtotal())}</span>
                 </div>
                 <div className="flex justify-between text-sm items-center gap-2">
                   <span>TVA :</span>
@@ -369,12 +370,12 @@ export default function NewCreditNotePage() {
                       step="0.1"
                     />
                     <span className="text-sm">%</span>
-                    <span className="font-medium text-red-600">-{calculateTaxAmount().toFixed(2)} €</span>
+                    <span className="font-medium text-red-600">-{formatCurrency(calculateTaxAmount())}</span>
                   </div>
                 </div>
                 <div className="flex justify-between text-lg font-bold border-t pt-2">
                   <span>Total TTC :</span>
-                  <span className="text-red-600">-{calculateTotal().toFixed(2)} €</span>
+                  <span className="text-red-600">-{formatCurrency(calculateTotal())}</span>
                 </div>
               </div>
             </CardContent>

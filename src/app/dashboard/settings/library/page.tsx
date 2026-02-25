@@ -43,6 +43,7 @@ import {
   ArrowLeft,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { formatCurrency } from '@/lib/utils'
 import { useQuoteLibrary } from '@/hooks/useQuoteLibrary'
 import { TRADE_OPTIONS, type LibraryItem } from '@/types/quote-library'
 import Link from 'next/link'
@@ -396,7 +397,7 @@ export default function LibraryPage() {
                           <Badge variant="secondary">{getTradeLabel(item.trade)}</Badge>
                         </TableCell>
                         <TableCell className="text-right font-medium">
-                          {item.unit_price_ht.toFixed(2)} €
+                          {formatCurrency(item.unit_price_ht)}
                         </TableCell>
                         <TableCell className="text-right">{item.vat_rate}%</TableCell>
                         <TableCell>

@@ -34,6 +34,7 @@ import {
   MoreVertical,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { formatCurrency } from '@/lib/utils'
 import { useQuoteLibrary } from '@/hooks/useQuoteLibrary'
 import { TRADE_OPTIONS, type LibraryItem } from '@/types/quote-library'
 
@@ -330,7 +331,7 @@ export default function MobileLibraryPage() {
                         )}
                       </div>
                       <p className="text-sm font-medium mt-2">
-                        {item.unit_price_ht.toFixed(2)} € HT
+                        {formatCurrency(item.unit_price_ht)} HT
                         <span className="text-muted-foreground ml-2">
                           ({item.vat_rate}% TVA)
                         </span>

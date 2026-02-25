@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/select'
 import { Loader2, Plus, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { formatCurrency } from '@/lib/utils'
 
 interface Client {
   id: string
@@ -235,7 +236,7 @@ export default function NewCreditNoteMobilePage() {
                 <SelectContent>
                   {invoices.map((invoice) => (
                     <SelectItem key={invoice.id} value={invoice.id}>
-                      {invoice.invoice_number} ({invoice.total.toFixed(2)} €)
+                      {invoice.invoice_number} ({formatCurrency(invoice.total)})
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -348,7 +349,7 @@ export default function NewCreditNoteMobilePage() {
             <div className="border-t pt-3 space-y-2">
               <div className="flex justify-between text-sm">
                 <span>Sous-total HT :</span>
-                <span className="font-medium text-red-600">-{calculateSubtotal().toFixed(2)} €</span>
+                <span className="font-medium text-red-600">-{formatCurrency(calculateSubtotal())}</span>
               </div>
               <div className="flex justify-between text-sm items-center">
                 <span>TVA :</span>
@@ -362,12 +363,12 @@ export default function NewCreditNoteMobilePage() {
                     step="0.1"
                   />
                   <span className="text-xs">%</span>
-                  <span className="font-medium text-red-600 ml-1">-{calculateTaxAmount().toFixed(2)} €</span>
+                  <span className="font-medium text-red-600 ml-1">-{formatCurrency(calculateTaxAmount())}</span>
                 </div>
               </div>
               <div className="flex justify-between text-base font-bold border-t pt-2">
                 <span>Total TTC :</span>
-                <span className="text-red-600">-{calculateTotal().toFixed(2)} €</span>
+                <span className="text-red-600">-{formatCurrency(calculateTotal())}</span>
               </div>
             </div>
           </CardContent>

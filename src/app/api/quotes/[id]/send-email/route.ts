@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { formatCurrencyHtml } from '@/lib/utils'
 import { Resend } from 'resend'
 
 export async function POST(
@@ -116,8 +117,8 @@ export async function POST(
                       <tr>
                         <td>${item.description}</td>
                         <td>${item.quantity}</td>
-                        <td>${item.unit_price_ht.toFixed(2)} €</td>
-                        <td>${(item.quantity * item.unit_price_ht).toFixed(2)} €</td>
+                        <td>${formatCurrencyHtml(item.unit_price_ht)}</td>
+                        <td>${formatCurrencyHtml((item.quantity * item.unit_price_ht))}</td>
                       </tr>
                     `
                       )
@@ -126,15 +127,15 @@ export async function POST(
                   <tfoot>
                     <tr>
                       <td colspan="3" style="text-align: right;"><strong>Total HT</strong></td>
-                      <td><strong>${totalHT.toFixed(2)} €</strong></td>
+                      <td><strong>${formatCurrencyHtml(totalHT)}</strong></td>
                     </tr>
                     <tr>
                       <td colspan="3" style="text-align: right;">TVA (20%)</td>
-                      <td>${totalTVA.toFixed(2)} €</td>
+                      <td>${formatCurrencyHtml(totalTVA)}</td>
                     </tr>
                     <tr>
                       <td colspan="3" style="text-align: right;"><strong>Total TTC</strong></td>
-                      <td class="total">${totalTTC.toFixed(2)} €</td>
+                      <td class="total">${formatCurrencyHtml(totalTTC)}</td>
                     </tr>
                   </tfoot>
                 </table>

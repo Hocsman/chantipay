@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Loader2, FileText, Euro, Calendar, Send, CheckCircle2, ArrowLeft, Download, Building2, FileCode } from 'lucide-react'
 import { toast } from 'sonner'
-import { cn } from '@/lib/utils'
+import { cn, formatCurrency } from '@/lib/utils'
 import { downloadInvoicePDF } from '@/lib/pdf/InvoicePdf'
 import { createClient } from '@/lib/supabase/client'
 import Image from 'next/image'
@@ -414,7 +414,7 @@ export default function InvoiceDetailMobilePage({ params }: { params: Promise<{ 
                       <div key={index} className="px-3 py-2 grid grid-cols-12 gap-2 text-xs hover:bg-gray-50 dark:hover:bg-gray-900/20">
                         <div className="col-span-5">
                           <p className="font-medium text-sm">{item.description}</p>
-                          <p className="text-muted-foreground text-xs mt-0.5">{item.unit_price.toFixed(2)} €</p>
+                          <p className="text-muted-foreground text-xs mt-0.5">{formatCurrency(item.unit_price)}</p>
                         </div>
                         <div className="col-span-2 text-center text-sm font-medium">{item.quantity}</div>
                         <div className="col-span-2 text-center">
@@ -427,7 +427,7 @@ export default function InvoiceDetailMobilePage({ params }: { params: Promise<{ 
                             {item.vat_rate ?? invoice.tax_rate}%
                           </span>
                         </div>
-                        <div className="col-span-3 text-right text-sm font-semibold">{item.total.toFixed(2)} €</div>
+                        <div className="col-span-3 text-right text-sm font-semibold">{formatCurrency(item.total)}</div>
                       </div>
                     ))}
                   </div>
@@ -456,7 +456,7 @@ export default function InvoiceDetailMobilePage({ params }: { params: Promise<{ 
                         {Object.entries(vatGroups).map(([rate, values]) => (
                           <div key={rate} className="flex justify-between text-xs">
                             <span className="text-muted-foreground">TVA {rate}%</span>
-                            <span className="font-medium">{values.tax.toFixed(2)} €</span>
+                            <span className="font-medium">{formatCurrency(values.tax)}</span>
                           </div>
                         ))}
                       </div>
@@ -469,26 +469,26 @@ export default function InvoiceDetailMobilePage({ params }: { params: Promise<{ 
               <div className="space-y-2 mt-4">
                 <div className="flex justify-between text-sm py-1">
                   <span className="text-muted-foreground">Sous-total HT</span>
-                  <span className="font-medium">{invoice.subtotal.toFixed(2)} €</span>
+                  <span className="font-medium">{formatCurrency(invoice.subtotal)}</span>
                 </div>
                 <div className="flex justify-between text-sm py-1">
                   <span className="text-muted-foreground">TVA ({invoice.tax_rate}%)</span>
-                  <span className="font-medium">{invoice.tax_amount.toFixed(2)} €</span>
+                  <span className="font-medium">{formatCurrency(invoice.tax_amount)}</span>
                 </div>
                 <div className="flex justify-between text-lg font-bold border-t-2 pt-2 mt-2">
                   <span>Total TTC</span>
-                  <span className="text-blue-600">{invoice.total.toFixed(2)} €</span>
+                  <span className="text-blue-600">{formatCurrency(invoice.total)}</span>
                 </div>
                 
                 {invoice.payment_status === 'partial' && invoice.paid_amount && (
                   <>
                     <div className="flex justify-between text-sm text-green-600 font-medium pt-2 border-t">
                       <span>Montant payé</span>
-                      <span>{invoice.paid_amount.toFixed(2)} €</span>
+                      <span>{formatCurrency(invoice.paid_amount)}</span>
                     </div>
                     <div className="flex justify-between text-sm text-orange-600 font-semibold">
                       <span>Reste à payer</span>
-                      <span>{(invoice.total - invoice.paid_amount).toFixed(2)} €</span>
+                      <span>{formatCurrency((invoice.total - invoice.paid_amount))}</span>
                     </div>
                   </>
                 )}

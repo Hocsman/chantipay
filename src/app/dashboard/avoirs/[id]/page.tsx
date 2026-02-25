@@ -26,7 +26,7 @@ import {
 } from '@/components/ui/dialog'
 import { Loader2, ArrowLeft, Trash2, Save, FileText, TrendingDown, Calendar, Send, CheckCircle2, Download, Edit } from 'lucide-react'
 import { toast } from 'sonner'
-import { cn } from '@/lib/utils'
+import { cn, formatCurrency } from '@/lib/utils'
 
 interface CreditNote {
   id: string
@@ -369,10 +369,10 @@ export default function CreditNoteDetailPage({ params }: { params: Promise<{ id:
                   <div className="flex-1">
                     <p className="font-medium">{item.description}</p>
                     <p className="text-sm text-muted-foreground">
-                      {Math.abs(item.quantity)} × {Math.abs(item.unit_price).toFixed(2)} €
+                      {Math.abs(item.quantity)} × {formatCurrency(Math.abs(item.unit_price))}
                     </p>
                   </div>
-                  <p className="font-medium text-red-600">-{Math.abs(item.total).toFixed(2)} €</p>
+                  <p className="font-medium text-red-600">-{formatCurrency(Math.abs(item.total))}</p>
                 </div>
               ))}
             </div>
@@ -381,15 +381,15 @@ export default function CreditNoteDetailPage({ params }: { params: Promise<{ id:
             <div className="mt-6 space-y-2 border-t pt-4">
               <div className="flex justify-between text-sm">
                 <span>Sous-total HT :</span>
-                <span className="font-medium text-red-600">-{Math.abs(creditNote.subtotal).toFixed(2)} €</span>
+                <span className="font-medium text-red-600">-{formatCurrency(Math.abs(creditNote.subtotal))}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span>TVA ({creditNote.tax_rate}%) :</span>
-                <span className="font-medium text-red-600">-{Math.abs(creditNote.tax_amount).toFixed(2)} €</span>
+                <span className="font-medium text-red-600">-{formatCurrency(Math.abs(creditNote.tax_amount))}</span>
               </div>
               <div className="flex justify-between text-lg font-bold border-t pt-2">
                 <span>Total TTC :</span>
-                <span className="text-red-600">-{Math.abs(creditNote.total).toFixed(2)} €</span>
+                <span className="text-red-600">-{formatCurrency(Math.abs(creditNote.total))}</span>
               </div>
             </div>
           </CardContent>

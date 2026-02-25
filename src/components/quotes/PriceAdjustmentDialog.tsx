@@ -22,6 +22,7 @@ import {
   getConfidenceBadge,
   type PriceSuggestion,
 } from '@/lib/ai/priceSuggestions'
+import { formatCurrency } from '@/lib/utils'
 
 interface PriceAdjustmentDialogProps {
   description: string
@@ -194,7 +195,7 @@ export function PriceAdjustmentDialog({
             <div className="flex justify-between items-center">
               <span className="text-sm text-muted-foreground">Total HT</span>
               <span className="text-lg font-bold">
-                {(tempPrice * quantity).toFixed(2)} €
+                {formatCurrency((tempPrice * quantity))}
               </span>
             </div>
           </div>

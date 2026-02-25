@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/select'
 import { Loader2, Plus, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { formatCurrency } from '@/lib/utils'
 
 interface Client {
   id: string
@@ -286,7 +287,7 @@ export default function NewInvoiceMobilePage() {
                   </div>
                 </div>
                 <div className="text-sm text-right font-medium">
-                  Total: {item.total.toFixed(2)} €
+                  Total: {formatCurrency(item.total)}
                 </div>
               </div>
             ))}
@@ -300,7 +301,7 @@ export default function NewInvoiceMobilePage() {
             <div className="border-t pt-3 space-y-2">
               <div className="flex justify-between text-sm">
                 <span>Sous-total HT:</span>
-                <span className="font-medium">{calculateSubtotal().toFixed(2)} €</span>
+                <span className="font-medium">{formatCurrency(calculateSubtotal())}</span>
               </div>
               <div className="flex justify-between text-sm items-center">
                 <span>TVA:</span>
@@ -314,12 +315,12 @@ export default function NewInvoiceMobilePage() {
                     step="0.1"
                   />
                   <span className="text-xs">%</span>
-                  <span className="font-medium ml-1">{calculateTaxAmount().toFixed(2)} €</span>
+                  <span className="font-medium ml-1">{formatCurrency(calculateTaxAmount())}</span>
                 </div>
               </div>
               <div className="flex justify-between text-base font-bold border-t pt-2">
                 <span>Total TTC:</span>
-                <span>{calculateTotal().toFixed(2)} €</span>
+                <span>{formatCurrency(calculateTotal())}</span>
               </div>
             </div>
           </CardContent>

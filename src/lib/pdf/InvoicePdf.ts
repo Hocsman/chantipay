@@ -551,10 +551,11 @@ function formatDate(dateString: string): string {
 }
 
 function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('fr-FR', {
-    style: 'currency',
-    currency: 'EUR',
+  const formatted = new Intl.NumberFormat('fr-FR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
   }).format(amount)
+  return formatted.replace(/\u00A0/g, ' ') + ' €'
 }
 
 function getPaymentStatusInfo(status: string): {

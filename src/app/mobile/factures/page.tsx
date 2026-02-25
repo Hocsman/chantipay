@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
 import { Loader2, Plus, FileText, Euro, Search } from 'lucide-react'
 import { toast } from 'sonner'
-import { cn } from '@/lib/utils'
+import { cn, formatCurrency } from '@/lib/utils'
 import { EmptyState } from '@/components/mobile/EmptyState'
 
 interface InvoiceItem {
@@ -227,15 +227,15 @@ export default function MobileInvoicesPage() {
                       })}
                     </span>
                     <div className="font-bold text-lg">
-                      {invoice.total.toFixed(2)} €
+                      {formatCurrency(invoice.total)}
                     </div>
                   </div>
 
                   {invoice.payment_status === 'partial' && invoice.paid_amount && (
                     <div className="mt-2 pt-2 border-t text-xs">
                       <div className="flex justify-between">
-                        <span className="text-green-600">Payé : {invoice.paid_amount.toFixed(2)} €</span>
-                        <span className="text-orange-600">Reste : {(invoice.total - invoice.paid_amount).toFixed(2)} €</span>
+                        <span className="text-green-600">Payé : {formatCurrency(invoice.paid_amount)}</span>
+                        <span className="text-orange-600">Reste : {formatCurrency((invoice.total - invoice.paid_amount))}</span>
                       </div>
                     </div>
                   )}

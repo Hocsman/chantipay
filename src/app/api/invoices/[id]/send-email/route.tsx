@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { formatCurrencyHtml } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/server'
 import { Resend } from 'resend'
 import { renderToBuffer } from '@react-pdf/renderer'
@@ -153,7 +154,7 @@ export async function POST(
 
               ${message ? `<p style="font-size: 14px; color: #6B7280; line-height: 1.6;">${message}</p>` : `
                 <p style="font-size: 14px; color: #6B7280; line-height: 1.6;">
-                  Veuillez trouver ci-joint votre facture d'un montant de <strong style="color: #2563EB;">${invoice.total.toFixed(2)} €</strong>.
+                  Veuillez trouver ci-joint votre facture d'un montant de <strong style="color: #2563EB;">${formatCurrencyHtml(invoice.total)}</strong>.
                 </p>
               `}
 
@@ -176,7 +177,7 @@ export async function POST(
                   ` : ''}
                   <tr>
                     <td style="padding: 12px 0 6px 0; color: #6B7280; border-top: 1px solid #E5E7EB;">Montant total TTC</td>
-                    <td style="padding: 12px 0 6px 0; color: #2563EB; font-weight: 700; text-align: right; font-size: 18px; border-top: 1px solid #E5E7EB;">${invoice.total.toFixed(2)} €</td>
+                    <td style="padding: 12px 0 6px 0; color: #2563EB; font-weight: 700; text-align: right; font-size: 18px; border-top: 1px solid #E5E7EB;">${formatCurrencyHtml(invoice.total)}</td>
                   </tr>
                 </table>
               </div>

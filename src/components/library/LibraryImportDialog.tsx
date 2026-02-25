@@ -24,6 +24,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { BookOpen, Search, Plus } from 'lucide-react'
 import { useQuoteLibrary } from '@/hooks/useQuoteLibrary'
 import { TRADE_OPTIONS, type LibraryItem } from '@/types/quote-library'
+import { formatCurrency } from '@/lib/utils'
 
 interface LibraryImportDialogProps {
   onImportItems: (items: LibraryItem[]) => void
@@ -171,7 +172,7 @@ export function LibraryImportDialog({ onImportItems, currentTrade }: LibraryImpo
                           {getTradeLabel(item.trade)}
                         </Badge>
                         <span className="text-sm font-medium">
-                          {item.unit_price_ht.toFixed(2)} € HT
+                          {formatCurrency(item.unit_price_ht)} HT
                         </span>
                         <span className="text-xs text-muted-foreground">
                           ({item.vat_rate}% TVA)
