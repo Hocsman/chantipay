@@ -35,6 +35,7 @@ import {
 } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
+import { Input } from '@/components/ui/input'
 import {
   ArrowLeft,
   Download,
@@ -51,6 +52,11 @@ import {
   CalendarCheck,
   FileText,
   RefreshCw,
+  Edit,
+  Plus,
+  Trash2,
+  Save,
+  X,
 } from 'lucide-react'
 
 type QuoteStatus = 'draft' | 'sent' | 'signed' | 'deposit_paid' | 'completed' | 'canceled'
@@ -121,6 +127,11 @@ export default function QuoteDetailPage() {
   const [isSendingEmail, setIsSendingEmail] = useState(false)
   const [isSendingReminder, setIsSendingReminder] = useState(false)
   const [isSigned, setIsSigned] = useState(false)
+
+  // États édition manuelle
+  const [isEditing, setIsEditing] = useState(false)
+  const [editItems, setEditItems] = useState<QuoteItem[]>([])
+  const [isSavingEdit, setIsSavingEdit] = useState(false)
 
   // Charger le devis directement depuis Supabase (côté client)
   const loadQuote = useCallback(async () => {
@@ -236,6 +247,69 @@ export default function QuoteDetailPage() {
       toast.error('Erreur lors de la mise à jour du devis')
     }
   }, [quote, loadQuote])
+
+  // Démarrer l'édition manuelle
+  const startEditing = () => {
+    if (!quote) return
+    setEditItems(quote.items.map(item => ({ ...item })))
+    setIsEditing(true)
+  }
+
+  // Annuler l'édition
+  const cancelEditing = () => {
+    setIsEditing(false)
+    setEditItems([])
+  }
+
+  // Mettre à jour un item en édition
+  const updateEditItem = (index: number, field: keyof QuoteItem, value: string | number) => {
+    setEditItems(prev => prev.map((item, i) => i === index ? { ...item, [field]: value } : item))
+  }
+
+  // Ajouter une ligne
+  const addEditItem = () => {
+    setEditItems(prev => [...prev, { id: `new-${Date.now()}`, description: '', quantity: 1, unit_price_ht: 0, vat_rate: 10 }])
+  }
+
+  // Supprimer une ligne
+  const removeEditItem = (index: number) => {
+    setEditItems(prev => prev.filter((_, i) => i !== index))
+  }
+
+  // Sauvegarder les modifications
+  const saveEditing = async () => {
+    if (!quote || editItems.length === 0) return
+
+    // Vérifier qu'au moins une ligne a une description
+    if (editItems.some(item => !item.description.trim())) {
+      toast.error('Chaque ligne doit avoir une description')
+      return
+    }
+
+    setIsSavingEdit(true)
+    try {
+      const response = await fetch(`/api/quotes/${quote.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items: editItems }),
+      })
+
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || 'Erreur lors de la sauvegarde')
+      }
+
+      setIsEditing(false)
+      setEditItems([])
+      await loadQuote()
+      toast.success('Devis mis à jour')
+    } catch (error) {
+      console.error('Erreur sauvegarde:', error)
+      toast.error(error instanceof Error ? error.message : 'Erreur lors de la sauvegarde')
+    } finally {
+      setIsSavingEdit(false)
+    }
+  }
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('fr-FR', {
@@ -555,54 +629,145 @@ export default function QuoteDetailPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-lg">Détail du devis</CardTitle>
-            {quote.status === 'draft' && (
-              <SmartEditDialog
-                items={quote.items}
-                onApplyChanges={handleSmartEdit}
-              />
+            {quote.status === 'draft' && !isEditing && (
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={startEditing}>
+                  <Edit className="h-4 w-4 mr-2" />
+                  Modifier
+                </Button>
+                <SmartEditDialog
+                  items={quote.items}
+                  onApplyChanges={handleSmartEdit}
+                />
+              </div>
+            )}
+            {isEditing && (
+              <div className="flex gap-2">
+                <Button variant="ghost" size="sm" onClick={cancelEditing} disabled={isSavingEdit}>
+                  <X className="h-4 w-4 mr-2" />
+                  Annuler
+                </Button>
+                <Button size="sm" onClick={saveEditing} disabled={isSavingEdit}>
+                  {isSavingEdit ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Save className="h-4 w-4 mr-2" />
+                  )}
+                  Enregistrer
+                </Button>
+              </div>
             )}
           </CardHeader>
           <CardContent>
-            {/* Vue mobile */}
-            <div className="space-y-3 md:hidden">
-              {quote.items.map((item) => (
-                <div key={item.id} className="border-b pb-3 last:border-0">
-                  <p className="font-medium">{item.description}</p>
-                  <div className="flex justify-between text-sm text-muted-foreground mt-1">
-                    <span>{item.quantity} x {formatCurrency(item.unit_price_ht)}</span>
-                    <span className="font-medium text-foreground">
-                      {formatCurrency(item.quantity * item.unit_price_ht)}
-                    </span>
+            {isEditing ? (
+              /* Mode édition */
+              <div className="space-y-4">
+                {editItems.map((item, index) => (
+                  <div key={item.id} className="border rounded-lg p-4 space-y-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1">
+                        <label className="text-xs font-medium text-muted-foreground">Description</label>
+                        <Input
+                          value={item.description}
+                          onChange={(e) => updateEditItem(index, 'description', e.target.value)}
+                          placeholder="Description de la prestation"
+                        />
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-red-500 hover:text-red-700 mt-4"
+                        onClick={() => removeEditItem(index)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <div className="grid grid-cols-3 gap-3">
+                      <div>
+                        <label className="text-xs font-medium text-muted-foreground">Quantité</label>
+                        <Input
+                          type="number"
+                          value={item.quantity}
+                          onChange={(e) => updateEditItem(index, 'quantity', parseFloat(e.target.value) || 0)}
+                          min="0"
+                          step="1"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-muted-foreground">Prix HT (€)</label>
+                        <Input
+                          type="number"
+                          value={item.unit_price_ht}
+                          onChange={(e) => updateEditItem(index, 'unit_price_ht', parseFloat(e.target.value) || 0)}
+                          min="0"
+                          step="0.01"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-muted-foreground">TVA (%)</label>
+                        <Input
+                          type="number"
+                          value={item.vat_rate}
+                          onChange={(e) => updateEditItem(index, 'vat_rate', parseFloat(e.target.value) || 0)}
+                          min="0"
+                          step="0.5"
+                        />
+                      </div>
+                    </div>
+                    <div className="text-right text-sm font-medium text-muted-foreground">
+                      Total HT : {formatCurrency(item.quantity * item.unit_price_ht)}
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Vue desktop */}
-            <Table className="hidden md:table">
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Description</TableHead>
-                  <TableHead className="text-right">Qté</TableHead>
-                  <TableHead className="text-right">Prix HT</TableHead>
-                  <TableHead className="text-right">TVA</TableHead>
-                  <TableHead className="text-right">Total HT</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {quote.items.map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell>{item.description}</TableCell>
-                    <TableCell className="text-right">{item.quantity}</TableCell>
-                    <TableCell className="text-right">{formatCurrency(item.unit_price_ht)}</TableCell>
-                    <TableCell className="text-right">{item.vat_rate}%</TableCell>
-                    <TableCell className="text-right font-medium">
-                      {formatCurrency(item.quantity * item.unit_price_ht)}
-                    </TableCell>
-                  </TableRow>
                 ))}
-              </TableBody>
-            </Table>
+                <Button variant="outline" className="w-full" onClick={addEditItem}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Ajouter une ligne
+                </Button>
+              </div>
+            ) : (
+              <>
+                {/* Vue mobile */}
+                <div className="space-y-3 md:hidden">
+                  {quote.items.map((item) => (
+                    <div key={item.id} className="border-b pb-3 last:border-0">
+                      <p className="font-medium">{item.description}</p>
+                      <div className="flex justify-between text-sm text-muted-foreground mt-1">
+                        <span>{item.quantity} x {formatCurrency(item.unit_price_ht)}</span>
+                        <span className="font-medium text-foreground">
+                          {formatCurrency(item.quantity * item.unit_price_ht)}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Vue desktop */}
+                <Table className="hidden md:table">
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Description</TableHead>
+                      <TableHead className="text-right">Qté</TableHead>
+                      <TableHead className="text-right">Prix HT</TableHead>
+                      <TableHead className="text-right">TVA</TableHead>
+                      <TableHead className="text-right">Total HT</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {quote.items.map((item) => (
+                      <TableRow key={item.id}>
+                        <TableCell>{item.description}</TableCell>
+                        <TableCell className="text-right">{item.quantity}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(item.unit_price_ht)}</TableCell>
+                        <TableCell className="text-right">{item.vat_rate}%</TableCell>
+                        <TableCell className="text-right font-medium">
+                          {formatCurrency(item.quantity * item.unit_price_ht)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </>
+            )}
           </CardContent>
         </Card>
 
