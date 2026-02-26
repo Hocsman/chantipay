@@ -1,0 +1,62 @@
+name: Résumé Quotidien de l'Activité
+on:
+  schedule:
+    - cron: '0 18 * * *' # S'exécute tous les jours à 18h00 UTC
+  workflow_dispatch:      # Permet de le lancer manuellement pour tester
+
+jobs:
+  summarize:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write # Nécessaire pour créer un rapport dans les Issues
+
+    steps:
+      - name: Checkout du code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Récupère tout l'historique pour voir les commits
+
+      - name: Configurer Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Installer les dépendances
+        run: pip install google-generativeai
+
+      - name: Générer le résumé
+        id: generate_step
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          # On exécute le script et on capture la sortie dans une variable d'environnement GitHub
+          # Pour gérer les retours à la ligne, on utilise une syntaxe spéciale de GitHub Actions
+          echo "SUMMARY<<EOF" >> $GITHUB_ENV
+          python - <<EOF >> $GITHUB_ENV
+          import os
+          import subprocess
+          import google.generativeai as genai
+
+          try:
+              commits = subprocess.check_output(['git', 'log', '--since="24 hours ago"', '--pretty=format:%s']).decode('utf-8')
+              if not commits.strip():
+                  print("Rien à signaler aujourd'hui ! ☕")
+              else:
+                  genai.configure(api_key=os.environ["GEMINI_API_KEY"])
+                  model = genai.GenerativeModel('gemini-1.5-flash')
+                  prompt = f"Résume ces commits GitHub en français de manière pro et concise : \n{commits}"
+                  response = model.generate_content(prompt)
+                  print(response.text)
+          except Exception as e:
+              print(f"Erreur : {e}")
+          EOF
+          echo "EOF" >> $GITHUB_ENV
+
+      - name: Créer une Issue avec le résumé
+        uses: imjohnbo/issue-action@v3
+        with:
+          title: "📋 Résumé du jour"
+          body: ${{ env.SUMMARY }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
