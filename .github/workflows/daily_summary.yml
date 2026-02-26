@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      issues: write # Nécessaire pour créer un rapport dans les Issues
+      issues: read
 
     steps:
       - name: Checkout du code
@@ -53,10 +53,13 @@ jobs:
           EOF
           echo "EOF" >> $GITHUB_ENV
 
-      - name: Créer une Issue avec le résumé
-        uses: imjohnbo/issue-action@v3
-        with:
-          title: "📋 Résumé du jour"
-          body: ${{ env.SUMMARY }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Envoyer sur Telegram
+        run: |
+          # On utilise curl pour envoyer un message simple via l'API Telegram
+          # On encode le texte pour éviter les erreurs avec les caractères spéciaux
+          MESSAGE="<b>📋 Résumé GitHub du jour</b>%0A%0A${{ env.SUMMARY }}"
+
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage" \
+            -d "chat_id=${{ secrets.TELEGRAM_CHAT_ID }}" \
+            -d "text=${MESSAGE}" \
+            -d "parse_mode=HTML"
