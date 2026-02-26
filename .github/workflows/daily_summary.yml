@@ -56,12 +56,22 @@ jobs:
           echo "EOF" >> $GITHUB_ENV
 
       - name: Envoyer le message sur Telegram
+        env:
+          T_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          T_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
-          # Construction du message final
-          TEXT="<b>📋 Résumé GitHub du jour</b>%0A%0A${{ env.SUMMARY }}"
+          # On vérifie si le résumé est vide
+          if [ -z "${{ env.SUMMARY }}" ]; then
+            FINAL_TEXT="Rien à signaler aujourd'hui ! ☕"
+          else
+            FINAL_TEXT="${{ env.SUMMARY }}"
+          fi
 
-          # Envoi via l'API Telegram (pas besoin d'action externe, un simple curl suffit !)
-          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage" \
-            -d "chat_id=${{ secrets.TELEGRAM_CHAT_ID }}" \
-            -d "text=${TEXT}" \
+          # Envoi avec curl en utilisant les variables d'environnement
+          # On utilise --data-urlencode pour que Telegram ne rejette pas le message à cause d'un caractère spécial
+          curl -s -X POST "https://api.telegram.org/bot${T_TOKEN}/sendMessage" \
+            -d "chat_id=${T_CHAT_ID}" \
+            --data-urlencode "text=📋 Résumé GitHub du jour :
+
+          $FINAL_TEXT" \
             -d "parse_mode=HTML"
