@@ -27,7 +27,6 @@ jobs:
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
-          # On prépare la capture du résumé pour GitHub Actions
           echo "SUMMARY<<EOF" >> $GITHUB_ENV
           python - <<EOF >> $GITHUB_ENV
           import os
@@ -35,23 +34,31 @@ jobs:
           import google.generativeai as genai
 
           try:
-              # Récupération des commits des dernières 24h
+              # 1. On récupère les commits
               commits = subprocess.check_output(['git', 'log', '--since="24 hours ago"', '--pretty=format:%s']).decode('utf-8')
 
               if not commits.strip():
                   print("Rien à signaler aujourd'hui ! ☕")
               else:
+                  # 2. Configuration de Gemini
                   genai.configure(api_key=os.environ["GEMINI_API_KEY"])
+
+                  # On utilise le nom de modèle le plus stable
                   model = genai.GenerativeModel('gemini-1.5-flash')
 
-                  prompt = f"Résume ces commits GitHub en français. Sois concis et utilise des emojis : \n{commits}"
+                  prompt = f"Résume ces commits GitHub en français. Sois concis avec des emojis :\n{commits}"
+
+                  # 3. Génération avec gestion d'erreur spécifique
                   response = model.generate_content(prompt)
 
-                  # Nettoyage rapide pour Telegram (éviter les caractères qui cassent l'HTML)
-                  clean_text = response.text.replace('<', '&lt;').replace('>', '&gt;')
-                  print(clean_text)
+                  if response.text:
+                      # Nettoyage pour Telegram
+                      print(response.text.replace('<', '&lt;').replace('>', '&gt;'))
+                  else:
+                      print("L'IA n'a pas pu générer de texte.")
           except Exception as e:
-              print(f"Erreur lors de la génération : {e}")
+              # On affiche l'erreur pour la voir sur Telegram si ça échoue encore
+              print(f"Oups, petit souci avec l'IA : {str(e)[:100]}")
           EOF
           echo "EOF" >> $GITHUB_ENV
 
