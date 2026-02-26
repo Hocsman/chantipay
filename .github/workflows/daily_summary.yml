@@ -57,18 +57,19 @@ jobs:
 
       - name: Envoyer le message sur Telegram
         env:
-          T_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
-          T_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          # On fait correspondre TES noms de secrets aux variables du script
+          T_TOKEN: ${{ secrets.BOT_FATHER_TELEGRAM }}
+          T_CHAT_ID: ${{ secrets.ID_BOT_TELEGRAM }}
         run: |
-          # On vérifie si le résumé est vide
+          # On s'assure qu'il y a un texte à envoyer
           if [ -z "${{ env.SUMMARY }}" ]; then
             FINAL_TEXT="Rien à signaler aujourd'hui ! ☕"
           else
             FINAL_TEXT="${{ env.SUMMARY }}"
           fi
 
-          # Envoi avec curl en utilisant les variables d'environnement
-          # On utilise --data-urlencode pour que Telegram ne rejette pas le message à cause d'un caractère spécial
+          # Envoi vers Telegram
+          # Note : On utilise --data-urlencode pour gérer les emojis et les sauts de ligne proprement
           curl -s -X POST "https://api.telegram.org/bot${T_TOKEN}/sendMessage" \
             -d "chat_id=${T_CHAT_ID}" \
             --data-urlencode "text=📋 Résumé GitHub du jour :
