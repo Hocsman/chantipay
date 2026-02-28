@@ -1,0 +1,35 @@
+name: Relances automatiques
+on:
+  schedule:
+    - cron: '0 8 * * 1-5' # Lundi-Vendredi à 8h UTC (9h-10h en France)
+  workflow_dispatch: # Pour tester manuellement
+
+jobs:
+  send-reminders:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Envoyer les relances
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          echo "Envoi des relances automatiques..."
+
+          RESPONSE=$(curl -s -w "\n%{http_code}" \
+            -X POST "${APP_URL}/api/cron/send-reminders" \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            -H "Content-Type: application/json")
+
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          BODY=$(echo "$RESPONSE" | head -n -1)
+
+          echo "Status HTTP: $HTTP_CODE"
+          echo "Réponse: $BODY"
+
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "Erreur lors de l'envoi des relances"
+            exit 1
+          fi
+
+          echo "Relances envoyées avec succès"
