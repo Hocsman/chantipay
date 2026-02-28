@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createNotification } from '@/lib/notifications'
 
 /**
  * ===========================================
@@ -110,6 +111,16 @@ export async function POST(
         { status: 500 }
       )
     }
+
+    // Créer une notification
+    await createNotification(supabase, {
+      userId: quote.user_id,
+      type: 'quote_signed',
+      title: `Devis ${quote.quote_number} signé`,
+      message: `Le client a signé le devis`,
+      relatedType: 'quote',
+      relatedId: quoteId,
+    })
 
     return NextResponse.json({
       success: true,

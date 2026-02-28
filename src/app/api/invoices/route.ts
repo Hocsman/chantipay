@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { createNotification } from '@/lib/notifications'
 
 export async function GET() {
   const supabase = await createClient()
@@ -153,6 +154,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: itemsError.message }, { status: 500 })
     }
   }
+
+  // Créer une notification
+  await createNotification(supabase, {
+    userId: user.id,
+    type: 'invoice_created',
+    title: `Facture ${invoice.invoice_number} créée`,
+    message: `Facture de ${invoice.total?.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })} créée`,
+    relatedType: 'invoice',
+    relatedId: invoice.id,
+  })
 
   return NextResponse.json({ invoice }, { status: 201 })
 }

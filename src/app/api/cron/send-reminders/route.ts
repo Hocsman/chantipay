@@ -35,6 +35,7 @@ export async function POST(request: NextRequest) {
     let quotesReminded = 0
     let invoicesReminded = 0
     const errors: string[] = []
+    const userReminderCounts: Record<string, { quotes: number; invoices: number }> = {}
 
     // ============================================
     // PARTIE 1 : Relances devis
@@ -152,6 +153,8 @@ export async function POST(request: NextRequest) {
           })
 
           quotesReminded++
+          if (!userReminderCounts[quote.user_id]) userReminderCounts[quote.user_id] = { quotes: 0, invoices: 0 }
+          userReminderCounts[quote.user_id].quotes++
         } catch (err) {
           errors.push(`Devis ${quote.quote_number}: ${err instanceof Error ? err.message : 'Erreur'}`)
         }
@@ -271,6 +274,8 @@ export async function POST(request: NextRequest) {
             })
 
             invoicesReminded++
+            if (!userReminderCounts[invoice.user_id]) userReminderCounts[invoice.user_id] = { quotes: 0, invoices: 0 }
+            userReminderCounts[invoice.user_id].invoices++
           } catch (err) {
             errors.push(`Facture ${invoice.invoice_number}: ${err instanceof Error ? err.message : 'Erreur'}`)
           }
@@ -279,6 +284,19 @@ export async function POST(request: NextRequest) {
     }
 
     console.log(`[CRON] Relances envoyées: ${quotesReminded} devis, ${invoicesReminded} factures, ${errors.length} erreurs`)
+
+    // Créer une notification résumé par utilisateur
+    for (const [userId, counts] of Object.entries(userReminderCounts)) {
+      const parts: string[] = []
+      if (counts.quotes > 0) parts.push(`${counts.quotes} devis`)
+      if (counts.invoices > 0) parts.push(`${counts.invoices} facture(s)`)
+      await supabase.from('notifications').insert({
+        user_id: userId,
+        type: 'reminder_sent',
+        title: 'Relances envoyées',
+        message: `${parts.join(' et ')} relancé(s) automatiquement`,
+      })
+    }
 
     return NextResponse.json({
       success: true,

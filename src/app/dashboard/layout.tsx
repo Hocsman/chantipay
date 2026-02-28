@@ -38,6 +38,7 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
+import { NotificationBell } from '@/components/NotificationBell';
 
 export default function DashboardLayout({
   children,
@@ -179,6 +180,7 @@ export default function DashboardLayout({
 
           {/* Right section */}
           <div className="flex items-center gap-3">
+            <NotificationBell />
             <ThemeToggle />
           </div>
         </div>
@@ -197,14 +199,16 @@ export default function DashboardLayout({
             />
             <span className="text-lg font-bold">ChantiPay</span>
           </Link>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-9 w-9 rounded-full p-0">
-                <Avatar className="h-8 w-8">
-                  <AvatarFallback className="text-xs">U</AvatarFallback>
-                </Avatar>
-              </Button>
-            </DropdownMenuTrigger>
+          <div className="flex items-center gap-1">
+            <NotificationBell />
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="h-9 w-9 rounded-full p-0">
+                  <Avatar className="h-8 w-8">
+                    <AvatarFallback className="text-xs">U</AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56" align="end" forceMount>
               <DropdownMenuItem asChild>
                 <Link href="/dashboard/settings" className="cursor-pointer">
@@ -221,7 +225,8 @@ export default function DashboardLayout({
                 Déconnexion
               </DropdownMenuItem>
             </DropdownMenuContent>
-          </DropdownMenu>
+            </DropdownMenu>
+          </div>
         </div>
       </header>
 
