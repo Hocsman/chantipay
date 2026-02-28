@@ -20,6 +20,14 @@ import {
   Lightbulb,
   ArrowRight,
   ExternalLink,
+  Sparkles,
+  Search,
+  Bell,
+  Copy,
+  BarChart3,
+  Clock,
+  PenTool,
+  Zap,
 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -48,11 +56,19 @@ const faqSections = [
       },
       {
         question: 'Comment dupliquer un devis existant ?',
-        answer: `Ouvrez le devis que vous souhaitez dupliquer, puis cliquez sur le menu "..." et sélectionnez "Dupliquer". Un nouveau devis sera créé avec les mêmes informations, que vous pourrez modifier.`,
+        answer: `Ouvrez le devis que vous souhaitez dupliquer, puis cliquez sur le bouton "Dupliquer". Un nouveau devis sera créé en brouillon avec les mêmes lignes de prestations, que vous pourrez modifier librement (client, prix, descriptions...).`,
       },
       {
         question: 'Comment l\'IA peut m\'aider à créer des devis ?',
         answer: `ChantiPay intègre une IA qui peut analyser des photos de chantier pour suggérer des lignes de devis, estimer les quantités et proposer des prix basés sur votre historique. Cliquez sur l'icône appareil photo lors de la création d'un devis pour utiliser cette fonctionnalité.`,
+      },
+      {
+        question: 'Comment fonctionne la recherche globale ?',
+        answer: `Appuyez sur CMD+K (Mac) ou Ctrl+K (Windows) depuis n'importe quelle page, ou cliquez sur "Rechercher..." dans le header. Tapez au moins 2 caractères pour chercher dans vos clients, devis, factures et avoirs en même temps. Utilisez les flèches ↑↓ pour naviguer et Entrée pour ouvrir un résultat.`,
+      },
+      {
+        question: 'Comment fonctionnent les notifications ?',
+        answer: `La cloche dans le header affiche vos notifications récentes : devis signés par vos clients, factures créées, relances envoyées automatiquement. Un badge rouge indique le nombre de notifications non lues. Cliquez sur une notification pour accéder directement au document concerné.`,
       },
     ],
   },
@@ -64,7 +80,7 @@ const faqSections = [
     questions: [
       {
         question: 'Comment convertir un devis en facture ?',
-        answer: `Une fois le devis signé, un bouton "Convertir en facture" apparaît sur la page du devis. Cliquez dessus pour générer automatiquement une facture avec toutes les informations du devis.`,
+        answer: `Une fois le devis signé, un bouton "Convertir en facture" apparaît sur la page du devis. Vous pouvez aussi cliquer sur "Facturer" directement depuis la liste des devis. La facture est générée automatiquement avec toutes les informations du devis, et le devis passe au statut "Terminé". Un lien bidirectionnel relie le devis et la facture.`,
       },
       {
         question: 'Comment gérer les acomptes ?',
@@ -72,7 +88,7 @@ const faqSections = [
       },
       {
         question: 'Comment relancer une facture impayée ?',
-        answer: `Les factures en retard apparaissent sur votre tableau de bord. Cliquez sur "Relancer" pour envoyer un email de rappel au client. Les relances incluent automatiquement les mentions légales sur les pénalités de retard.`,
+        answer: `Les factures en retard apparaissent sur votre tableau de bord. Cliquez sur "Relancer" pour envoyer un email de rappel au client. Les relances incluent automatiquement les mentions légales sur les pénalités de retard. De plus, des relances automatiques sont envoyées à 7, 14 et 30 jours de retard (max 3 relances par facture). Vous recevrez une notification in-app à chaque relance envoyée.`,
       },
       {
         question: 'Comment marquer une facture comme payée ?',
@@ -81,6 +97,10 @@ const faqSections = [
       {
         question: 'Comment créer un avoir ?',
         answer: `Pour créer un avoir, allez dans le menu "Avoirs" puis cliquez sur "Nouvel avoir". Sélectionnez la facture concernée et indiquez le montant à rembourser. L'avoir sera lié à la facture originale.`,
+      },
+      {
+        question: 'Comment fonctionnent les relances automatiques ?',
+        answer: `ChantiPay envoie automatiquement des emails de relance pour les devis non signés (après 7 et 14 jours) et les factures impayées (après 7, 14 et 30 jours). Chaque document reçoit un maximum de 3 relances. Vous êtes notifié in-app à chaque relance envoyée via la cloche de notifications.`,
       },
     ],
   },
@@ -127,6 +147,51 @@ const faqSections = [
         answer: `Vous pouvez exporter vos devis et factures au format Excel depuis les pages de liste respectives. Cliquez sur le bouton "Exporter" en haut de la liste.`,
       },
     ],
+  },
+]
+
+const newFeatures = [
+  {
+    title: 'Recherche globale (CMD+K)',
+    description: 'Recherchez instantanément dans vos clients, devis, factures et avoirs depuis n\'importe quelle page. Utilisez le raccourci CMD+K (ou Ctrl+K) ou cliquez sur la barre de recherche dans le header.',
+    icon: Search,
+    color: 'text-blue-500 bg-blue-500/10',
+  },
+  {
+    title: 'Notifications in-app',
+    description: 'Recevez des notifications en temps réel dans l\'interface : devis signé, facture créée, relances envoyées. Cliquez sur la cloche dans le header pour les consulter.',
+    icon: Bell,
+    color: 'text-amber-500 bg-amber-500/10',
+  },
+  {
+    title: 'Dupliquer un devis',
+    description: 'Dupliquez un devis existant en un clic pour gagner du temps. Le nouveau devis est créé en brouillon avec toutes les lignes de prestations.',
+    icon: Copy,
+    color: 'text-purple-500 bg-purple-500/10',
+  },
+  {
+    title: 'Conversion devis → facture en 1 clic',
+    description: 'Convertissez un devis signé en facture depuis sa page de détail ou directement depuis la liste. Le devis et la facture sont automatiquement liés.',
+    icon: Zap,
+    color: 'text-green-500 bg-green-500/10',
+  },
+  {
+    title: 'Relances automatiques',
+    description: 'Les devis non signés et factures impayées sont relancés automatiquement par email à 7, 14 et 30 jours. Maximum 3 relances par document.',
+    icon: Clock,
+    color: 'text-orange-500 bg-orange-500/10',
+  },
+  {
+    title: 'Tableau de bord analytics',
+    description: 'Visualisez vos KPIs en un coup d\'oeil : chiffre d\'affaires, taux de conversion devis, factures en retard, et graphique de CA trimestriel.',
+    icon: BarChart3,
+    color: 'text-indigo-500 bg-indigo-500/10',
+  },
+  {
+    title: 'Signature électronique',
+    description: 'Vos clients peuvent signer les devis en ligne directement depuis l\'email. Vous recevez une notification dès que le devis est signé.',
+    icon: PenTool,
+    color: 'text-rose-500 bg-rose-500/10',
   },
 ]
 
@@ -190,6 +255,37 @@ export default function HelpPage() {
                   </CardContent>
                 </Card>
               </Link>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* Nouveautés */}
+      <div className="mb-8">
+        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+          <Sparkles className="h-5 w-5 text-amber-500" />
+          Nouveautés
+          <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20 hover:bg-amber-500/10">
+            Nouveau
+          </Badge>
+        </h2>
+        <div className="grid gap-3 md:grid-cols-2">
+          {newFeatures.map((feature) => {
+            const Icon = feature.icon
+            return (
+              <Card key={feature.title} className="hover:shadow-sm transition-shadow">
+                <CardContent className="p-4 flex items-start gap-3">
+                  <div className={`rounded-lg p-2 flex-shrink-0 ${feature.color}`}>
+                    <Icon className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-medium text-sm">{feature.title}</h3>
+                    <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                      {feature.description}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
             )
           })}
         </div>
