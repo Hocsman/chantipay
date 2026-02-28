@@ -4,14 +4,13 @@ import { useState, useEffect } from 'react'
 import { LayoutContainer } from '@/components/LayoutContainer'
 import { PageHeader } from '@/components/PageHeader'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Loader2, TrendingUp, Euro, FileText, Users, AlertCircle } from 'lucide-react'
+import { Loader2, TrendingUp, Euro, FileText, Users, AlertCircle, Clock, Percent } from 'lucide-react'
 import { toast } from 'sonner'
-import { cn } from '@/lib/utils'
+import { cn, formatCurrency } from '@/lib/utils'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   BarChart,
   Bar,
-  LineChart,
-  Line,
   PieChart,
   Pie,
   Cell,
@@ -32,9 +31,15 @@ interface Stats {
   paidInvoices: number
   pendingInvoices: number
   overdueInvoices: number
+  conversionRate: number
+  totalActionableQuotes: number
+  totalInvoicesFromQuotes: number
+  avgPaymentDelay: number
+  previousPeriodAvgDelay: number
   monthlyRevenue: { month: string; revenue: number }[]
+  quarterlyRevenue: { quarter: string; revenue: number }[]
   invoicesByStatus: { name: string; value: number }[]
-  topClients: { name: string; total: number }[]
+  topClients: { name: string; total: number; invoiceCount: number }[]
 }
 
 const StatCard = ({
@@ -79,6 +84,7 @@ const StatCard = ({
 export default function StatsPage() {
   const [stats, setStats] = useState<Stats | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [revenueView, setRevenueView] = useState<'monthly' | 'quarterly'>('monthly')
 
   useEffect(() => {
     loadStats()
@@ -121,9 +127,6 @@ export default function StatsPage() {
 
   const COLORS = ['#10B981', '#3B82F6', '#F59E0B', '#EF4444']
 
-  const formatCurrency = (value: number) =>
-    new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(value)
-
   return (
     <LayoutContainer>
       <PageHeader
@@ -133,7 +136,7 @@ export default function StatsPage() {
 
       <div className="space-y-8">
         {/* KPIs avec design premium */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           <StatCard
             title="Chiffre d'affaires"
             value={formatCurrency(stats.totalRevenue)}
@@ -141,6 +144,32 @@ export default function StatsPage() {
             icon={Euro}
             className="bg-gradient-to-br from-emerald-50 to-emerald-100/50 border-emerald-200 dark:from-emerald-950/30 dark:to-emerald-900/20 dark:border-emerald-800"
             iconClassName="bg-emerald-500 text-white"
+          />
+
+          <StatCard
+            title="Taux de conversion"
+            value={`${stats.conversionRate}%`}
+            subtitle={`${stats.totalInvoicesFromQuotes} facture${stats.totalInvoicesFromQuotes > 1 ? 's' : ''} / ${stats.totalActionableQuotes} devis`}
+            icon={Percent}
+            className="bg-gradient-to-br from-amber-50 to-amber-100/50 border-amber-200 dark:from-amber-950/30 dark:to-amber-900/20 dark:border-amber-800"
+            iconClassName="bg-amber-500 text-white"
+          />
+
+          <StatCard
+            title="Délai moyen de paiement"
+            value={`${stats.avgPaymentDelay}j`}
+            subtitle={
+              stats.previousPeriodAvgDelay > 0
+                ? stats.avgPaymentDelay < stats.previousPeriodAvgDelay
+                  ? `${stats.previousPeriodAvgDelay - stats.avgPaymentDelay}j de moins vs trimestre préc.`
+                  : stats.avgPaymentDelay > stats.previousPeriodAvgDelay
+                  ? `${stats.avgPaymentDelay - stats.previousPeriodAvgDelay}j de plus vs trimestre préc.`
+                  : 'Stable vs trimestre précédent'
+                : 'Sur l\'ensemble des factures payées'
+            }
+            icon={Clock}
+            className="bg-gradient-to-br from-cyan-50 to-cyan-100/50 border-cyan-200 dark:from-cyan-950/30 dark:to-cyan-900/20 dark:border-cyan-800"
+            iconClassName="bg-cyan-500 text-white"
           />
 
           <StatCard
@@ -173,19 +202,27 @@ export default function StatsPage() {
 
         {/* Graphiques avec design amélioré */}
         <div className="grid gap-6 lg:grid-cols-2">
-          {/* Évolution mensuelle avec Area Chart */}
+          {/* Évolution CA avec toggle mensuel/trimestriel */}
           <Card className="overflow-hidden">
             <CardHeader className="border-b bg-muted/30">
-              <CardTitle className="flex items-center gap-3">
-                <div className="rounded-lg bg-blue-500 p-2">
-                  <TrendingUp className="h-4 w-4 text-white" />
-                </div>
-                Évolution du chiffre d'affaires
-              </CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-3">
+                  <div className="rounded-lg bg-blue-500 p-2">
+                    <TrendingUp className="h-4 w-4 text-white" />
+                  </div>
+                  Évolution du chiffre d&apos;affaires
+                </CardTitle>
+                <Tabs value={revenueView} onValueChange={(v) => setRevenueView(v as 'monthly' | 'quarterly')}>
+                  <TabsList>
+                    <TabsTrigger value="monthly">Mensuel</TabsTrigger>
+                    <TabsTrigger value="quarterly">Trimestriel</TabsTrigger>
+                  </TabsList>
+                </Tabs>
+              </div>
             </CardHeader>
             <CardContent className="pt-6">
               <ResponsiveContainer width="100%" height={300}>
-                <AreaChart data={stats.monthlyRevenue}>
+                <AreaChart data={revenueView === 'monthly' ? stats.monthlyRevenue : stats.quarterlyRevenue}>
                   <defs>
                     <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3} />
@@ -194,7 +231,7 @@ export default function StatsPage() {
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                   <XAxis
-                    dataKey="month"
+                    dataKey={revenueView === 'monthly' ? 'month' : 'quarter'}
                     tick={{ fontSize: 12 }}
                     tickLine={false}
                     axisLine={false}
@@ -311,12 +348,16 @@ export default function StatsPage() {
                     width={100}
                   />
                   <Tooltip
-                    formatter={(value: number | undefined) => value !== undefined ? formatCurrency(value) : ''}
-                    contentStyle={{
-                      backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                      borderRadius: '12px',
-                      border: 'none',
-                      boxShadow: '0 10px 40px rgba(0,0,0,0.1)',
+                    content={({ active, payload }) => {
+                      if (!active || !payload || !payload.length) return null
+                      const data = payload[0].payload
+                      return (
+                        <div className="rounded-xl bg-white/95 p-3 shadow-lg" style={{ boxShadow: '0 10px 40px rgba(0,0,0,0.1)' }}>
+                          <p className="font-medium text-sm">{data.name}</p>
+                          <p className="text-sm text-muted-foreground">{formatCurrency(data.total)}</p>
+                          <p className="text-xs text-muted-foreground">{data.invoiceCount} facture{data.invoiceCount > 1 ? 's' : ''}</p>
+                        </div>
+                      )
                     }}
                   />
                   <Bar
