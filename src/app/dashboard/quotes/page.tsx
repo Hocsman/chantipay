@@ -17,7 +17,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Plus, Search, FileText, Loader2, TrendingUp } from 'lucide-react'
+import { Plus, Search, FileText, Loader2, TrendingUp, ArrowRight } from 'lucide-react'
+import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { ExportButton } from '@/components/ExportButton'
 
@@ -58,6 +59,7 @@ export default function QuotesPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<QuoteStatus | 'all'>('all')
+  const [convertingId, setConvertingId] = useState<string | null>(null)
 
   useEffect(() => {
     async function loadQuotes() {
@@ -107,6 +109,39 @@ export default function QuotesPage() {
       month: '2-digit',
       year: 'numeric',
     })
+  }
+
+  // Convertir un devis signé en facture
+  const handleConvertToInvoice = async (e: React.MouseEvent, quote: Quote) => {
+    e.stopPropagation() // Ne pas naviguer vers le détail
+    setConvertingId(quote.id)
+    try {
+      // Récupérer le devis complet avec client
+      const response = await fetch('/api/quotes')
+      if (!response.ok) throw new Error('Erreur')
+      const data = await response.json()
+      const fullQuote = data.quotes?.find((q: Quote & { clients?: { id: string; name: string; email?: string; phone?: string; address_line1?: string; address_line2?: string; postal_code?: string; city?: string; siret?: string; company_name?: string; vat_number?: string } }) => q.id === quote.id)
+      if (!fullQuote || !fullQuote.clients) throw new Error('Devis ou client non trouvé')
+
+      const { createInvoiceFromQuote } = await import('@/lib/invoiceHelpers')
+      const result = await createInvoiceFromQuote(
+        { ...fullQuote, items: fullQuote.items || [] },
+        fullQuote.clients
+      )
+
+      if (!result.success) {
+        toast.error(result.error)
+        return
+      }
+
+      toast.success(`Facture ${result.invoiceNumber} créée !`)
+      router.push(`/dashboard/invoices/${result.invoiceId}`)
+    } catch (error) {
+      console.error('Erreur conversion:', error)
+      toast.error('Erreur lors de la conversion')
+    } finally {
+      setConvertingId(null)
+    }
   }
 
   // Calculer les statistiques rapides
@@ -225,6 +260,21 @@ export default function QuotesPage() {
                   <span className="text-xl font-bold">{formatCurrency(quote.total_ttc || 0)}</span>
                   <span className="text-xs text-muted-foreground">{formatDate(quote.created_at)}</span>
                 </div>
+                {(quote.status === 'signed' || quote.status === 'deposit_paid') && (
+                  <Button
+                    size="sm"
+                    className="w-full mt-3 bg-blue-600 hover:bg-blue-700"
+                    onClick={(e) => handleConvertToInvoice(e, quote)}
+                    disabled={convertingId === quote.id}
+                  >
+                    {convertingId === quote.id ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <ArrowRight className="h-4 w-4 mr-2" />
+                    )}
+                    Convertir en facture
+                  </Button>
+                )}
               </CardContent>
             </Card>
           ))}
@@ -242,6 +292,7 @@ export default function QuotesPage() {
                 <TableHead>Statut</TableHead>
                 <TableHead className="text-right">Total TTC</TableHead>
                 <TableHead>Date</TableHead>
+                <TableHead></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -266,6 +317,24 @@ export default function QuotesPage() {
                   </TableCell>
                   <TableCell className="text-right font-semibold">{formatCurrency(quote.total_ttc || 0)}</TableCell>
                   <TableCell className="text-muted-foreground">{formatDate(quote.created_at)}</TableCell>
+                  <TableCell>
+                    {(quote.status === 'signed' || quote.status === 'deposit_paid') && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                        onClick={(e) => handleConvertToInvoice(e, quote)}
+                        disabled={convertingId === quote.id}
+                      >
+                        {convertingId === quote.id ? (
+                          <Loader2 className="h-3 w-3 mr-1.5 animate-spin" />
+                        ) : (
+                          <ArrowRight className="h-3 w-3 mr-1.5" />
+                        )}
+                        Facturer
+                      </Button>
+                    )}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>

@@ -246,6 +246,13 @@ export async function createInvoiceFromQuote(
       }
     }
 
+    // Passer le devis en "completed" après conversion réussie
+    await fetch(`/api/quotes/${quote.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'completed' }),
+    })
+
     return {
       success: true,
       invoiceId: data.invoice.id,

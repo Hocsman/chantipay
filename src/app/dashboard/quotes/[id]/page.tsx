@@ -116,6 +116,7 @@ export default function QuoteDetailPage() {
   const [quote, setQuote] = useState<Quote | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [linkedInvoice, setLinkedInvoice] = useState<{ id: string; invoice_number: string } | null>(null)
 
   // États UI
   const [isSignatureDialogOpen, setIsSignatureDialogOpen] = useState(false)
@@ -191,6 +192,15 @@ export default function QuoteDetailPage() {
 
       console.log('Quote loaded:', fullQuote)
       setQuote(fullQuote)
+
+      // Chercher si une facture a été créée depuis ce devis
+      const { data: invoice } = await supabase
+        .from('invoices')
+        .select('id, invoice_number')
+        .eq('quote_id', quoteId)
+        .single()
+
+      setLinkedInvoice(invoice || null)
     } catch (err) {
       console.error('Erreur chargement devis:', err)
       setError(err instanceof Error ? err.message : 'Erreur inconnue')
@@ -947,8 +957,32 @@ export default function QuoteDetailPage() {
           </CardContent>
         </Card>
 
-        {/* Bouton Convertir en facture (si signé) */}
-        {isQuoteSigned && (
+        {/* Facture liée ou bouton Convertir en facture */}
+        {linkedInvoice ? (
+          <Card className="border-2 border-green-500 bg-gradient-to-br from-green-50 to-emerald-50">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-4">
+                <div className="h-10 w-10 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0">
+                  <Check className="h-5 w-5 text-white" />
+                </div>
+                <div className="flex-1">
+                  <p className="font-semibold text-green-900 text-lg">Facture créée</p>
+                  <p className="text-sm text-green-700">
+                    {linkedInvoice.invoice_number}
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  className="border-green-500 text-green-700 hover:bg-green-100"
+                  onClick={() => router.push(`/dashboard/invoices/${linkedInvoice.id}`)}
+                >
+                  <FileText className="h-4 w-4 mr-2" />
+                  Voir la facture
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        ) : isQuoteSigned && (
           <Card className="border-2 border-blue-500 bg-gradient-to-br from-blue-50 to-indigo-50">
             <CardContent className="pt-6">
               <div className="space-y-4">

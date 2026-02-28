@@ -112,6 +112,7 @@ interface Invoice {
   due_date?: string
   issue_date: string
   sent_at?: string
+  quote_id?: string | null
   notes?: string
   payment_terms?: string
   items?: InvoiceItem[]
@@ -178,6 +179,7 @@ export default function InvoiceDetailPage() {
   const [isDownloadingPDF, setIsDownloadingPDF] = useState(false)
   const [isSendingEmail, setIsSendingEmail] = useState(false)
   const [isSendingReminder, setIsSendingReminder] = useState(false)
+  const [linkedQuote, setLinkedQuote] = useState<{ id: string; quote_number: string } | null>(null)
 
   // Charger le profil utilisateur
   const loadUserProfile = useCallback(async () => {
@@ -232,6 +234,17 @@ export default function InvoiceDetailPage() {
 
       const data = await response.json()
       setInvoice(data.invoice)
+
+      // Chercher le devis source si quote_id existe
+      if (data.invoice?.quote_id) {
+        const supabase = createClient()
+        const { data: quoteData } = await supabase
+          .from('quotes')
+          .select('id, quote_number')
+          .eq('id', data.invoice.quote_id)
+          .single()
+        setLinkedQuote(quoteData || null)
+      }
     } catch (err) {
       console.error('Erreur chargement facture:', err)
       setError(err instanceof Error ? err.message : 'Erreur inconnue')
@@ -526,6 +539,28 @@ export default function InvoiceDetailPage() {
       </div>
 
       <div className="space-y-6">
+        {/* Lien vers le devis source */}
+        {linkedQuote && (
+          <Card className="border border-blue-200 bg-blue-50/50">
+            <CardContent className="py-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-sm text-blue-700">
+                  <FileCode className="h-4 w-4" />
+                  <span>Créée depuis le devis <strong>{linkedQuote.quote_number}</strong></span>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-blue-700 hover:text-blue-900 hover:bg-blue-100"
+                  onClick={() => router.push(`/dashboard/quotes/${linkedQuote.id}`)}
+                >
+                  Voir le devis
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Informations client */}
         <Card>
           <CardHeader>
