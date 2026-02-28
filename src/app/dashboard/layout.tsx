@@ -39,6 +39,7 @@ import {
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { NotificationBell } from '@/components/NotificationBell';
+import { GlobalSearch } from '@/components/GlobalSearch';
 
 export default function DashboardLayout({
   children,
@@ -180,6 +181,7 @@ export default function DashboardLayout({
 
           {/* Right section */}
           <div className="flex items-center gap-3">
+            <GlobalSearch />
             <NotificationBell />
             <ThemeToggle />
           </div>
@@ -200,6 +202,7 @@ export default function DashboardLayout({
             <span className="text-lg font-bold">ChantiPay</span>
           </Link>
           <div className="flex items-center gap-1">
+            <GlobalSearch />
             <NotificationBell />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
