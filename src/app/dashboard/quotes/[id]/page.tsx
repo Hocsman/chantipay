@@ -57,6 +57,7 @@ import {
   Trash2,
   Save,
   X,
+  Copy,
 } from 'lucide-react'
 
 type QuoteStatus = 'draft' | 'sent' | 'signed' | 'deposit_paid' | 'completed' | 'canceled'
@@ -127,6 +128,7 @@ export default function QuoteDetailPage() {
   const [isSendingEmail, setIsSendingEmail] = useState(false)
   const [isSendingReminder, setIsSendingReminder] = useState(false)
   const [isSigned, setIsSigned] = useState(false)
+  const [isDuplicating, setIsDuplicating] = useState(false)
 
   // États édition manuelle
   const [isEditing, setIsEditing] = useState(false)
@@ -523,6 +525,32 @@ export default function QuoteDetailPage() {
       toast.error(error instanceof Error ? error.message : 'Erreur lors de l\'envoi de la relance')
     } finally {
       setIsSendingReminder(false)
+    }
+  }
+
+  // Dupliquer le devis
+  const handleDuplicate = async () => {
+    if (!quote) return
+
+    setIsDuplicating(true)
+    try {
+      const response = await fetch(`/api/quotes/${quote.id}/duplicate`, {
+        method: 'POST',
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) throw new Error(data.error || 'Erreur lors de la duplication')
+
+      toast.success('Devis dupliqué', {
+        description: `Nouveau devis ${data.quote_number} créé en brouillon`,
+      })
+      router.push(`/dashboard/quotes/${data.id}`)
+    } catch (error) {
+      console.error('Erreur duplication:', error)
+      toast.error(error instanceof Error ? error.message : 'Erreur lors de la duplication')
+    } finally {
+      setIsDuplicating(false)
     }
   }
 
@@ -1036,6 +1064,24 @@ export default function QuoteDetailPage() {
               <>
                 <Download className="h-4 w-4 mr-2" />
                 Télécharger PDF
+              </>
+            )}
+          </Button>
+          <Button
+            variant="outline"
+            className="flex-1"
+            onClick={handleDuplicate}
+            disabled={isDuplicating}
+          >
+            {isDuplicating ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Duplication...
+              </>
+            ) : (
+              <>
+                <Copy className="h-4 w-4 mr-2" />
+                Dupliquer
               </>
             )}
           </Button>
