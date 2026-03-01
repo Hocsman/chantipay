@@ -530,6 +530,56 @@ export type Database = {
           updated_at?: string;
         };
       };
+      bank_transactions: {
+        Row: {
+          id: string;
+          user_id: string;
+          transaction_date: string;
+          value_date: string | null;
+          label: string;
+          amount: number;
+          reference: string | null;
+          bank_name: string | null;
+          import_batch: string;
+          invoice_id: string | null;
+          reconciled_at: string | null;
+          reconciled_method: string | null;
+          raw_hash: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          transaction_date: string;
+          value_date?: string | null;
+          label: string;
+          amount: number;
+          reference?: string | null;
+          bank_name?: string | null;
+          import_batch: string;
+          invoice_id?: string | null;
+          reconciled_at?: string | null;
+          reconciled_method?: string | null;
+          raw_hash: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          transaction_date?: string;
+          value_date?: string | null;
+          label?: string;
+          amount?: number;
+          reference?: string | null;
+          bank_name?: string | null;
+          import_batch?: string;
+          invoice_id?: string | null;
+          reconciled_at?: string | null;
+          reconciled_method?: string | null;
+          raw_hash?: string;
+          created_at?: string;
+        };
+      };
     };
     Views: {
       [_ in never]: never;
@@ -576,6 +626,10 @@ export type UpdateInvoice = Database['public']['Tables']['invoices']['Update'];
 export type UpdateInvoiceItem = Database['public']['Tables']['invoice_items']['Update'];
 export type UpdateTeamMember = Database['public']['Tables']['team_members']['Update'];
 export type UpdateTeamMemberPermissions = Database['public']['Tables']['team_member_permissions']['Update'];
+
+export type BankTransaction = Database['public']['Tables']['bank_transactions']['Row'];
+export type InsertBankTransaction = Database['public']['Tables']['bank_transactions']['Insert'];
+export type UpdateBankTransaction = Database['public']['Tables']['bank_transactions']['Update'];
 
 // Quote status type for convenience
 export type QuoteStatus = Quote['status'];
