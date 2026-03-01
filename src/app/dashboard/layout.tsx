@@ -73,6 +73,7 @@ export default function DashboardLayout({
     { href: '/dashboard/technicians', label: 'Techniciens', icon: Users2 },
     { href: '/dashboard/relances', label: 'Relances', icon: Bell },
     { href: '/dashboard/banking', label: 'Bancaire', icon: Landmark },
+    { href: '/dashboard/export-comptable', label: 'Export comptable', icon: FileText },
     { href: '/dashboard/settings', label: 'Paramètres', icon: Settings },
     { href: '/dashboard/settings/billing', label: 'Abonnement', icon: CreditCard },
     { href: '/dashboard/help', label: 'Aide', icon: HelpCircle },
