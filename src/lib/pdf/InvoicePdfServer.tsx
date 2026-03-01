@@ -15,6 +15,7 @@ import {
   StyleSheet,
   Font,
 } from '@react-pdf/renderer'
+import { getPdfTheme, type PdfTheme } from './pdfThemes'
 
 // Types
 interface InvoiceItem {
@@ -57,10 +58,13 @@ interface CompanyInfo {
 interface InvoicePdfProps {
   invoice: Invoice
   companyInfo: CompanyInfo
+  pdfTemplate?: string | null
+  pdfAccentColor?: string | null
 }
 
-// Styles
-const styles = StyleSheet.create({
+// Styles factory (theme-aware)
+function createStyles(theme: PdfTheme) {
+  return StyleSheet.create({
   page: {
     padding: 40,
     fontSize: 10,
@@ -127,10 +131,11 @@ const styles = StyleSheet.create({
   },
   tableHeader: {
     flexDirection: 'row',
-    backgroundColor: '#F3F4F6',
+    backgroundColor: theme.tableHeaderBg,
     padding: 8,
     fontWeight: 'bold',
     fontSize: 9,
+    color: theme.tableHeaderText,
   },
   tableRow: {
     flexDirection: 'row',
@@ -172,7 +177,7 @@ const styles = StyleSheet.create({
     marginTop: 15,
     paddingTop: 15,
     borderTopWidth: 3,
-    borderTopColor: '#F97316',
+    borderTopColor: theme.accentColor,
   },
   totalFinalLabel: {
     width: 120,
@@ -186,7 +191,7 @@ const styles = StyleSheet.create({
     textAlign: 'right',
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#F97316',
+    color: theme.accentColor,
   },
   depositRow: {
     flexDirection: 'row',
@@ -292,12 +297,17 @@ const styles = StyleSheet.create({
     color: '#991B1B',
   },
 })
+}
 
 // Composant PDF
 export const InvoicePdfDocument: React.FC<InvoicePdfProps> = ({
   invoice,
   companyInfo,
+  pdfTemplate,
+  pdfAccentColor,
 }) => {
+  const theme = getPdfTheme(pdfTemplate ?? null, pdfAccentColor ?? null)
+  const styles = createStyles(theme)
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('fr-FR', {
       day: '2-digit',

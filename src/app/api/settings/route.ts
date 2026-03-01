@@ -70,6 +70,8 @@ export async function PATCH(request: NextRequest) {
       defaultVatRate,
       defaultDepositPercent,
       pdfFooterText,
+      pdfTemplate,
+      pdfAccentColor,
     } = body
 
     // ============================================
@@ -112,6 +114,8 @@ export async function PATCH(request: NextRequest) {
       default_vat_rate: parseFloat(defaultVatRate) || 20,
       default_deposit_percent: parseFloat(defaultDepositPercent) || 30,
       pdf_footer_text: pdfFooterText || null,
+      pdf_template: pdfTemplate || 'classic',
+      pdf_accent_color: pdfAccentColor || '#F97316',
       updated_at: new Date().toISOString(),
     }
 

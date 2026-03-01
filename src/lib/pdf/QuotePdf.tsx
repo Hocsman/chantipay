@@ -16,6 +16,7 @@ import {
   Image,
 } from '@react-pdf/renderer'
 import type { Profile, Client, Quote, QuoteItem, Settings } from '@/types/database'
+import { getPdfTheme, type PdfTheme } from './pdfThemes'
 
 // ============================================
 // Types
@@ -30,26 +31,33 @@ export interface QuotePdfProps {
 }
 
 // ============================================
-// Styles
+// Styles factory (theme-aware)
 // ============================================
 
-const styles = StyleSheet.create({
+function createStyles(theme: PdfTheme) {
+  return StyleSheet.create({
   page: {
     fontFamily: 'Helvetica',
     fontSize: 9,
-    paddingTop: 30,
+    paddingTop: theme.fullWidthHeader ? 0 : 30,
     paddingBottom: 50,
-    paddingHorizontal: 35,
+    paddingHorizontal: theme.fullWidthHeader ? 0 : 35,
     backgroundColor: '#FFFFFF',
+  },
+  pageContent: {
+    paddingHorizontal: theme.fullWidthHeader ? 35 : 0,
   },
   // Header styles
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 15,
-    paddingBottom: 12,
-    borderBottomWidth: 2,
-    borderBottomColor: '#F97316',
+    paddingBottom: theme.fullWidthHeader ? 0 : 12,
+    paddingTop: theme.fullWidthHeader ? 20 : 0,
+    paddingHorizontal: theme.fullWidthHeader ? 35 : 0,
+    borderBottomWidth: theme.fullWidthHeader ? 0 : 2,
+    borderBottomColor: theme.accentColor,
+    backgroundColor: theme.fullWidthHeader ? theme.headerBg : 'transparent',
   },
   headerLeft: {
     flex: 1,
@@ -61,18 +69,18 @@ const styles = StyleSheet.create({
   companyName: {
     fontSize: 14,
     fontFamily: 'Helvetica-Bold',
-    color: '#1F2937',
+    color: theme.fullWidthHeader ? theme.headerText : '#1F2937',
     marginBottom: 3,
   },
   companyInfo: {
     fontSize: 8,
-    color: '#64748B',
+    color: theme.fullWidthHeader ? '#CBD5E1' : '#64748B',
     marginBottom: 1.5,
     maxWidth: 200,
   },
   companyAddress: {
     fontSize: 8,
-    color: '#64748B',
+    color: theme.fullWidthHeader ? '#CBD5E1' : '#64748B',
     marginBottom: 4,
     maxWidth: 200,
     lineHeight: 1.3,
@@ -84,14 +92,14 @@ const styles = StyleSheet.create({
     objectFit: 'contain',
   },
   documentTitle: {
-    fontSize: 20,
+    fontSize: theme.titleStyle === 'large' ? 24 : theme.titleStyle === 'impact' ? 22 : theme.titleStyle === 'minimal' ? 18 : 20,
     fontFamily: 'Helvetica-Bold',
-    color: '#1F2937',
+    color: theme.fullWidthHeader ? theme.headerText : '#1F2937',
     marginBottom: 6,
   },
   documentInfo: {
     fontSize: 9,
-    color: '#334155',
+    color: theme.fullWidthHeader ? '#CBD5E1' : '#334155',
     marginBottom: 2,
   },
   statusBadge: {
@@ -119,7 +127,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 10,
     fontFamily: 'Helvetica-Bold',
-    color: '#F97316',
+    color: theme.accentColor,
     marginBottom: 6,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -164,7 +172,7 @@ const styles = StyleSheet.create({
   },
   tableHeader: {
     flexDirection: 'row',
-    backgroundColor: '#1F2937',
+    backgroundColor: theme.tableHeaderBg,
     paddingVertical: 6,
     paddingHorizontal: 6,
     borderTopLeftRadius: 3,
@@ -230,7 +238,7 @@ const styles = StyleSheet.create({
     paddingTop: 6,
     marginTop: 4,
     borderTopWidth: 2,
-    borderTopColor: '#F97316',
+    borderTopColor: theme.accentColor,
   },
   totalTTCLabel: {
     fontSize: 11,
@@ -240,7 +248,7 @@ const styles = StyleSheet.create({
   totalTTCValue: {
     fontSize: 12,
     fontFamily: 'Helvetica-Bold',
-    color: '#F97316',
+    color: theme.accentColor,
   },
   depositRow: {
     flexDirection: 'row',
@@ -347,6 +355,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 })
+}
 
 // ============================================
 // Helper functions
@@ -416,6 +425,10 @@ export const QuotePdfDocument = ({
   profile,
   settings,
 }: QuotePdfProps) => {
+  // Get theme based on settings
+  const theme = getPdfTheme(settings?.pdf_template ?? null, settings?.pdf_accent_color ?? null)
+  const styles = createStyles(theme)
+
   // Calculate totals
   const totalHT = quoteItems.reduce(
     (sum, item) => sum + item.quantity * item.unit_price_ht,
@@ -515,6 +528,9 @@ export const QuotePdfDocument = ({
             </View>
           </View>
         </View>
+
+        {/* Content wrapper (adds horizontal padding for fullWidthHeader templates) */}
+        <View style={styles.pageContent}>
 
         {/* ============================================ */}
         {/* Client Section */}
@@ -686,6 +702,9 @@ export const QuotePdfDocument = ({
             </View>
           </View>
         </View>
+
+        </View>
+        {/* End content wrapper */}
 
         {/* ============================================ */}
         {/* Footer */}

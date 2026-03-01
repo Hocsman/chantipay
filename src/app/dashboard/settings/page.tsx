@@ -19,7 +19,9 @@ import {
 } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { Switch } from '@/components/ui/switch'
-import { Loader2, Save, Upload, Building2, CreditCard, X, Palette, BookOpen, AlertCircle, Users } from 'lucide-react'
+import { Loader2, Save, Upload, Building2, CreditCard, X, Palette, BookOpen, AlertCircle, Users, FileText, Lock, Crown } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { THEMES, type PdfTemplateName } from '@/lib/pdf/pdfThemes'
 import Link from 'next/link'
 import Image from 'next/image'
 import { uploadCompanyLogo, deleteCompanyLogo } from '@/lib/uploadLogo'
@@ -32,6 +34,7 @@ export default function SettingsPage() {
   const [isUploadingLogo, setIsUploadingLogo] = useState(false)
   const [logoUrl, setLogoUrl] = useState<string | null>(null)
   const [userId, setUserId] = useState<string | null>(null)
+  const [subscriptionPlan, setSubscriptionPlan] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // État du formulaire
@@ -53,6 +56,8 @@ export default function SettingsPage() {
     defaultVatRate: '20',
     defaultDepositPercent: '30',
     pdfFooterText: '',
+    pdfTemplate: 'classic' as string,
+    pdfAccentColor: '#F97316',
   })
 
   // Charger les données utilisateur
@@ -71,9 +76,11 @@ export default function SettingsPage() {
       // Charger le profil
       const { data: profile } = await supabase
         .from('profiles')
-        .select('*')
+        .select('*, subscription_plan')
         .eq('id', user.id)
         .single()
+
+      setSubscriptionPlan(profile?.subscription_plan || null)
 
       // Charger les settings
       const { data: settings } = await supabase
@@ -119,6 +126,8 @@ export default function SettingsPage() {
           defaultVatRate: String(settings.default_vat_rate || 20),
           defaultDepositPercent: String(settings.default_deposit_percent || 30),
           pdfFooterText: settings.pdf_footer_text || '',
+          pdfTemplate: settings.pdf_template || 'classic',
+          pdfAccentColor: settings.pdf_accent_color || '#F97316',
         }))
       }
 
@@ -552,6 +561,161 @@ export default function SettingsPage() {
               <ThemeToggle />
             </div>
             <ThemePreview />
+          </CardContent>
+        </Card>
+
+        {/* Apparence des documents PDF */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Apparence des documents
+            </CardTitle>
+            <CardDescription>
+              Personnalisez le style de vos devis et factures PDF
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Template selector */}
+            <div className="space-y-3">
+              <Label>Modèle de document</Label>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                {(Object.values(THEMES) as typeof THEMES[PdfTemplateName][]).map((theme) => {
+                  const isSelected = formData.pdfTemplate === theme.name
+                  const isTeam = subscriptionPlan === 'team'
+                  const isLocked = theme.premium && !isTeam
+
+                  return (
+                    <button
+                      key={theme.name}
+                      type="button"
+                      onClick={() => {
+                        if (isLocked) return
+                        handleChange('pdfTemplate', theme.name)
+                      }}
+                      className={`relative rounded-lg border-2 p-3 text-left transition-all ${
+                        isSelected
+                          ? 'border-primary ring-2 ring-primary/20'
+                          : isLocked
+                          ? 'border-muted opacity-60 cursor-not-allowed'
+                          : 'border-border hover:border-primary/50 cursor-pointer'
+                      }`}
+                    >
+                      {/* Preview bar */}
+                      <div className="mb-3 rounded overflow-hidden">
+                        <div
+                          className="h-2 w-full"
+                          style={{ backgroundColor: theme.accentColor }}
+                        />
+                        <div className="bg-muted/50 p-2 space-y-1.5">
+                          <div className="flex justify-between items-center">
+                            <div
+                              className="h-1.5 w-16 rounded"
+                              style={{ backgroundColor: theme.headerText }}
+                            />
+                            <div
+                              className="h-1.5 w-8 rounded"
+                              style={{ backgroundColor: theme.accentColor, opacity: 0.5 }}
+                            />
+                          </div>
+                          <div
+                            className="h-1 w-full rounded"
+                            style={{ backgroundColor: theme.tableHeaderBg, opacity: 0.3 }}
+                          />
+                          <div className="h-1 w-full rounded bg-border/50" />
+                          <div className="h-1 w-full rounded bg-border/50" />
+                          <div className="flex justify-end mt-1">
+                            <div
+                              className="h-1.5 w-12 rounded"
+                              style={{ backgroundColor: theme.accentColor }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium text-sm">{theme.label}</p>
+                          <p className="text-xs text-muted-foreground">{theme.description}</p>
+                        </div>
+                        {theme.premium && (
+                          isLocked ? (
+                            <Lock className="h-4 w-4 text-muted-foreground shrink-0" />
+                          ) : (
+                            <Crown className="h-4 w-4 text-amber-500 shrink-0" />
+                          )
+                        )}
+                      </div>
+
+                      {theme.premium && (
+                        <Badge variant="secondary" className="absolute top-2 right-2 text-[10px] px-1.5 py-0">
+                          Team
+                        </Badge>
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Accent color picker */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label>Couleur d&apos;accent</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Couleur principale utilisée dans vos documents PDF
+                  </p>
+                </div>
+                {subscriptionPlan !== 'team' && (
+                  <Badge variant="secondary" className="text-xs">
+                    <Lock className="h-3 w-3 mr-1" />
+                    Team
+                  </Badge>
+                )}
+              </div>
+              <div className="flex items-center gap-3">
+                <input
+                  type="color"
+                  value={formData.pdfAccentColor}
+                  onChange={(e) => handleChange('pdfAccentColor', e.target.value)}
+                  disabled={subscriptionPlan !== 'team'}
+                  className="h-10 w-14 rounded border border-border cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                />
+                <Input
+                  value={formData.pdfAccentColor}
+                  onChange={(e) => handleChange('pdfAccentColor', e.target.value)}
+                  disabled={subscriptionPlan !== 'team'}
+                  className="w-32 font-mono text-sm"
+                  placeholder="#F97316"
+                />
+                <div
+                  className="h-10 flex-1 rounded-md border"
+                  style={{ backgroundColor: formData.pdfAccentColor }}
+                />
+              </div>
+              {subscriptionPlan !== 'team' && (
+                <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-900 dark:bg-amber-950/30">
+                  <Crown className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+                  <div className="text-sm">
+                    <p className="font-medium text-amber-800 dark:text-amber-200">
+                      Fonctionnalité Team
+                    </p>
+                    <p className="text-amber-700 dark:text-amber-300 mt-1">
+                      Les modèles premium et la couleur d&apos;accent personnalisée sont disponibles avec le plan Team.
+                    </p>
+                    <Link href="/dashboard/settings/billing" className="inline-block mt-2">
+                      <Button type="button" size="sm" variant="outline" className="text-amber-700 border-amber-300 hover:bg-amber-100 dark:text-amber-300 dark:border-amber-700 dark:hover:bg-amber-950">
+                        <Crown className="h-3 w-3 mr-1.5" />
+                        Passer au plan Team
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              )}
+            </div>
           </CardContent>
         </Card>
 

@@ -106,12 +106,19 @@ export async function POST(
       )
     }
 
-    // Récupérer les infos de l'entreprise (depuis le profil utilisateur)
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('company_name, full_name, address, phone, email, siret')
-      .eq('id', user.id)
-      .single()
+    // Récupérer les infos de l'entreprise et les settings
+    const [{ data: profile }, { data: settings }] = await Promise.all([
+      supabase
+        .from('profiles')
+        .select('company_name, full_name, address, phone, email, siret')
+        .eq('id', user.id)
+        .single(),
+      supabase
+        .from('settings')
+        .select('pdf_template, pdf_accent_color')
+        .eq('user_id', user.id)
+        .single(),
+    ])
 
     const companyInfo = {
       name: profile?.company_name || profile?.full_name || 'Mon Entreprise',
@@ -129,6 +136,8 @@ export async function POST(
           items: invoice.items || [],
         }}
         companyInfo={companyInfo}
+        pdfTemplate={settings?.pdf_template}
+        pdfAccentColor={settings?.pdf_accent_color}
       />
     )
 

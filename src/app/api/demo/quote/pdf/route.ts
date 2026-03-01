@@ -103,6 +103,8 @@ function buildSettingsForPdf() {
     default_vat_rate: demoProfile.default_vat_rate,
     default_deposit_percent: 30,
     pdf_footer_text: demoProfile.default_payment_terms,
+    pdf_template: null,
+    pdf_accent_color: null,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   }

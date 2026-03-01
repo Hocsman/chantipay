@@ -267,6 +267,8 @@ export type Database = {
           default_vat_rate: number;
           default_deposit_percent: number;
           pdf_footer_text: string | null;
+          pdf_template: string | null;
+          pdf_accent_color: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -277,6 +279,8 @@ export type Database = {
           default_vat_rate?: number;
           default_deposit_percent?: number;
           pdf_footer_text?: string | null;
+          pdf_template?: string | null;
+          pdf_accent_color?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -287,6 +291,8 @@ export type Database = {
           default_vat_rate?: number;
           default_deposit_percent?: number;
           pdf_footer_text?: string | null;
+          pdf_template?: string | null;
+          pdf_accent_color?: string | null;
           created_at?: string;
           updated_at?: string;
         };

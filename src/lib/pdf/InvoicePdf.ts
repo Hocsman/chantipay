@@ -1,5 +1,6 @@
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
+import { getPdfTheme } from './pdfThemes'
 
 interface InvoiceItem {
   description: string
@@ -50,27 +51,32 @@ interface CompanyInfo {
 }
 
 // ============================================
-// Couleurs uniformisées avec le devis
+// Couleurs uniformisées avec le devis (theme-aware)
 // ============================================
-const COLORS = {
-  // Couleurs principales
-  primary: [31, 41, 55] as [number, number, number],       // gray-800 (#1F2937)
-  accent: [249, 115, 22] as [number, number, number],      // orange-500 (#F97316)
+function getColors(pdfTemplate?: string | null, pdfAccentColor?: string | null) {
+  const theme = getPdfTheme(pdfTemplate ?? null, pdfAccentColor ?? null)
+  return {
+    // Couleurs principales (dynamiques via thème)
+    primary: theme.headerTextRgb,
+    accent: theme.accentRgb,
+    tableHeader: theme.tableHeaderBgRgb,
+    tableHeaderText: theme.tableHeaderTextRgb,
 
-  // Texte
-  textDark: [15, 23, 42] as [number, number, number],      // slate-900 (#0F172A)
-  textPrimary: [51, 65, 85] as [number, number, number],   // slate-700 (#334155)
-  textSecondary: [100, 116, 139] as [number, number, number], // slate-500 (#64748B)
-  textMuted: [148, 163, 184] as [number, number, number],  // slate-400 (#94A3B8)
+    // Texte
+    textDark: [15, 23, 42] as [number, number, number],
+    textPrimary: [51, 65, 85] as [number, number, number],
+    textSecondary: [100, 116, 139] as [number, number, number],
+    textMuted: [148, 163, 184] as [number, number, number],
 
-  // Fonds
-  bgLight: [248, 250, 252] as [number, number, number],    // slate-50 (#F8FAFC)
-  border: [226, 232, 240] as [number, number, number],     // slate-200 (#E2E8F0)
+    // Fonds
+    bgLight: [248, 250, 252] as [number, number, number],
+    border: [226, 232, 240] as [number, number, number],
 
-  // Statuts
-  green: [5, 150, 105] as [number, number, number],        // green-600 (#059669)
-  blue: [29, 78, 216] as [number, number, number],         // blue-700 (#1D4ED8)
-  red: [220, 38, 38] as [number, number, number],          // red-600 (#DC2626)
+    // Statuts
+    green: [5, 150, 105] as [number, number, number],
+    blue: [29, 78, 216] as [number, number, number],
+    red: [220, 38, 38] as [number, number, number],
+  }
 }
 
 /**
@@ -102,8 +108,11 @@ async function loadImageAsBase64(url: string): Promise<string | null> {
  */
 export async function generateInvoicePDF(
   invoice: Invoice,
-  companyInfo: CompanyInfo
+  companyInfo: CompanyInfo,
+  pdfTemplate?: string | null,
+  pdfAccentColor?: string | null,
 ): Promise<Blob> {
+  const COLORS = getColors(pdfTemplate, pdfAccentColor)
   const doc = new jsPDF()
   const pageWidth = doc.internal.pageSize.getWidth()
   const pageHeight = doc.internal.pageSize.getHeight()
@@ -350,8 +359,8 @@ export async function generateInvoicePDF(
     body: tableData,
     theme: 'plain',
     headStyles: {
-      fillColor: COLORS.primary,
-      textColor: [255, 255, 255],
+      fillColor: COLORS.tableHeader,
+      textColor: COLORS.tableHeaderText,
       fontStyle: 'bold',
       fontSize: 8,
       halign: 'left',
@@ -527,9 +536,11 @@ export async function generateInvoicePDF(
  */
 export async function downloadInvoicePDF(
   invoice: Invoice,
-  companyInfo: CompanyInfo
+  companyInfo: CompanyInfo,
+  pdfTemplate?: string | null,
+  pdfAccentColor?: string | null,
 ): Promise<void> {
-  const pdfBlob = await generateInvoicePDF(invoice, companyInfo)
+  const pdfBlob = await generateInvoicePDF(invoice, companyInfo, pdfTemplate, pdfAccentColor)
   const url = URL.createObjectURL(pdfBlob)
   const link = document.createElement('a')
   link.href = url
