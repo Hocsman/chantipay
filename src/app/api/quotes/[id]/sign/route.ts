@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { createNotification } from '@/lib/notifications'
 
 /**
@@ -9,7 +9,7 @@ import { createNotification } from '@/lib/notifications'
  * POST /api/quotes/[id]/sign
  *
  * Handles electronic signature of quotes by clients.
- * Stores signature image and updates quote status to 'signed'.
+ * Uploads signature image to Supabase Storage and updates quote status to 'signed'.
  *
  * Request Body:
  * {
@@ -30,13 +30,10 @@ import { createNotification } from '@/lib/notifications'
  *
  * Business Logic:
  * 1. Verify quote exists and is in signable state (draft/sent)
- * 2. Accept signature data (base64 image or data URL)
- * 3. Update quote: status='signed', signed_at=now, signature_image_url
+ * 2. Upload signature image to Supabase Storage (signatures bucket)
+ * 3. Update quote: status='signed', signed_at=now, signature_image_url (public URL)
  *
- * TODO: Implement upload to Supabase Storage instead of storing data URL
  * TODO: Add client authentication via temporary token (for unsigned clients)
- * TODO: Validate signature image format and size
- * TODO: Add signature verification/validation
  */
 export async function POST(
   request: NextRequest,
@@ -44,7 +41,7 @@ export async function POST(
 ) {
   try {
     const { id: quoteId } = await params
-    
+
     const body = await request.json()
     const { signature } = body
 
@@ -89,9 +86,8 @@ export async function POST(
       )
     }
 
-    // TODO: Sauvegarder l'image de signature dans Supabase Storage
-    // Pour l'instant, on stocke le data URL directement (à optimiser)
-    // const signatureUrl = await uploadSignatureToStorage(signature, quoteId)
+    // Uploader la signature dans Supabase Storage
+    const signatureUrl = await uploadSignatureToStorage(signature, quoteId)
 
     // Mettre à jour le devis
     const { error: updateError } = await supabase
@@ -99,7 +95,7 @@ export async function POST(
       .update({
         status: 'signed',
         signed_at: new Date().toISOString(),
-        signature_image_url: signature, // TODO: remplacer par l'URL du storage
+        signature_image_url: signatureUrl,
         updated_at: new Date().toISOString(),
       })
       .eq('id', quoteId)
@@ -135,12 +131,42 @@ export async function POST(
   }
 }
 
-// TODO: Implémenter l'upload vers Supabase Storage
-// async function uploadSignatureToStorage(
-//   signatureDataUrl: string, 
-//   quoteId: string
-// ): Promise<string> {
-//   // Convertir le data URL en blob
-//   // Uploader vers Supabase Storage
-//   // Retourner l'URL publique
-// }
+async function uploadSignatureToStorage(
+  signatureDataUrl: string,
+  quoteId: string
+): Promise<string> {
+  // Extraire le type mime et les données base64
+  const matches = signatureDataUrl.match(/^data:([^;]+);base64,(.+)$/)
+
+  let mimeType = 'image/png'
+  let base64Data = signatureDataUrl
+
+  if (matches) {
+    mimeType = matches[1]
+    base64Data = matches[2]
+  }
+
+  const extension = mimeType.split('/')[1] || 'png'
+  const fileName = `${quoteId}/${Date.now()}.${extension}`
+  const buffer = Buffer.from(base64Data, 'base64')
+
+  // Utiliser le service client pour bypasser RLS (le signataire peut ne pas être authentifié)
+  const serviceClient = await createServiceClient()
+
+  const { error: uploadError } = await serviceClient.storage
+    .from('signatures')
+    .upload(fileName, buffer, {
+      contentType: mimeType,
+      upsert: true,
+    })
+
+  if (uploadError) {
+    throw new Error(`Erreur upload signature: ${uploadError.message}`)
+  }
+
+  const { data: urlData } = serviceClient.storage
+    .from('signatures')
+    .getPublicUrl(fileName)
+
+  return urlData.publicUrl
+}
