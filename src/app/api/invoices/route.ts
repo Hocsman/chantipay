@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { createNotification } from '@/lib/notifications'
+import { getServerTeamContext } from '@/lib/server-permissions'
 
 export async function GET() {
   const supabase = await createClient()
@@ -45,6 +46,14 @@ export async function POST(request: Request) {
 
   if (userError || !user) {
     return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+  }
+
+  const teamCtx = await getServerTeamContext(user.id)
+  if (!teamCtx.hasPermission('edit_invoices')) {
+    return NextResponse.json(
+      { error: 'Permission insuffisante pour créer une facture' },
+      { status: 403 }
+    )
   }
 
   const body = await request.json()

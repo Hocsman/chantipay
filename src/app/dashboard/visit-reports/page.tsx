@@ -1,4 +1,5 @@
 'use client'
+import { withPermission } from '@/components/team/PermissionGate'
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
@@ -71,7 +72,7 @@ function formatDate(dateString: string | null) {
     })
 }
 
-export default function VisitReportsPage() {
+function VisitReportsPage() {
     const router = useRouter()
     const [reports, setReports] = useState<VisitReport[]>([])
     const [isLoading, setIsLoading] = useState(true)
@@ -368,3 +369,5 @@ export default function VisitReportsPage() {
         </LayoutContainer>
     )
 }
+
+export default withPermission(VisitReportsPage, 'create_visit_reports')

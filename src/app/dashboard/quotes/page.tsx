@@ -1,4 +1,5 @@
 'use client'
+import { withPermission } from '@/components/team/PermissionGate'
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
@@ -53,7 +54,7 @@ const statusFilters: { label: string; value: QuoteStatus | 'all' }[] = [
   { label: 'Annulé', value: 'canceled' },
 ]
 
-export default function QuotesPage() {
+function QuotesPage() {
   const router = useRouter()
   const [quotes, setQuotes] = useState<Quote[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -364,3 +365,5 @@ export default function QuotesPage() {
     </LayoutContainer>
   )
 }
+
+export default withPermission(QuotesPage, ['view_quotes', 'edit_quotes'])

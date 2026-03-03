@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { getServerTeamContext } from '@/lib/server-permissions'
 
 /**
  * GET /api/visit-reports
@@ -43,6 +44,14 @@ export async function POST(request: NextRequest) {
         const { data: { user }, error: authError } = await supabase.auth.getUser()
         if (authError || !user) {
             return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+        }
+
+        const teamCtx = await getServerTeamContext(user.id)
+        if (!teamCtx.hasPermission('create_visit_reports')) {
+            return NextResponse.json(
+                { error: 'Permission insuffisante pour créer un rapport de visite' },
+                { status: 403 }
+            )
         }
 
         const body = await request.json()

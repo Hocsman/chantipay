@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { getServerTeamContext } from '@/lib/server-permissions'
 
 /**
  * GET /api/quotes
@@ -73,6 +74,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'Non authentifié' },
         { status: 401 }
+      )
+    }
+
+    const teamCtx = await getServerTeamContext(user.id)
+    if (!teamCtx.hasPermission('edit_quotes')) {
+      return NextResponse.json(
+        { error: 'Permission insuffisante pour créer un devis' },
+        { status: 403 }
       )
     }
 

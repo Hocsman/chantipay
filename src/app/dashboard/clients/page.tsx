@@ -1,4 +1,5 @@
 'use client'
+import { withPermission } from '@/components/team/PermissionGate'
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation';
@@ -31,7 +32,7 @@ interface Client {
   created_at: string
 }
 
-export default function ClientsPage() {
+function ClientsPage() {
   const router = useRouter()
   const [clients, setClients] = useState<Client[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -295,3 +296,5 @@ export default function ClientsPage() {
     </LayoutContainer>
   );
 }
+
+export default withPermission(ClientsPage, 'view_clients')

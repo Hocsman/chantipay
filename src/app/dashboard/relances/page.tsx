@@ -1,4 +1,5 @@
 'use client'
+import { withPermission } from '@/components/team/PermissionGate'
 
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
@@ -34,7 +35,7 @@ interface UnifiedReminderStats {
   }
 }
 
-export default function RelancesPage() {
+function RelancesPage() {
   const [stats, setStats] = useState<UnifiedReminderStats | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('devis')
@@ -224,3 +225,5 @@ export default function RelancesPage() {
     </LayoutContainer>
   )
 }
+
+export default withPermission(RelancesPage, undefined, { ownerOnly: true })

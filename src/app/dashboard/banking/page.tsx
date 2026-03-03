@@ -1,4 +1,5 @@
 'use client'
+import { withPermission } from '@/components/team/PermissionGate'
 
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { LayoutContainer } from '@/components/LayoutContainer'
@@ -64,7 +65,7 @@ interface ImportResult {
 // Page
 // ============================================
 
-export default function BankingPage() {
+function BankingPage() {
   const [transactions, setTransactions] = useState<BankTransaction[]>([])
   const [stats, setStats] = useState<Stats | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -416,3 +417,5 @@ export default function BankingPage() {
     </LayoutContainer>
   )
 }
+
+export default withPermission(BankingPage, undefined, { ownerOnly: true })

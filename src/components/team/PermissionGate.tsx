@@ -9,14 +9,20 @@ interface PermissionGateProps {
   /**
    * Permission(s) requise(s) pour afficher le contenu.
    * Si un tableau est fourni, le comportement dépend de `requireAll`.
+   * Peut être omis si ownerOnly est true.
    */
-  permission: PermissionKey | PermissionKey[]
+  permission?: PermissionKey | PermissionKey[]
 
   /**
    * Si true, toutes les permissions doivent être accordées.
    * Si false (défaut), au moins une permission suffit.
    */
   requireAll?: boolean
+
+  /**
+   * Si true, réserve l'accès au patron uniquement (les membres d'équipe n'y ont pas accès).
+   */
+  ownerOnly?: boolean
 
   /**
    * Contenu à afficher si les permissions sont accordées.
@@ -50,24 +56,21 @@ interface PermissionGateProps {
  *   <QuotesList />
  * </PermissionGate>
  *
- * <PermissionGate permission={['view_quotes', 'edit_quotes']} requireAll>
- *   <QuoteEditor />
- * </PermissionGate>
- *
- * <PermissionGate permission="manage_technicians" fallback={<AccessDenied />}>
- *   <TechnicianManager />
+ * <PermissionGate ownerOnly>
+ *   <BankingPage />
  * </PermissionGate>
  * ```
  */
 export function PermissionGate({
   permission,
   requireAll = false,
+  ownerOnly = false,
   children,
   fallback,
   loadingFallback,
   showAccessDenied = false,
 }: PermissionGateProps) {
-  const { isLoading, hasPermission, hasAnyPermission, hasAllPermissions } = useTeamPermissions()
+  const { isLoading, isTeamMember, hasAnyPermission, hasAllPermissions } = useTeamPermissions()
 
   if (isLoading) {
     return (
@@ -79,26 +82,28 @@ export function PermissionGate({
     )
   }
 
-  // Vérifier les permissions
-  const permissions = Array.isArray(permission) ? permission : [permission]
-  const hasAccess = requireAll
-    ? hasAllPermissions(...permissions)
-    : hasAnyPermission(...permissions)
-
-  if (hasAccess) {
-    return <>{children}</>
+  // Vérification owner-only : les membres d'équipe n'ont pas accès
+  if (ownerOnly && isTeamMember) {
+    if (fallback) return <>{fallback}</>
+    if (showAccessDenied) return <AccessDenied />
+    return null
   }
 
-  // Pas d'accès
-  if (fallback) {
-    return <>{fallback}</>
+  // Vérification des permissions si spécifiées
+  if (permission) {
+    const permissions = Array.isArray(permission) ? permission : [permission]
+    const hasAccess = requireAll
+      ? hasAllPermissions(...permissions)
+      : hasAnyPermission(...permissions)
+
+    if (!hasAccess) {
+      if (fallback) return <>{fallback}</>
+      if (showAccessDenied) return <AccessDenied />
+      return null
+    }
   }
 
-  if (showAccessDenied) {
-    return <AccessDenied />
-  }
-
-  return null
+  return <>{children}</>
 }
 
 /**
@@ -123,19 +128,21 @@ function AccessDenied() {
  *
  * Usage:
  * ```tsx
- * function QuotesPage() {
- *   return <div>...</div>
- * }
- *
+ * function QuotesPage() { return <div>...</div> }
  * export default withPermission(QuotesPage, 'view_quotes')
+ *
+ * // Owner uniquement
+ * function BankingPage() { return <div>...</div> }
+ * export default withPermission(BankingPage, undefined, { ownerOnly: true })
  * ```
  */
 export function withPermission<P extends object>(
   Component: React.ComponentType<P>,
-  permission: PermissionKey | PermissionKey[],
+  permission?: PermissionKey | PermissionKey[],
   options?: {
     requireAll?: boolean
     fallback?: ReactNode
+    ownerOnly?: boolean
   }
 ) {
   return function ProtectedComponent(props: P) {
@@ -143,6 +150,7 @@ export function withPermission<P extends object>(
       <PermissionGate
         permission={permission}
         requireAll={options?.requireAll}
+        ownerOnly={options?.ownerOnly}
         fallback={options?.fallback}
         showAccessDenied={!options?.fallback}
       >

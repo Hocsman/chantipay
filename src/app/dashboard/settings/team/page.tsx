@@ -25,6 +25,13 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
   Loader2,
   UserPlus,
   Users,
@@ -41,10 +48,10 @@ import {
 import { toast } from 'sonner'
 import {
   TeamMember,
-  TeamMemberPermissions,
   PERMISSION_KEYS,
   PERMISSION_LABELS,
   DEFAULT_PERMISSIONS,
+  ROLE_PRESETS,
   PermissionKey,
   InvitationStatus,
 } from '@/types/team'
@@ -66,8 +73,16 @@ export default function TeamSettingsPage() {
     roleTitle: 'Technicien',
   })
   const [invitePermissions, setInvitePermissions] = useState<Record<PermissionKey, boolean>>(
-    { ...DEFAULT_PERMISSIONS }
+    { ...ROLE_PRESETS.technicien.permissions }
   )
+
+  // Appliquer un preset de rôle : met à jour le titre ET les permissions
+  const handleRolePresetChange = (presetKey: string) => {
+    const preset = ROLE_PRESETS[presetKey]
+    if (!preset) return
+    setInviteForm((f) => ({ ...f, roleTitle: preset.label }))
+    setInvitePermissions({ ...preset.permissions })
+  }
 
   // Formulaire d'édition
   const [editPermissions, setEditPermissions] = useState<Record<PermissionKey, boolean>>(
@@ -314,13 +329,22 @@ export default function TeamSettingsPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="roleTitle">Fonction</Label>
-                  <Input
-                    id="roleTitle"
-                    value={inviteForm.roleTitle}
-                    onChange={(e) => setInviteForm({ ...inviteForm, roleTitle: e.target.value })}
-                    placeholder="Technicien"
-                  />
+                  <Label>Rôle</Label>
+                  <Select
+                    defaultValue="technicien"
+                    onValueChange={handleRolePresetChange}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choisir un rôle" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(ROLE_PRESETS).map(([key, preset]) => (
+                        <SelectItem key={key} value={key}>
+                          {preset.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 

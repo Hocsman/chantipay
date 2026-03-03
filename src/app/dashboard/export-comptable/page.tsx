@@ -1,4 +1,5 @@
 'use client'
+import { withPermission } from '@/components/team/PermissionGate'
 
 import { useState } from 'react'
 import { PageHeader } from '@/components/PageHeader'
@@ -22,7 +23,7 @@ interface FecPreview {
   totalTTC: number
 }
 
-export default function ExportComptablePage() {
+function ExportComptablePage() {
   const currentYear = new Date().getFullYear()
   const [fromDate, setFromDate] = useState(`${currentYear - 1}-01-01`)
   const [toDate, setToDate] = useState(`${currentYear - 1}-12-31`)
@@ -344,3 +345,5 @@ export default function ExportComptablePage() {
     </LayoutContainer>
   )
 }
+
+export default withPermission(ExportComptablePage, undefined, { ownerOnly: true })

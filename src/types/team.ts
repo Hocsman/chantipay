@@ -117,6 +117,71 @@ export const DEFAULT_PERMISSIONS: Record<PermissionKey, boolean> = {
   manage_technicians: false,
 }
 
+// Presets de rôles — pré-remplissent les permissions à l'invitation
+// Pour ajouter un rôle : ajouter une entrée ici (aucune migration BDD nécessaire)
+export const ROLE_PRESETS: Record<string, { label: string; permissions: Record<PermissionKey, boolean> }> = {
+  technicien: {
+    label: 'Technicien',
+    permissions: {
+      view_assigned_jobs: true,
+      edit_pointage: true,
+      view_clients: false,
+      create_visit_reports: true,
+      view_quotes: false,
+      edit_quotes: false,
+      view_invoices: false,
+      edit_invoices: false,
+      manage_technicians: false,
+    },
+  },
+  commercial: {
+    label: 'Commercial',
+    permissions: {
+      view_assigned_jobs: true,
+      edit_pointage: false,
+      view_clients: true,
+      create_visit_reports: false,
+      view_quotes: true,
+      edit_quotes: true,
+      view_invoices: true,
+      edit_invoices: false,
+      manage_technicians: false,
+    },
+  },
+  comptable: {
+    label: 'Comptable',
+    permissions: {
+      view_assigned_jobs: false,
+      edit_pointage: false,
+      view_clients: true,
+      create_visit_reports: false,
+      view_quotes: true,
+      edit_quotes: false,
+      view_invoices: true,
+      edit_invoices: true,
+      manage_technicians: false,
+    },
+  },
+  conducteur_travaux: {
+    label: 'Conducteur de travaux',
+    permissions: {
+      view_assigned_jobs: true,
+      edit_pointage: true,
+      view_clients: true,
+      create_visit_reports: true,
+      view_quotes: true,
+      edit_quotes: true,
+      view_invoices: false,
+      edit_invoices: false,
+      manage_technicians: true,
+    },
+  },
+  personnalise: {
+    label: 'Personnalisé',
+    permissions: { ...DEFAULT_PERMISSIONS },
+  },
+}
+
 // Contexte d'équipe pour l'utilisateur courant
 export interface TeamContext {
   isOwner: boolean

@@ -1,4 +1,5 @@
 'use client'
+import { withPermission } from '@/components/team/PermissionGate'
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
@@ -46,7 +47,7 @@ const specialtyLabels: Record<string, string> = {
   autre: 'Autre',
 }
 
-export default function TechniciansPage() {
+function TechniciansPage() {
   const [technicians, setTechnicians] = useState<Technician[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
@@ -172,3 +173,5 @@ export default function TechniciansPage() {
     </LayoutContainer>
   )
 }
+
+export default withPermission(TechniciansPage, 'manage_technicians')

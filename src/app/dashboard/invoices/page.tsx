@@ -1,4 +1,5 @@
 'use client'
+import { withPermission } from '@/components/team/PermissionGate'
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
@@ -70,7 +71,7 @@ const paymentStatusConfig = {
 
 type FilterStatus = 'all' | 'draft' | 'sent' | 'paid' | 'partial' | 'overdue' | 'canceled'
 
-export default function InvoicesPage() {
+function InvoicesPage() {
   const router = useRouter()
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -332,3 +333,5 @@ export default function InvoicesPage() {
     </LayoutContainer>
   )
 }
+
+export default withPermission(InvoicesPage, ['view_invoices', 'edit_invoices'])

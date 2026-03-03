@@ -1,4 +1,5 @@
 'use client'
+import { withPermission } from '@/components/team/PermissionGate'
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
@@ -38,7 +39,7 @@ const statusConfig = {
 
 type FilterStatus = 'all' | 'todo' | 'in-progress' | 'done'
 
-export default function TasksPage() {
+function TasksPage() {
   const router = useRouter()
   const [tasks, setTasks] = useState<Task[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -281,3 +282,5 @@ export default function TasksPage() {
     </LayoutContainer>
   )
 }
+
+export default withPermission(TasksPage, 'view_assigned_jobs')
