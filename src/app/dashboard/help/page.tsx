@@ -28,6 +28,8 @@ import {
   Clock,
   PenTool,
   Zap,
+  UserCheck,
+  Shield,
 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -125,6 +127,42 @@ const faqSections = [
     ],
   },
   {
+    id: 'equipe',
+    title: 'Équipe & Rôles',
+    icon: UserCheck,
+    color: 'text-teal-500',
+    questions: [
+      {
+        question: 'Comment inviter un membre dans mon équipe ?',
+        answer: `Allez dans "Paramètres" > "Équipe". Remplissez l'email du membre, choisissez son rôle dans le menu déroulant (Technicien, Commercial, Comptable, Conducteur de travaux ou Personnalisé), puis cliquez sur "Envoyer l'invitation". Le membre reçoit un email avec un lien valable 7 jours pour rejoindre votre espace.`,
+      },
+      {
+        question: 'Quels rôles sont disponibles ?',
+        answer: `Quatre rôles prédéfinis sont disponibles :\n• Technicien — voit ses tâches assignées, gère son pointage, crée des rapports de visite\n• Commercial — accède aux clients, crée et modifie les devis, consulte les factures\n• Comptable — consulte les clients, les devis et gère les factures\n• Conducteur de travaux — accès étendu : tâches, clients, rapports, devis et gestion des techniciens\n\nChaque rôle pré-coche automatiquement les bonnes permissions, que vous pouvez ajuster case par case.`,
+      },
+      {
+        question: 'Puis-je personnaliser les permissions d\'un membre ?',
+        answer: `Oui. Lors de l'invitation, les cases à cocher se mettent à jour selon le rôle choisi mais vous pouvez les modifier librement. Après l'invitation, cliquez sur les "..." du membre dans la liste puis "Modifier les permissions" pour ajuster ses accès à tout moment.`,
+      },
+      {
+        question: 'Qu\'est-ce que le rôle "Personnalisé" ?',
+        answer: `Le rôle Personnalisé démarre avec les permissions minimales (tâches assignées et pointage) et vous laisse cocher manuellement exactement ce dont le membre a besoin. C'est utile pour des profils atypiques qui ne correspondent à aucun rôle prédéfini.`,
+      },
+      {
+        question: 'Quelles pages sont accessibles par les membres d\'équipe ?',
+        answer: `Les accès dépendent des permissions accordées. Les pages Bancaire, Relances et Export comptable sont réservées au patron et ne peuvent pas être débloquées pour un membre. Les autres pages (devis, factures, clients, tâches, techniciens, rapports) s'ouvrent selon les permissions configurées.`,
+      },
+      {
+        question: 'Comment fonctionne l\'assignation des tâches ?',
+        answer: `Depuis la page Tâches, le patron crée une tâche et l'assigne à un technicien. Pour que le technicien voie ses tâches depuis son compte, il doit avoir un profil Technicien créé dans "Techniciens" avec son compte utilisateur associé. Il ne verra que les tâches qui lui sont assignées, pas toutes les tâches de l'entreprise.`,
+      },
+      {
+        question: 'Comment supprimer ou désactiver un membre ?',
+        answer: `Dans "Paramètres" > "Équipe", cliquez sur les "..." du membre concerné puis "Supprimer". Le membre n'aura plus accès à votre espace. Les données créées par ce membre (rapports, pointages...) sont conservées.`,
+      },
+    ],
+  },
+  {
     id: 'compte',
     title: 'Compte & Paramètres',
     icon: Settings,
@@ -193,6 +231,12 @@ const newFeatures = [
     icon: PenTool,
     color: 'text-rose-500 bg-rose-500/10',
   },
+  {
+    title: 'Gestion d\'équipe & rôles',
+    description: 'Invitez des collaborateurs (techniciens, commerciaux, comptables...) avec des rôles prédéfinis. Chaque membre accède uniquement aux pages autorisées et voit uniquement ses tâches assignées.',
+    icon: Shield,
+    color: 'text-teal-500 bg-teal-500/10',
+  },
 ]
 
 const quickGuides = [
@@ -213,6 +257,12 @@ const quickGuides = [
     description: 'Créez votre carnet de clients',
     href: '/dashboard/clients',
     icon: Users,
+  },
+  {
+    title: 'Gérer mon équipe',
+    description: 'Invitez des membres et configurez leurs rôles',
+    href: '/dashboard/settings/team',
+    icon: UserCheck,
   },
 ]
 
