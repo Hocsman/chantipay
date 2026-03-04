@@ -45,7 +45,8 @@ jobs:
               else:
                   genai.configure(api_key=os.environ["GEMINI_API_KEY"])
 
-                  for model_name in ['gemini-1.5-flash', 'gemini-pro']:
+                  last_error = None
+                  for model_name in ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro']:
                       try:
                           model = genai.GenerativeModel(model_name)
                           prompt = f"Fais un résumé court en français des commits suivants avec des emojis :\n{commits}"
@@ -55,10 +56,13 @@ jobs:
                               safe = response.text.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
                               print(safe)
                               break
-                      except Exception:
+                      except Exception as e:
+                          last_error = str(e)
+                          import sys
+                          print(f"[{model_name}] erreur : {e}", file=sys.stderr)
                           continue
                   else:
-                      print("Désolé, l'IA est indisponible pour le moment.")
+                      print(f"IA indisponible. Dernière erreur : {last_error[:200] if last_error else 'inconnue'}")
           except Exception as e:
               print(f"Souci technique : {str(e)[:100]}")
           PYEOF
