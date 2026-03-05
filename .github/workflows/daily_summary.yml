@@ -21,7 +21,7 @@ jobs:
           python-version: '3.11'
 
       - name: Installer l'IA (Gemini)
-        run: pip install -U google-generativeai
+        run: pip install -U google-genai
 
       - name: Générer le résumé avec l'IA
         id: generate_step
@@ -31,8 +31,9 @@ jobs:
           echo "SUMMARY<<DELIMITER" >> "$GITHUB_ENV"
           python3 - <<'PYEOF' >> "$GITHUB_ENV"
           import os
+          import sys
           import subprocess
-          import google.generativeai as genai
+          from google import genai
 
           try:
               commits = subprocess.check_output(
@@ -43,14 +44,13 @@ jobs:
               if not commits:
                   print("Rien à signaler aujourd'hui ! ☕")
               else:
-                  genai.configure(api_key=os.environ["GEMINI_API_KEY"])
+                  client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
 
                   last_error = None
-                  for model_name in ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro']:
+                  for model_name in ['gemini-2.0-flash', 'gemini-2.0-flash-lite', 'gemini-1.5-flash']:
                       try:
-                          model = genai.GenerativeModel(model_name)
                           prompt = f"Fais un résumé court en français des commits suivants avec des emojis :\n{commits}"
-                          response = model.generate_content(prompt)
+                          response = client.models.generate_content(model=model_name, contents=prompt)
                           if response.text:
                               # Échapper les caractères HTML pour Telegram
                               safe = response.text.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
@@ -58,7 +58,6 @@ jobs:
                               break
                       except Exception as e:
                           last_error = str(e)
-                          import sys
                           print(f"[{model_name}] erreur : {e}", file=sys.stderr)
                           continue
                   else:
