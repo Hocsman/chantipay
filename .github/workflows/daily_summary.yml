@@ -15,14 +15,6 @@ jobs:
         with:
           fetch-depth: 50 # Suffisant pour couvrir 24h de commits
 
-      - name: Configurer Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Installer l'IA (Gemini)
-        run: pip install -U google-genai
-
       - name: Générer le résumé avec l'IA
         id: generate_step
         env:
@@ -33,7 +25,9 @@ jobs:
           import os
           import sys
           import subprocess
-          from google import genai
+          import json
+          from urllib.request import Request, urlopen
+          from urllib.error import HTTPError, URLError
 
           try:
               commits = subprocess.check_output(
@@ -44,21 +38,35 @@ jobs:
               if not commits:
                   print("Rien à signaler aujourd'hui ! ☕")
               else:
-                  client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
+                  API_KEY = os.environ["GEMINI_API_KEY"]
+                  prompt = f"Fais un résumé court en français des commits suivants avec des emojis :\n{commits}"
+                  payload = json.dumps({
+                      "contents": [{"parts": [{"text": prompt}]}]
+                  }).encode('utf-8')
+
+                  # Essaie les modèles stables (v1) puis expérimentaux (v1beta)
+                  MODELS = [
+                      ('v1', 'gemini-2.0-flash'),
+                      ('v1', 'gemini-2.0-flash-lite'),
+                      ('v1beta', 'gemini-2.0-flash'),
+                      ('v1beta', 'gemini-2.0-flash-lite'),
+                  ]
 
                   last_error = None
-                  for model_name in ['gemini-2.0-flash', 'gemini-2.0-flash-lite', 'gemini-1.5-flash']:
+                  for api_version, model_name in MODELS:
                       try:
-                          prompt = f"Fais un résumé court en français des commits suivants avec des emojis :\n{commits}"
-                          response = client.models.generate_content(model=model_name, contents=prompt)
-                          if response.text:
-                              # Échapper les caractères HTML pour Telegram
-                              safe = response.text.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
-                              print(safe)
-                              break
+                          url = f"https://generativelanguage.googleapis.com/{api_version}/models/{model_name}:generateContent?key={API_KEY}"
+                          req = Request(url, data=payload, headers={"Content-Type": "application/json"})
+                          with urlopen(req, timeout=30) as resp:
+                              data = json.loads(resp.read())
+                              text = data["candidates"][0]["content"]["parts"][0]["text"]
+                              if text:
+                                  safe = text.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+                                  print(safe)
+                                  break
                       except Exception as e:
                           last_error = str(e)
-                          print(f"[{model_name}] erreur : {e}", file=sys.stderr)
+                          print(f"[{api_version}/{model_name}] erreur : {e}", file=sys.stderr)
                           continue
                   else:
                       print(f"IA indisponible. Dernière erreur : {last_error[:200] if last_error else 'inconnue'}")
