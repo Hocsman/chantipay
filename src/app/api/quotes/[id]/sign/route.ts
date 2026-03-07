@@ -152,7 +152,7 @@ async function uploadSignatureToStorage(
   const buffer = Buffer.from(base64Data, 'base64')
 
   // Utiliser le service client pour bypasser RLS (le signataire peut ne pas être authentifié)
-  const serviceClient = await createServiceClient()
+  const serviceClient = createServiceClient()
 
   const { error: uploadError } = await serviceClient.storage
     .from('signatures')
