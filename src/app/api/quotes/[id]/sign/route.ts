@@ -123,9 +123,10 @@ export async function POST(
       message: 'Devis signé avec succès',
     })
   } catch (error) {
-    console.error('Erreur signature:', error)
+    const errMsg = error instanceof Error ? error.message : String(error)
+    console.error('Erreur signature:', errMsg, error)
     return NextResponse.json(
-      { error: 'Erreur lors de la signature du devis' },
+      { error: `Erreur lors de la signature du devis: ${errMsg}` },
       { status: 500 }
     )
   }
