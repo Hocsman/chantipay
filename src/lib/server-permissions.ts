@@ -27,7 +27,7 @@ export async function getServerTeamContext(userId: string): Promise<ServerTeamCo
     .eq('member_user_id', userId)
     .eq('invitation_status', 'accepted')
     .eq('is_active', true)
-    .single()
+    .maybeSingle()
 
   if (!membership) {
     return {

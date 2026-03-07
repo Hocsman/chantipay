@@ -198,7 +198,7 @@ export default function QuoteDetailPage() {
         .from('invoices')
         .select('id, invoice_number')
         .eq('quote_id', quoteId)
-        .single()
+        .maybeSingle()
 
       setLinkedInvoice(invoice || null)
     } catch (err) {

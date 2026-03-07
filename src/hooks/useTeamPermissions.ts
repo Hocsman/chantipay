@@ -69,7 +69,7 @@ export function useTeamPermissions(): UseTeamPermissionsReturn {
         .eq('member_user_id', user.id)
         .eq('invitation_status', 'accepted')
         .eq('is_active', true)
-        .single()
+        .maybeSingle()
 
       if (error || !membership) {
         // L'utilisateur n'est pas membre d'une équipe (il est probablement owner)
@@ -184,7 +184,7 @@ export function useEffectiveUserId(): {
         .eq('member_user_id', user.id)
         .eq('invitation_status', 'accepted')
         .eq('is_active', true)
-        .single()
+        .maybeSingle()
 
       if (membership) {
         setState({
