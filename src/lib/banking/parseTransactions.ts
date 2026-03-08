@@ -69,35 +69,80 @@ function parseFrenchDate(raw: string): string {
   return trimmed
 }
 
-/** Trouve l'index de la colonne par noms possibles */
+/** Trouve l'index de la colonne par noms possibles (exact puis partiel) */
 function findColumnIndex(headers: string[], names: string[]): number {
-  const normalized = headers.map(h => h.toLowerCase().trim().replace(/"/g, ''))
-  for (const name of names) {
-    const idx = normalized.indexOf(name.toLowerCase())
+  const normalized = headers.map(h =>
+    h.toLowerCase().trim()
+      .replace(/"/g, '')
+      .replace(/\uFEFF/g, '')  // Supprime BOM UTF-8
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // Supprime accents
+  )
+  const namesNormalized = names.map(n =>
+    n.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+  )
+
+  // 1. Match exact
+  for (const name of namesNormalized) {
+    const idx = normalized.indexOf(name)
     if (idx >= 0) return idx
   }
+
+  // 2. Match partiel : le header contient le mot-clé
+  for (const name of namesNormalized) {
+    const idx = normalized.findIndex(h => h.includes(name))
+    if (idx >= 0) return idx
+  }
+
+  // 3. Match par mots-clés courts (date, libelle, montant...)
+  for (const name of namesNormalized) {
+    const keywords = name.split(/\s+/)
+    const idx = normalized.findIndex(h => keywords.every(kw => h.includes(kw)))
+    if (idx >= 0) return idx
+  }
+
   return -1
 }
 
 export function parseCSV(content: string): ParsedTransaction[] {
-  const lines = content.split(/\r?\n/).filter(l => l.trim())
+  // Supprimer BOM UTF-8 si présent
+  const cleanContent = content.replace(/^\uFEFF/, '')
+  const lines = cleanContent.split(/\r?\n/).filter(l => l.trim())
   if (lines.length < 2) return []
 
   const separator = detectSeparator(lines[0])
   const headers = lines[0].split(separator).map(h => h.trim().replace(/"/g, ''))
 
-  // Trouver les colonnes
-  const dateIdx = findColumnIndex(headers, ['date', 'date opération', 'date operation', 'date comptable', 'date valeur'])
-  const labelIdx = findColumnIndex(headers, ['libellé', 'libelle', 'label', 'description', 'intitulé', 'intitule', 'détail', 'detail'])
-  const amountIdx = findColumnIndex(headers, ['montant', 'amount', 'montant (eur)', 'montant eur'])
-  const debitIdx = findColumnIndex(headers, ['débit', 'debit', 'débit (eur)', 'debit eur'])
-  const creditIdx = findColumnIndex(headers, ['crédit', 'credit', 'crédit (eur)', 'credit eur'])
+  // Trouver les colonnes (supporte les variantes des banques françaises)
+  const dateIdx = findColumnIndex(headers, [
+    'date', 'date opération', 'date operation', 'date comptable', 'date valeur',
+    'date de l\'opération', 'date de comptabilisation', 'date de valeur',
+    'dateop', 'date op',
+  ])
+  const labelIdx = findColumnIndex(headers, [
+    'libellé', 'libelle', 'label', 'description', 'intitulé', 'intitule',
+    'détail', 'detail', 'libellé opération', 'libelle operation',
+    'libellé simplifié', 'libelle simplifie', 'libellé de l\'opération',
+    'libellé complété', 'communication', 'motif', 'objet',
+  ])
+  const amountIdx = findColumnIndex(headers, [
+    'montant', 'amount', 'montant (eur)', 'montant eur', 'montant en eur',
+    'montant (€)', 'solde',
+  ])
+  const debitIdx = findColumnIndex(headers, [
+    'débit', 'debit', 'débit (eur)', 'debit eur', 'débit euros', 'debit euros',
+    'montant débit', 'montant debit',
+  ])
+  const creditIdx = findColumnIndex(headers, [
+    'crédit', 'credit', 'crédit (eur)', 'credit eur', 'crédit euros', 'credit euros',
+    'montant crédit', 'montant credit',
+  ])
 
   if (dateIdx === -1 || labelIdx === -1) {
-    throw new Error('Format CSV non reconnu : colonnes "Date" et "Libellé" introuvables')
+    const missing = [dateIdx === -1 ? 'Date' : '', labelIdx === -1 ? 'Libellé' : ''].filter(Boolean).join(' et ')
+    throw new Error(`Format CSV non reconnu : colonne ${missing} introuvable. Colonnes détectées : ${headers.join(', ')}`)
   }
   if (amountIdx === -1 && debitIdx === -1 && creditIdx === -1) {
-    throw new Error('Format CSV non reconnu : colonne "Montant" ou "Débit/Crédit" introuvable')
+    throw new Error(`Format CSV non reconnu : colonne "Montant" ou "Débit/Crédit" introuvable. Colonnes détectées : ${headers.join(', ')}`)
   }
 
   const transactions: ParsedTransaction[] = []
