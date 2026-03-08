@@ -12,7 +12,7 @@ export async function GET(
   { params }: { params: Promise<{ token: string }> }
 ) {
   const { token } = await params
-  const adminClient = await getSupabaseAdminClient()
+  const adminClient = getSupabaseAdminClient()
 
   // Récupérer l'invitation avec les infos du propriétaire
   // Note: Cast nécessaire car les types Supabase ne sont pas encore régénérés
@@ -81,7 +81,7 @@ export async function POST(
 ) {
   const { token } = await params
   const supabase = await createClient()
-  const adminClient = await getSupabaseAdminClient()
+  const adminClient = getSupabaseAdminClient()
 
   // Vérifier si l'utilisateur est connecté
   const {
@@ -141,7 +141,7 @@ export async function POST(
     .eq('member_user_id', user.id)
     .eq('invitation_status', 'accepted')
     .eq('is_active', true)
-    .single() as { data: { id: string; owner_id: string } | null; error: any }
+    .maybeSingle() as { data: { id: string; owner_id: string } | null; error: any }
 
   if (existingMembership) {
     return NextResponse.json(

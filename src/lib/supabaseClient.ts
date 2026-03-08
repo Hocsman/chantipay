@@ -9,6 +9,7 @@
  */
 
 import { createBrowserClient, createServerClient } from '@supabase/ssr';
+import { createClient as createSupabaseJsClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import type { Database } from '@/types/database';
 
@@ -116,15 +117,13 @@ export async function getSupabaseServerClient() {
  * import { getSupabaseAdminClient } from '@/lib/supabaseClient';
  *
  * export async function POST(request: Request) {
- *   const supabase = await getSupabaseAdminClient();
+ *   const supabase = getSupabaseAdminClient();
  *   // TODO: Perform admin operations with caution
  *   // This bypasses RLS policies!
  * }
  * ```
  */
-export async function getSupabaseAdminClient() {
-  const cookieStore = await cookies();
-
+export function getSupabaseAdminClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -134,20 +133,10 @@ export async function getSupabaseAdminClient() {
     );
   }
 
-  return createServerClient<Database>(supabaseUrl, supabaseServiceRoleKey, {
-    cookies: {
-      getAll() {
-        return cookieStore.getAll();
-      },
-      setAll(cookiesToSet) {
-        try {
-          cookiesToSet.forEach(({ name, value, options }) =>
-            cookieStore.set(name, value, options)
-          );
-        } catch {
-          // Ignore cookie setting errors in Server Components
-        }
-      },
+  return createSupabaseJsClient<Database>(supabaseUrl, supabaseServiceRoleKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
     },
   });
 }

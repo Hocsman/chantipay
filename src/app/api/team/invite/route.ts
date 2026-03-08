@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
     .select('id, invitation_status')
     .eq('owner_id', user.id)
     .eq('email', email.toLowerCase())
-    .single() as { data: { id: string; invitation_status: string } | null; error: any }
+    .maybeSingle() as { data: { id: string; invitation_status: string } | null; error: any }
 
   if (existing && existing.invitation_status === 'accepted') {
     return NextResponse.json(
