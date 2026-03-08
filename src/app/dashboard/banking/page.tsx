@@ -8,6 +8,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
+import { Input } from '@/components/ui/input'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import {
   Landmark,
   Upload,
@@ -18,9 +20,13 @@ import {
   ArrowUpRight,
   ArrowDownLeft,
   Info,
+  Link2,
+  Unlink,
+  Search,
 } from 'lucide-react'
 import Link from 'next/link'
 import { toast } from 'sonner'
+import { createClient } from '@/lib/supabase/client'
 
 // ============================================
 // Types
@@ -61,6 +67,13 @@ interface ImportResult {
   message?: string
 }
 
+interface UnpaidInvoice {
+  id: string
+  invoice_number: string
+  client_name: string
+  total: number
+}
+
 // ============================================
 // Page
 // ============================================
@@ -74,6 +87,13 @@ function BankingPage() {
   const [filter, setFilter] = useState<'all' | 'matched' | 'unmatched'>('all')
   const [isDragOver, setIsDragOver] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Rapprochement manuel
+  const [matchDialogTx, setMatchDialogTx] = useState<BankTransaction | null>(null)
+  const [unpaidInvoices, setUnpaidInvoices] = useState<UnpaidInvoice[]>([])
+  const [invoiceSearch, setInvoiceSearch] = useState('')
+  const [isLoadingInvoices, setIsLoadingInvoices] = useState(false)
+  const [isReconciling, setIsReconciling] = useState<string | null>(null)
 
   const formatCurrency = (amount: number) =>
     new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(amount)
@@ -157,6 +177,104 @@ function BankingPage() {
     const file = e.dataTransfer.files[0]
     if (file) handleFileUpload(file)
   }
+
+  // ============================================
+  // Rapprochement manuel
+  // ============================================
+
+  const openMatchDialog = async (tx: BankTransaction) => {
+    setMatchDialogTx(tx)
+    setInvoiceSearch('')
+    setIsLoadingInvoices(true)
+
+    try {
+      const supabase = createClient()
+      const { data } = await supabase
+        .from('invoices')
+        .select('id, invoice_number, client_name, total')
+        .in('payment_status', ['sent', 'overdue'])
+        .order('created_at', { ascending: false })
+        .limit(50)
+
+      setUnpaidInvoices(data || [])
+    } catch {
+      setUnpaidInvoices([])
+    } finally {
+      setIsLoadingInvoices(false)
+    }
+  }
+
+  const handleManualMatch = async (invoiceId: string) => {
+    if (!matchDialogTx) return
+    setIsReconciling(invoiceId)
+
+    try {
+      const res = await fetch('/api/banking/reconcile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'match',
+          transactionId: matchDialogTx.id,
+          invoiceId,
+        }),
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        toast.error(data.error || 'Erreur lors du rapprochement')
+        return
+      }
+
+      toast.success(data.message || 'Transaction rapprochée')
+      setMatchDialogTx(null)
+      loadTransactions()
+    } catch {
+      toast.error('Erreur lors du rapprochement')
+    } finally {
+      setIsReconciling(null)
+    }
+  }
+
+  const handleUnmatch = async (tx: BankTransaction) => {
+    setIsReconciling(tx.id)
+
+    try {
+      const res = await fetch('/api/banking/reconcile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'unmatch',
+          transactionId: tx.id,
+        }),
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        toast.error(data.error || 'Erreur lors du dé-rapprochement')
+        return
+      }
+
+      toast.success('Rapprochement supprimé')
+      loadTransactions()
+    } catch {
+      toast.error('Erreur lors du dé-rapprochement')
+    } finally {
+      setIsReconciling(null)
+    }
+  }
+
+  // Filtrer les factures dans le dialog
+  const filteredInvoices = unpaidInvoices.filter((inv) => {
+    if (!invoiceSearch) return true
+    const q = invoiceSearch.toLowerCase()
+    return (
+      inv.invoice_number.toLowerCase().includes(q) ||
+      inv.client_name.toLowerCase().includes(q) ||
+      inv.total.toString().includes(q)
+    )
+  })
 
   return (
     <LayoutContainer>
@@ -303,10 +421,10 @@ function BankingPage() {
                 {/* Header */}
                 <div className="hidden sm:grid grid-cols-12 gap-2 px-3 py-2 text-xs font-medium text-muted-foreground uppercase">
                   <div className="col-span-2">Date</div>
-                  <div className="col-span-4">Libellé</div>
+                  <div className="col-span-3">Libellé</div>
                   <div className="col-span-2 text-right">Montant</div>
                   <div className="col-span-3">Facture</div>
-                  <div className="col-span-1">Statut</div>
+                  <div className="col-span-2 text-right">Action</div>
                 </div>
                 <Separator />
 
@@ -338,7 +456,7 @@ function BankingPage() {
                       </div>
 
                       {/* Libellé */}
-                      <div className="sm:col-span-4 truncate" title={tx.label}>
+                      <div className="sm:col-span-3 truncate" title={tx.label}>
                         {tx.label}
                         {tx.reference && (
                           <span className="ml-2 text-xs text-muted-foreground">
@@ -366,24 +484,45 @@ function BankingPage() {
                             <span className="text-muted-foreground text-xs">— {tx.invoice.client_name}</span>
                           </Link>
                         ) : tx.amount > 0 ? (
-                          <span className="text-xs text-muted-foreground">Non rapprochée</span>
+                          <span className="text-xs text-muted-foreground italic">Non rapprochée</span>
                         ) : (
                           <span className="text-xs text-muted-foreground">—</span>
                         )}
                       </div>
 
-                      {/* Statut */}
-                      <div className="sm:col-span-1">
+                      {/* Action */}
+                      <div className="sm:col-span-2 flex items-center justify-end gap-1">
                         {tx.invoice_id ? (
-                          <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50 dark:bg-green-950/30 text-[10px]">
-                            <CheckCircle2 className="h-3 w-3 mr-0.5" />
-                            OK
-                          </Badge>
+                          <>
+                            <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50 dark:bg-green-950/30 text-[10px]">
+                              <CheckCircle2 className="h-3 w-3 mr-0.5" />
+                              {tx.reconciled_method === 'manual' ? 'Manuel' : 'Auto'}
+                            </Badge>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 w-7 p-0 text-muted-foreground hover:text-red-500"
+                              onClick={() => handleUnmatch(tx)}
+                              disabled={isReconciling === tx.id}
+                              title="Délier cette facture"
+                            >
+                              {isReconciling === tx.id ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              ) : (
+                                <Unlink className="h-3.5 w-3.5" />
+                              )}
+                            </Button>
+                          </>
                         ) : tx.amount > 0 ? (
-                          <Badge variant="outline" className="text-amber-600 border-amber-200 bg-amber-50 dark:bg-amber-950/30 text-[10px]">
-                            <AlertCircle className="h-3 w-3 mr-0.5" />
-                            ?
-                          </Badge>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 text-xs"
+                            onClick={() => openMatchDialog(tx)}
+                          >
+                            <Link2 className="h-3 w-3 mr-1" />
+                            Lier
+                          </Button>
                         ) : null}
                       </div>
                     </div>
@@ -408,12 +547,96 @@ function BankingPage() {
                 </ol>
                 <p className="mt-2">
                   Les factures dont le montant correspond exactement à une transaction seront automatiquement marquées comme payées.
+                  Vous pouvez aussi lier manuellement une transaction à une facture.
                 </p>
               </div>
             </CardContent>
           </Card>
         )}
       </div>
+
+      {/* Dialog de rapprochement manuel */}
+      <Dialog open={!!matchDialogTx} onOpenChange={(open) => !open && setMatchDialogTx(null)}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Lier à une facture</DialogTitle>
+          </DialogHeader>
+
+          {matchDialogTx && (
+            <div className="space-y-4">
+              {/* Info transaction */}
+              <div className="rounded-lg border p-3 bg-muted/50 text-sm space-y-1">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Transaction</span>
+                  <span className="font-medium text-green-600">+{formatCurrency(matchDialogTx.amount)}</span>
+                </div>
+                <p className="text-xs text-muted-foreground truncate">{matchDialogTx.label}</p>
+                <p className="text-xs text-muted-foreground">{formatDate(matchDialogTx.transaction_date)}</p>
+              </div>
+
+              {/* Recherche */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Rechercher par n° facture, client ou montant..."
+                  value={invoiceSearch}
+                  onChange={(e) => setInvoiceSearch(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+
+              {/* Liste des factures */}
+              <div className="max-h-64 overflow-y-auto space-y-1">
+                {isLoadingInvoices ? (
+                  <div className="flex justify-center py-6">
+                    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                  </div>
+                ) : filteredInvoices.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-6">
+                    Aucune facture non payée trouvée
+                  </p>
+                ) : (
+                  filteredInvoices.map((inv) => {
+                    const amountMatch = Math.abs(inv.total - matchDialogTx.amount) <= 0.01
+                    return (
+                      <button
+                        key={inv.id}
+                        className={`w-full flex items-center justify-between gap-2 rounded-lg border p-3 text-sm text-left transition-colors hover:bg-muted/50 ${
+                          amountMatch ? 'border-green-200 bg-green-50/50 dark:bg-green-950/20' : ''
+                        }`}
+                        onClick={() => handleManualMatch(inv.id)}
+                        disabled={isReconciling === inv.id}
+                      >
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                            <span className="font-medium">{inv.invoice_number}</span>
+                            {amountMatch && (
+                              <Badge variant="outline" className="text-green-600 border-green-200 text-[10px]">
+                                Montant exact
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-xs text-muted-foreground truncate ml-5.5">{inv.client_name}</p>
+                        </div>
+                        <div className="text-right shrink-0">
+                          {isReconciling === inv.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <span className={`font-medium ${amountMatch ? 'text-green-600' : ''}`}>
+                              {formatCurrency(inv.total)}
+                            </span>
+                          )}
+                        </div>
+                      </button>
+                    )
+                  })
+                )}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </LayoutContainer>
   )
 }
